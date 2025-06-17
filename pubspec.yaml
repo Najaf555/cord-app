@@ -1,4 +1,4 @@
-name: sessionate
+name: Cord
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -80,6 +80,8 @@ flutter:
   # example:
   assets:
     - assets/images/
+    - assets/images/social_logos.png
+    - assets/images/social_logos_combined.png
 
   fonts:
     - family: Inter

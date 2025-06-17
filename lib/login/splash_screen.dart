@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:lottie/lottie.dart';
-import 'login.dart';
-
+import 'login_view.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -31,15 +29,8 @@ class _SplashScreenState extends State<SplashScreen> {
             Image.asset('assets/images/logo.png', width: 120, height: 120),
             const SizedBox(height: 16),
             const Text(
-              'Sessionate',
+              "",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Lottie.asset(
-              'assets/animations/music.json',
-              width: 100,
-              height: 100,
-              fit: BoxFit.contain,
             ),
           ],
         ),

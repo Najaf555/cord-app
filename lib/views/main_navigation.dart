@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sessionate/views/session_detail_view.dart';
+import 'package:Cord/views/session_detail_view.dart';
 import '../controllers/navigation_controller.dart';
 import 'sessions_view.dart';
 import 'settings_view.dart';

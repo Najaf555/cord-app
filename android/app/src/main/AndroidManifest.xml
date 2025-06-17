@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="sessionate"
+        android:label="Cord"
         android:name="${applicationName}"
         android:icon="@mipmap/sessionate_logo">
         <activity

@@ -1,4 +1,4 @@
-import 'package:sessionate/models/user.dart';
+import 'package:Cord/models/user.dart';
 
 class Recording {
   final String id;

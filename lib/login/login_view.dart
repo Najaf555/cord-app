@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../views/main_navigation.dart';
+import '../login/signup.dart'; // <-- Make sure this path is correct
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,15 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void _login() {
     if (_formKey.currentState!.validate()) {
       Get.off(() => MainNavigation());
-    }
-  }
-
-  void _openUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    } else {
-      Get.snackbar("Error", "Could not launch $url");
     }
   }
 
@@ -117,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Sign In button - red border, black text, no rounded corners
+                  // Sign In button
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
@@ -148,29 +139,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
 
-                  // Social Icons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        icon: Image.asset('assets/icons/google.png', width: 32, height: 32),
-                        onPressed: () => _openUrl('https://accounts.google.com/'),
-                      ),
-                      const SizedBox(width: 16),
-                      IconButton(
-                        icon: Image.asset('assets/icons/facebook.png', width: 32, height: 32),
-                        onPressed: () => _openUrl('https://facebook.com/'),
-                      ),
-                      const SizedBox(width: 16),
-                      IconButton(
-                        icon: Image.asset('assets/icons/apple.png', width: 32, height: 32),
-                        onPressed: () => _openUrl('https://appleid.apple.com/'),
-                      ),
-                    ],
+                  // Combined social logos image
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Image.asset(
+                      'assets/images/social_logos.png',
+                      width: 180,
+                      height: 40,
+                      fit: BoxFit.contain,
+                    ),
                   ),
-
                   const SizedBox(height: 24),
 
                   // Bottom Sign Up link
@@ -180,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const Text("Don't have an account?"),
                       TextButton(
                         onPressed: () {
-                          // TODO: Navigate to Sign Up
+                          Get.to(() => const SignUpScreen());
                         },
                         child: const Text('Sign Up'),
                       ),

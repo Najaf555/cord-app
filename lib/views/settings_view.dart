@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart'; // Import GetX
-import 'notifications_view.dart'; // Import your notification screen
+import 'package:get/get.dart';                     // GetX
+import 'notifications_view.dart';                 // Notifications screen
+import 'user_profile_view.dart';                  // ✅ ➊ User-profile screen
+import 'change_password_view.dart';               // ✅ ➋ Change-password screen
+import '../views/contact_view.dart';                 // ✅ ➌ Corrected Contact screen import
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
@@ -39,10 +42,7 @@ class SettingsView extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Welcome,',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
+                          Text('Welcome,', style: TextStyle(fontSize: 16, color: Colors.grey)),
                           Text(
                             'Mark Jones',
                             style: TextStyle(
@@ -64,29 +64,50 @@ class SettingsView extends StatelessWidget {
                 child: Divider(color: Color(0xFFE0E0E0), thickness: 1),
               ),
 
-              _settingsTile(title: 'User Profile', icon: Icons.person, onTap: () {}), _divider(),
+              // ✅ Navigate to UserProfileView
+              _settingsTile(
+                title: 'User Profile',
+                icon: Icons.person,
+                onTap: () => Get.to(() => const UserProfileView()),
+              ),
+              _divider(),
 
-              _settingsTile(title: 'Change Password', icon: Icons.lock, onTap: () {}, forceBlackIcon: true), _divider(),
+              // ✅ Navigate to ChangePasswordView
+              _settingsTile(
+                title: 'Change Password',
+                icon: Icons.lock,
+                onTap: () => Get.to(() => const ChangePasswordView()),
+                forceBlackIcon: true,
+              ),
+              _divider(),
 
-              _settingsTile(title: 'FAQs', icon: Icons.help_outline, onTap: () {}), _divider(),
+              _settingsTile(title: 'FAQs', icon: Icons.help_outline, onTap: () {}),
+              _divider(),
 
-              // ✅ Notifications with Get.to()
               _settingsTile(
                 title: 'Notifications',
                 icon: Icons.notifications,
-                onTap: () {
-                  Get.to(() => const NotificationsView());
-                },
+                onTap: () => Get.to(() => const NotificationsView()),
                 forceBlackIcon: true,
-              ), _divider(),
+              ),
+              _divider(),
 
-              _settingsTile(title: 'Contact Us', icon: Icons.mail_outline, onTap: () {}), _divider(),
+              // ✅ Navigate to ContactView
+              _settingsTile(
+                title: 'Contact Us',
+                icon: Icons.mail_outline,
+                onTap: () => Get.to(() =>  ContactUsScreen()),
+                forceBlackIcon: true,
+              ),
+              _divider(),
             ],
           ),
         ),
       ),
     );
   }
+
+  // ────────────────────────── helpers ──────────────────────────
 
   Widget _settingsTile({
     required String title,
@@ -120,11 +141,10 @@ class SettingsView extends StatelessWidget {
     );
   }
 
-  Widget _divider() {
-    return const Divider(
-      color: Color(0xFFE0E0E0),
-      thickness: 1,
-      height: 1,
-    );
-  }
+  Widget _divider() => const Divider(
+        color: Color(0xFFE0E0E0),
+        thickness: 1,
+        height: 1,
+      );
 }
+

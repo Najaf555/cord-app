@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
-  const CustomBottomNavigationBar({super.key});
+  const CustomBottomNavigationBar({super.key, required Null Function(dynamic index) onTabSelected});
 
   @override
   Widget build(BuildContext context) {

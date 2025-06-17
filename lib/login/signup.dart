@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import '../views/sessions_view.dart'; 
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({Key? key}) : super(key: key);
+  const SignUpScreen({super.key});
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -23,8 +24,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 16),
-              
-              // Back button
               Align(
                 alignment: Alignment.centerLeft,
                 child: IconButton(
@@ -40,10 +39,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   constraints: const BoxConstraints(),
                 ),
               ),
-              
               const SizedBox(height: 40),
-              
-              // Logo/Brand
               const Text(
                 'cord',
                 style: TextStyle(
@@ -53,10 +49,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   letterSpacing: -1.5,
                 ),
               ),
-              
               const SizedBox(height: 16),
-              
-              // Tagline
               const Text(
                 'Your one-stop music hub - no more\njuggling multiple apps, just create',
                 textAlign: TextAlign.center,
@@ -66,10 +59,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   height: 1.4,
                 ),
               ),
-              
               const SizedBox(height: 50),
-              
-              // Create account heading
               const Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -81,10 +71,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
               ),
-              
               const SizedBox(height: 20),
-              
-              // Email field
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -106,18 +93,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     borderRadius: BorderRadius.circular(6),
                     borderSide: const BorderSide(color: Colors.black, width: 1),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   filled: true,
                   fillColor: Colors.white,
                 ),
               ),
-              
               const SizedBox(height: 12),
-              
-              // Password field
               TextField(
                 controller: _passwordController,
                 obscureText: true,
@@ -139,18 +120,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     borderRadius: BorderRadius.circular(6),
                     borderSide: const BorderSide(color: Colors.black, width: 1),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   filled: true,
                   fillColor: Colors.white,
                 ),
               ),
-              
               const SizedBox(height: 12),
-              
-              // Confirm Password field
               TextField(
                 controller: _confirmPasswordController,
                 obscureText: true,
@@ -172,35 +147,36 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     borderRadius: BorderRadius.circular(6),
                     borderSide: const BorderSide(color: Colors.black, width: 1),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                   filled: true,
                   fillColor: Colors.white,
                 ),
               ),
-              
               const SizedBox(height: 24),
-              
-              // Next button with pink border
               Container(
                 width: double.infinity,
                 height: 48,
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: const Color(0xFFFF6B6B), // Pink/salmon color
+                    color: const Color(0xFFFF6B6B),
                     width: 1.5,
                   ),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: TextButton(
                   onPressed: () {
-                    // Handle sign up
                     if (_passwordController.text == _confirmPasswordController.text) {
-                      // Proceed with sign up
+                      final email = _emailController.text.trim();
+                      final password = _passwordController.text.trim();
+                      print('Creating account for: $email with password: $password');
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SessionsView(),
+                        ),
+                      );
                     } else {
-                      // Show password mismatch error
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Passwords do not match'),
@@ -225,10 +201,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
               ),
-              
               const SizedBox(height: 40),
-              
-              // Or sign up with
               const Text(
                 'Or sign up with',
                 style: TextStyle(
@@ -236,88 +209,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   color: Colors.grey,
                 ),
               ),
-              
-              const SizedBox(height: 20),
-              
-              // Social login buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Google
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        // Handle Google sign up
-                      },
-                      icon: const Text(
-                        'G',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red,
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(width: 16),
-                  
-                  // Facebook
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        // Handle Facebook sign up
-                      },
-                      icon: const Text(
-                        'f',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ),
-                  
-                  const SizedBox(width: 16),
-                  
-                  // Apple
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        // Handle Apple sign up
-                      },
-                      icon: const Icon(
-                        Icons.apple,
-                        size: 22,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 12),
+              Image.asset(
+                '/assets/images/social_logos.png',
+                height: 40,
+                fit: BoxFit.contain,
               ),
-              
+              const SizedBox(height: 20),
               const Spacer(),
-              
-              // Login text
               Padding(
                 padding: const EdgeInsets.only(bottom: 30),
                 child: Row(

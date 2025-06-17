@@ -2,12 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_detail_controller.dart';
-import '../models/user.dart';
-import '../models/recording.dart';
-import '../controllers/navigation_controller.dart';
 
 class SessionDetailView extends StatefulWidget {
-  SessionDetailView({super.key});
+  const SessionDetailView({super.key});
 
 
   @override

@@ -77,7 +77,7 @@ class _NotificationsViewState extends State<NotificationsView> {
       ),
 
       // ✅ No FAB here
-      bottomNavigationBar: const CustomBottomNavigationBar(),
+      bottomNavigationBar: CustomBottomNavigationBar(onTabSelected: (index) {  },),
     );
   }
 
