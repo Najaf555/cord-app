@@ -1,10 +1,8 @@
-import 'package:Cord/models/user.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_controller.dart';
 import '../controllers/navigation_controller.dart';
-import '../widgets/custom_bottom_navigation_bar.dart';
-import 'settings_view.dart'; // ✅ Import the settings screen
+// ✅ Import the settings screen
 
 class SessionsView extends StatefulWidget {
   const SessionsView({super.key});
@@ -23,7 +21,6 @@ class _SessionsViewState extends State<SessionsView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: CustomBottomNavigationBar(onTabSelected: (index) {  },),
       body: Stack(
         children: [
           SafeArea(
@@ -46,12 +43,6 @@ class _SessionsViewState extends State<SessionsView> {
                       ),
                       Row(
                         children: [
-                          IconButton(
-                            icon: const Icon(Icons.settings, color: Color(0xFF2F80ED), size: 28),
-                            onPressed: () {
-                              Get.to(() => const SettingsView()); // ✅ Navigate to Settings
-                            },
-                          ),
                           Stack(
                             children: [
                               IconButton(
@@ -126,15 +117,15 @@ class _SessionsViewState extends State<SessionsView> {
                         },
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: const BorderSide(color: Color(0xFFE0E0E0), width: 2),
+                          side: const BorderSide(color: Color(0xFFFF6B6B), width: 2),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(0),
                           ),
                           backgroundColor: Colors.white,
                         ),
                         child: const Text(
                           'Create Session',
-                          style: TextStyle(fontSize: 22, color: Color(0xFF222222), fontWeight: FontWeight.w800),
+                          style: TextStyle(fontSize: 22, color: Color(0xFF000000), fontWeight: FontWeight.w800),
                         ),
                       ),
                     ),
@@ -201,7 +192,7 @@ class _SessionsViewState extends State<SessionsView> {
                                                 padding: const EdgeInsets.symmetric(horizontal: 2.0),
                                                 child: CircleAvatar(
                                                   radius: 18,
-                                                  backgroundImage: NetworkImage((user as User).avatarUrl),
+                                                  backgroundImage: NetworkImage((user).avatarUrl),
 
                                                   backgroundColor: Colors.white,
                                                 ),
@@ -233,6 +224,7 @@ class _SessionsViewState extends State<SessionsView> {
             Positioned(
               right: 16,
               top: 70,
+              bottom: 0,
               child: Material(
                 elevation: 6,
                 borderRadius: BorderRadius.circular(8),
@@ -249,17 +241,23 @@ class _SessionsViewState extends State<SessionsView> {
                       const Text("🔔 Notifications", style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
                       const Divider(),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text("New session created"),
-                        subtitle: const Text("Free Falling v2", style: TextStyle(fontSize: 12)),
-                        onTap: () {},
-                      ),
-                      ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text("Recording uploaded"),
-                        subtitle: const Text("By user A", style: TextStyle(fontSize: 12)),
-                        onTap: () {},
+                      Expanded(
+                        child: ListView(
+                          children: [
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text("New session created"),
+                              subtitle: const Text("Free Falling v2", style: TextStyle(fontSize: 12)),
+                              onTap: () {},
+                            ),
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text("Recording uploaded"),
+                              subtitle: const Text("By user A", style: TextStyle(fontSize: 12)),
+                              onTap: () {},
+                            ),
+                          ],
+                        ),
                       ),
                       TextButton(
                         onPressed: () {

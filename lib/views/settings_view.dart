@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:get/get.dart';                     // GetX
-import 'notifications_view.dart';                 // Notifications screen
-import 'user_profile_view.dart';                  // ✅ ➊ User-profile screen
-import 'change_password_view.dart';               // ✅ ➋ Change-password screen
-import '../views/contact_view.dart';                 // ✅ ➌ Corrected Contact screen import
+import 'package:get/get.dart'; // GetX
+import 'notifications_view.dart'; // Notifications screen
+import 'user_profile_view.dart'; // ✅ ➊ User-profile screen
+import 'change_password_view.dart'; // ✅ ➋ Change-password screen
+import '../views/contact_view.dart'; // ✅ ➌ Corrected Contact screen import
+import 'faqs_view.dart'; // ✅ ➍ FAQs screen import added
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
@@ -42,7 +43,10 @@ class SettingsView extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Welcome,', style: TextStyle(fontSize: 16, color: Colors.grey)),
+                          Text(
+                            'Welcome,',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
                           Text(
                             'Mark Jones',
                             style: TextStyle(
@@ -54,7 +58,11 @@ class SettingsView extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 20),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.grey,
+                      size: 20,
+                    ),
                   ],
                 ),
               ),
@@ -64,7 +72,6 @@ class SettingsView extends StatelessWidget {
                 child: Divider(color: Color(0xFFE0E0E0), thickness: 1),
               ),
 
-              // ✅ Navigate to UserProfileView
               _settingsTile(
                 title: 'User Profile',
                 icon: Icons.person,
@@ -72,7 +79,6 @@ class SettingsView extends StatelessWidget {
               ),
               _divider(),
 
-              // ✅ Navigate to ChangePasswordView
               _settingsTile(
                 title: 'Change Password',
                 icon: Icons.lock,
@@ -81,7 +87,15 @@ class SettingsView extends StatelessWidget {
               ),
               _divider(),
 
-              _settingsTile(title: 'FAQs', icon: Icons.help_outline, onTap: () {}),
+              // ✅ Updated FAQs navigation
+              _settingsTile(
+                title: 'FAQs',
+                icon: Icons.help_outline,
+                onTap:
+                    () => Get.to(
+                      () => const FAQScreen(),
+                    ), // ← Navigates to FAQsView
+              ),
               _divider(),
 
               _settingsTile(
@@ -92,11 +106,10 @@ class SettingsView extends StatelessWidget {
               ),
               _divider(),
 
-              // ✅ Navigate to ContactView
               _settingsTile(
                 title: 'Contact Us',
                 icon: Icons.mail_outline,
-                onTap: () => Get.to(() =>  ContactUsScreen()),
+                onTap: () => Get.to(() => ContactUsScreen()),
                 forceBlackIcon: true,
               ),
               _divider(),
@@ -141,10 +154,6 @@ class SettingsView extends StatelessWidget {
     );
   }
 
-  Widget _divider() => const Divider(
-        color: Color(0xFFE0E0E0),
-        thickness: 1,
-        height: 1,
-      );
+  Widget _divider() =>
+      const Divider(color: Color(0xFFE0E0E0), thickness: 1, height: 1);
 }
-
