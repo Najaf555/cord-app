@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_detail_controller.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 class SessionDetailView extends StatefulWidget {
   const SessionDetailView({super.key});
@@ -91,98 +92,108 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                       ),
                                       child: Padding(
                                         padding: const EdgeInsets.all(20.0),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Text(
-                                              'Edit Session Name',
-                                              style: TextStyle(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.black,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 20),
-                                            TextField(
-                                              decoration: InputDecoration(
-                                                hintText: 'Session Name',
-                                                hintStyle: TextStyle(
-                                                  color: Colors.grey[400],
-                                                  fontSize: 14,
+                                        child: SingleChildScrollView(
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Text(
+                                                'Edit Session Name',
+                                                style: TextStyle(
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.black,
                                                 ),
-                                                border: OutlineInputBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(0),
-                                                  borderSide: BorderSide(
-                                                    color: Colors.grey[300]!,
-                                                    width: 1,
+                                              ),
+                                              const SizedBox(height: 20),
+                                              TextField(
+                                                decoration: InputDecoration(
+                                                  hintText: 'Session Name',
+                                                  hintStyle: TextStyle(
+                                                    color: Colors.grey[400],
+                                                    fontSize: 14,
                                                   ),
-                                                ),
-                                                enabledBorder:
-                                                    OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            0,
-                                                          ),
-                                                      borderSide: BorderSide(
-                                                        color:
-                                                            Colors.grey[300]!,
-                                                        width: 1,
-                                                      ),
-                                                    ),
-                                                focusedBorder:
-                                                    OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            0,
-                                                          ),
-                                                      borderSide:
-                                                          const BorderSide(
-                                                            color: Colors.black,
-                                                            width: 1,
-                                                          ),
-                                                    ),
-                                                contentPadding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 14,
-                                                      vertical: 14,
-                                                    ),
-                                                filled: true,
-                                                fillColor: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 20),
-                                            SizedBox(
-                                              width: double.infinity,
-                                              height: 48,
-                                              child: ElevatedButton(
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-                                                },
-                                                style: ElevatedButton.styleFrom(
-                                                  backgroundColor: Colors.white,
-                                                  foregroundColor: Colors.black,
-                                                  shape: RoundedRectangleBorder(
+                                                  border: OutlineInputBorder(
                                                     borderRadius:
                                                         BorderRadius.circular(
                                                           0,
                                                         ),
-                                                    side: const BorderSide(
-                                                      color: Color(0xFFFF6B6B),
-                                                      width: 1.5,
+                                                    borderSide: BorderSide(
+                                                      color: Colors.grey[300]!,
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  enabledBorder:
+                                                      OutlineInputBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              0,
+                                                            ),
+                                                        borderSide: BorderSide(
+                                                          color:
+                                                              Colors.grey[300]!,
+                                                          width: 1,
+                                                        ),
+                                                      ),
+                                                  focusedBorder:
+                                                      OutlineInputBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              0,
+                                                            ),
+                                                        borderSide:
+                                                            const BorderSide(
+                                                              color:
+                                                                  Colors.black,
+                                                              width: 1,
+                                                            ),
+                                                      ),
+                                                  contentPadding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 14,
+                                                        vertical: 14,
+                                                      ),
+                                                  filled: true,
+                                                  fillColor: Colors.white,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 20),
+                                              SizedBox(
+                                                width: double.infinity,
+                                                height: 48,
+                                                child: ElevatedButton(
+                                                  onPressed: () {
+                                                    Navigator.pop(context);
+                                                  },
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor:
+                                                        Colors.white,
+                                                    foregroundColor:
+                                                        Colors.black,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            0,
+                                                          ),
+                                                      side: const BorderSide(
+                                                        color: Color(
+                                                          0xFFFF6B6B,
+                                                        ),
+                                                        width: 1.5,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  child: const Text(
+                                                    'Save',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                                     ),
                                                   ),
                                                 ),
-                                                child: const Text(
-                                                  'Save',
-                                                  style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     );
@@ -317,268 +328,190 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                         ),
                                         child: Padding(
                                           padding: const EdgeInsets.all(20.0),
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  const Text(
-                                                    'Invite users by email',
-                                                    style: TextStyle(
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.black,
-                                                    ),
-                                                  ),
-                                                  TextButton(
-                                                    onPressed:
-                                                        () => Navigator.pop(
-                                                          context,
-                                                        ),
-                                                    child: const Text(
-                                                      'Done',
+                                          child: SingleChildScrollView(
+                                            child: Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    const Text(
+                                                      'Invite users by email',
                                                       style: TextStyle(
-                                                        color: Color(
-                                                          0xFF2F80ED,
+                                                        fontSize: 20,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                    TextButton(
+                                                      onPressed:
+                                                          () => Navigator.pop(
+                                                            context,
+                                                          ),
+                                                      child: const Text(
+                                                        'Done',
+                                                        style: TextStyle(
+                                                          color: Color(
+                                                            0xFF2F80ED,
+                                                          ),
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w500,
                                                         ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 20),
+                                                TextField(
+                                                  decoration: InputDecoration(
+                                                    hintText: 'Email Address',
+                                                    hintStyle: TextStyle(
+                                                      color: Colors.grey[400],
+                                                      fontSize: 14,
+                                                    ),
+                                                    border: OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            0,
+                                                          ),
+                                                      borderSide: BorderSide(
+                                                        color:
+                                                            Colors.grey[300]!,
+                                                        width: 1,
+                                                      ),
+                                                    ),
+                                                    enabledBorder:
+                                                        OutlineInputBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                0,
+                                                              ),
+                                                          borderSide: BorderSide(
+                                                            color:
+                                                                Colors
+                                                                    .grey[300]!,
+                                                            width: 1,
+                                                          ),
+                                                        ),
+                                                    focusedBorder:
+                                                        OutlineInputBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                0,
+                                                              ),
+                                                          borderSide:
+                                                              const BorderSide(
+                                                                color:
+                                                                    Colors
+                                                                        .black,
+                                                                width: 1,
+                                                              ),
+                                                        ),
+                                                    contentPadding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 14,
+                                                          vertical: 14,
+                                                        ),
+                                                    filled: true,
+                                                    fillColor: Colors.white,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 20),
+                                                SizedBox(
+                                                  width: double.infinity,
+                                                  height: 48,
+                                                  child: ElevatedButton(
+                                                    onPressed: () {
+                                                      // Handle invite action
+                                                      Navigator.pop(context);
+                                                    },
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor:
+                                                          Colors.white,
+                                                      foregroundColor:
+                                                          Colors.black,
+                                                      shape: RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              0,
+                                                            ),
+                                                        side: const BorderSide(
+                                                          color: Color(
+                                                            0xFFFF6B6B,
+                                                          ),
+                                                          width: 1.5,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    child: const Text(
+                                                      'Invite',
+                                                      style: TextStyle(
                                                         fontSize: 16,
                                                         fontWeight:
                                                             FontWeight.w500,
                                                       ),
                                                     ),
                                                   ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 20),
-                                              TextField(
-                                                decoration: InputDecoration(
-                                                  hintText: 'Email Address',
-                                                  hintStyle: TextStyle(
-                                                    color: Colors.grey[400],
-                                                    fontSize: 14,
-                                                  ),
-                                                  border: OutlineInputBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          0,
-                                                        ),
-                                                    borderSide: BorderSide(
-                                                      color: Colors.grey[300]!,
-                                                      width: 1,
-                                                    ),
-                                                  ),
-                                                  enabledBorder:
-                                                      OutlineInputBorder(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              0,
-                                                            ),
-                                                        borderSide: BorderSide(
-                                                          color:
-                                                              Colors.grey[300]!,
-                                                          width: 1,
-                                                        ),
-                                                      ),
-                                                  focusedBorder:
-                                                      OutlineInputBorder(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              0,
-                                                            ),
-                                                        borderSide:
-                                                            const BorderSide(
-                                                              color:
-                                                                  Colors.black,
-                                                              width: 1,
-                                                            ),
-                                                      ),
-                                                  contentPadding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 14,
-                                                        vertical: 14,
-                                                      ),
-                                                  filled: true,
-                                                  fillColor: Colors.white,
                                                 ),
-                                              ),
-                                              const SizedBox(height: 20),
-                                              SizedBox(
-                                                width: double.infinity,
-                                                height: 48,
-                                                child: ElevatedButton(
-                                                  onPressed: () {
-                                                    // Handle invite action
-                                                    Navigator.pop(context);
-                                                  },
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor:
-                                                        Colors.white,
-                                                    foregroundColor:
-                                                        Colors.black,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            0,
-                                                          ),
-                                                      side: const BorderSide(
-                                                        color: Color(
-                                                          0xFFFF6B6B,
-                                                        ),
-                                                        width: 1.5,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  child: const Text(
-                                                    'Invite',
-                                                    style: TextStyle(
-                                                      fontSize: 16,
+                                                const SizedBox(height: 16),
+                                                Align(
+                                                  alignment:
+                                                      Alignment.centerLeft,
+                                                  child: Text(
+                                                    'Preview Users',
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
+                                                      color: Color(0xFF222222),
                                                       fontWeight:
                                                           FontWeight.w500,
                                                     ),
                                                   ),
                                                 ),
-                                              ),
-                                              const SizedBox(height: 16),
-                                              Align(
-                                                alignment: Alignment.centerLeft,
-                                                child: Text(
-                                                  'Preview Users',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Color(0xFF222222),
-                                                    fontWeight: FontWeight.w500,
+                                                const SizedBox(height: 8),
+                                                Container(
+                                                  padding: const EdgeInsets.all(
+                                                    12,
                                                   ),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Container(
-                                                padding: const EdgeInsets.all(
-                                                  12,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: Column(
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        Expanded(
-                                                          child: Text(
-                                                            'mark@example.com',
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontSize: 14,
-                                                                  color: Color(
-                                                                    0xFF000000,
-                                                                  ),
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                          ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
                                                         ),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons.add,
-                                                            color: Color(
-                                                              0xFF000000,
-                                                            ),
-                                                            size: 20,
-                                                          ),
-                                                          onPressed: () {},
-                                                          padding:
-                                                              EdgeInsets.zero,
-                                                          constraints:
-                                                              const BoxConstraints(),
-                                                        ),
-                                                      ],
+                                                  ),
+                                                  child: ConstrainedBox(
+                                                    constraints: BoxConstraints(
+                                                      maxHeight:
+                                                          180, // or whatever max height you want
                                                     ),
-                                                    const SizedBox(height: 8),
-                                                    Row(
+                                                    child: ListView(
+                                                      shrinkWrap: true,
                                                       children: [
-                                                        Expanded(
-                                                          child: Text(
-                                                            'john@example.com',
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontSize: 14,
-                                                                  color: Color(
-                                                                    0xFF000000,
-                                                                  ),
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                          ),
-                                                        ),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                            Icons.add,
-                                                            color: Color(
-                                                              0xFF000000,
-                                                            ),
-                                                            size: 20,
-                                                          ),
-                                                          onPressed: () {},
-                                                          padding:
-                                                              EdgeInsets.zero,
-                                                          constraints:
-                                                              const BoxConstraints(),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    const SizedBox(height: 8),
-                                                    Row(
-                                                      children: [
-                                                        Expanded(
-                                                          child: Text(
-                                                            'steve@example.com',
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontSize: 14,
-                                                                  color: Color(
-                                                                    0xFF000000,
-                                                                  ),
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                          ),
-                                                        ),
                                                         Row(
-                                                          mainAxisSize:
-                                                              MainAxisSize.min,
                                                           children: [
-                                                            const Text(
-                                                              'pending',
-                                                              style: TextStyle(
-                                                                fontSize: 12,
-                                                                color:
-                                                                    Color.fromARGB(
-                                                                      255,
-                                                                      138,
-                                                                      123,
-                                                                      123,
-                                                                    ),
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w500,
+                                                            Expanded(
+                                                              child: Text(
+                                                                'mark@example.com',
+                                                                style: const TextStyle(
+                                                                  fontSize: 14,
+                                                                  color: Color(
+                                                                    0xFF000000,
+                                                                  ),
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
                                                               ),
-                                                            ),
-                                                            const SizedBox(
-                                                              width: 4,
                                                             ),
                                                             IconButton(
                                                               icon: const Icon(
-                                                                Icons.close,
+                                                                Icons.add,
                                                                 color: Color(
-                                                                  0xFFEB5757,
+                                                                  0xFF000000,
                                                                 ),
                                                                 size: 20,
                                                               ),
@@ -591,12 +524,112 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                             ),
                                                           ],
                                                         ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                                        Row(
+                                                          children: [
+                                                            Expanded(
+                                                              child: Text(
+                                                                'john@example.com',
+                                                                style: const TextStyle(
+                                                                  fontSize: 14,
+                                                                  color: Color(
+                                                                    0xFF000000,
+                                                                  ),
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            IconButton(
+                                                              icon: const Icon(
+                                                                Icons.add,
+                                                                color: Color(
+                                                                  0xFF000000,
+                                                                ),
+                                                                size: 20,
+                                                              ),
+                                                              onPressed: () {},
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .zero,
+                                                              constraints:
+                                                                  const BoxConstraints(),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                                        Row(
+                                                          children: [
+                                                            Expanded(
+                                                              child: Text(
+                                                                'steve@example.com',
+                                                                style: const TextStyle(
+                                                                  fontSize: 14,
+                                                                  color: Color(
+                                                                    0xFF000000,
+                                                                  ),
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w500,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Row(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                const Text(
+                                                                  'pending',
+                                                                  style: TextStyle(
+                                                                    fontSize:
+                                                                        12,
+                                                                    color:
+                                                                        Color.fromARGB(
+                                                                          255,
+                                                                          138,
+                                                                          123,
+                                                                          123,
+                                                                        ),
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w500,
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 4,
+                                                                ),
+                                                                IconButton(
+                                                                  icon: const Icon(
+                                                                    Icons.close,
+                                                                    color: Color(
+                                                                      0xFFEB5757,
+                                                                    ),
+                                                                    size: 20,
+                                                                  ),
+                                                                  onPressed:
+                                                                      () {},
+                                                                  padding:
+                                                                      EdgeInsets
+                                                                          .zero,
+                                                                  constraints:
+                                                                      const BoxConstraints(),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ],
+                                                        ),
                                                       ],
                                                     ),
-                                                  ],
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       );
@@ -688,205 +721,230 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                         ),
                                     itemBuilder: (context, index) {
                                       final recording = recordings[index];
-                                      return InkWell(
-                                        onTap: () {},
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 8.0,
-                                          ),
-                                          child: Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              // Recording name and date
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Row(
-                                                      children: [
-                                                        if (recording.status ==
-                                                            'New Recording')
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets.only(
-                                                                  right: 6.0,
-                                                                ),
-                                                            child: Image.asset(
-                                                              'assets/images/ellipse.png',
-                                                              width: 8,
-                                                              height: 8,
-                                                              color:
-                                                                  const Color(
-                                                                    0xFFEB5757,
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                        if (recording.status ==
-                                                            'Recording...')
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets.only(
-                                                                  right: 4.0,
-                                                                ),
-                                                            child: Image.asset(
-                                                              'assets/images/ellipse.png',
-                                                              width: 8,
-                                                              height: 8,
-                                                              color:
-                                                                  const Color(
-                                                                    0xFFEB5757,
-                                                                  ),
-                                                            ),
-                                                          ),
-                                                        Text(
-                                                          recording.name,
-                                                          style:
-                                                              const TextStyle(
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .w700,
-                                                                fontSize: 17,
-                                                                color: Color(
-                                                                  0xFF222222,
-                                                                ),
-                                                              ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    const SizedBox(height: 2),
-                                                    Text(
-                                                      '${recording.dateTime.day.toString().padLeft(2, '0')}/'
-                                                      '${recording.dateTime.month.toString().padLeft(2, '0')}/'
-                                                      '${recording.dateTime.year.toString().substring(2)} '
-                                                      '${recording.dateTime.hour.toString().padLeft(2, '0')}:${recording.dateTime.minute.toString().padLeft(2, '0')}',
-                                                      style: const TextStyle(
-                                                        fontSize: 13,
-                                                        color: Color(
-                                                          0xFF828282,
-                                                        ),
-                                                        fontWeight:
-                                                            FontWeight.w400,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const SizedBox(width: 12),
-                                              // User avatar and duration/status
-                                              Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.end,
-                                                children: [
-                                                  if (recording.user != null)
-                                                    CircleAvatar(
-                                                      radius: 16,
-                                                      backgroundImage:
-                                                          NetworkImage(
-                                                            recording
-                                                                .user!
-                                                                .avatarUrl,
-                                                          ),
-                                                      backgroundColor:
-                                                          Colors.white,
-                                                      child: Container(
-                                                        decoration: BoxDecoration(
-                                                          shape:
-                                                              BoxShape.circle,
-                                                          border: Border.all(
-                                                            color:
-                                                                (recording
-                                                                            .user!
-                                                                            .name ==
-                                                                        'Mark')
-                                                                    ? const Color(
-                                                                      0xFF2F80ED,
-                                                                    )
-                                                                    : (recording
-                                                                            .user!
-                                                                            .name ==
-                                                                        'John')
-                                                                    ? const Color(
-                                                                      0xFFEB5757,
-                                                                    )
-                                                                    : (recording
-                                                                            .user!
-                                                                            .name ==
-                                                                        'Steve')
-                                                                    ? const Color(
-                                                                      0xFF27AE60,
-                                                                    )
-                                                                    : Colors
-                                                                        .transparent,
-                                                            width: 1.5,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  const SizedBox(height: 4),
-                                                  Row(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
+                                      return Slidable(
+                                        key: ValueKey(recording.id ?? index),
+                                        endActionPane: ActionPane(
+                                          motion: const DrawerMotion(),
+                                          children: [
+                                            SlidableAction(
+                                              onPressed: (context) {
+                                                // Move action
+                                              },
+                                              backgroundColor: Colors.blueGrey[50]!,
+                                              foregroundColor: Colors.blueGrey,
+                                              icon: Icons.drive_file_move,
+                                              label: 'Move',
+                                            ),
+                                            SlidableAction(
+                                              onPressed: (context) {
+                                                // Delete action
+                                              },
+                                              backgroundColor: Colors.red[50]!,
+                                              foregroundColor: Colors.red,
+                                              icon: Icons.delete,
+                                              label: 'Delete',
+                                            ),
+                                          ],
+                                        ),
+                                        child: InkWell(
+                                          onTap: () {},
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 8.0,
+                                            ),
+                                            child: Row(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                // Recording name and date
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
                                                     children: [
-                                                      if (recording.status ==
-                                                          'Recording...')
-                                                        Image.asset(
-                                                          'assets/images/recordingIcon.png',
-                                                          width: 14,
-                                                          height: 14,
-                                                          color: const Color(
-                                                            0xFFEB5757,
-                                                          ), // Apply red color to the image
-                                                        ),
-                                                      if (recording.status ==
-                                                          'Recording...')
-                                                        const SizedBox(
-                                                          width: 4,
-                                                        ),
-                                                      if (recording.status ==
-                                                          'completed')
-                                                        Image.asset(
-                                                          'assets/images/recordingIcon.png',
-                                                          width: 14,
-                                                          height: 14,
-                                                          color: const Color(
-                                                            0xFFBDBDBD,
-                                                          ), // Apply red color to the image
-                                                        ),
-                                                      if (recording.status ==
-                                                          'completed')
-                                                        const SizedBox(
-                                                          width: 4,
-                                                        ),
-                                                      Text(
-                                                        recording.status ==
-                                                                'Recording...'
-                                                            ? 'Recording...'
-                                                            : recording
-                                                                .duration!,
-                                                        style: TextStyle(
-                                                          color:
-                                                              recording.status ==
-                                                                      'Recording...'
-                                                                  ? const Color(
-                                                                    0xFFEB5757,
-                                                                  )
-                                                                  : const Color(
-                                                                    0xFFBDBDBD,
+                                                      Row(
+                                                        children: [
+                                                          if (recording
+                                                                  .status ==
+                                                              'New Recording')
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets.only(
+                                                                    right: 6.0,
                                                                   ),
-                                                          fontSize: 12,
+                                                              child: Image.asset(
+                                                                'assets/images/ellipse.png',
+                                                                width: 8,
+                                                                height: 8,
+                                                                color:
+                                                                    const Color(
+                                                                      0xFFEB5757,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                          if (recording
+                                                                  .status ==
+                                                              'Recording...')
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets.only(
+                                                                    right: 4.0,
+                                                                  ),
+                                                              child: Image.asset(
+                                                                'assets/images/ellipse.png',
+                                                                width: 8,
+                                                                height: 8,
+                                                                color:
+                                                                    const Color(
+                                                                      0xFFEB5757,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                          Text(
+                                                            recording.name,
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700,
+                                                                  fontSize: 17,
+                                                                  color: Color(
+                                                                    0xFF222222,
+                                                                  ),
+                                                                ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        '${recording.dateTime.day.toString().padLeft(2, '0')}/${recording.dateTime.month.toString().padLeft(2, '0')}/${recording.dateTime.year.toString().substring(2)} ${recording.dateTime.hour.toString().padLeft(2, '0')}:${recording.dateTime.minute.toString().padLeft(2, '0')}',
+                                                        style: const TextStyle(
+                                                          fontSize: 13,
+                                                          color: Color(
+                                                            0xFF828282,
+                                                          ),
                                                           fontWeight:
                                                               FontWeight.w400,
                                                         ),
                                                       ),
                                                     ],
                                                   ),
-                                                ],
-                                              ),
-                                            ],
+                                                ),
+                                                const SizedBox(width: 12),
+                                                // User avatar and duration/status
+                                                Column(
+                                                  mainAxisSize:
+                                                      MainAxisSize.min,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.end,
+                                                  children: [
+                                                    if (recording.user != null)
+                                                      CircleAvatar(
+                                                        radius: 16,
+                                                        backgroundImage:
+                                                            NetworkImage(
+                                                              recording
+                                                                  .user!
+                                                                  .avatarUrl,
+                                                            ),
+                                                        backgroundColor:
+                                                            Colors.white,
+                                                        child: Container(
+                                                          decoration: BoxDecoration(
+                                                            shape:
+                                                                BoxShape.circle,
+                                                            border: Border.all(
+                                                              color:
+                                                                  (recording.user!.name ==
+                                                                          'Mark')
+                                                                      ? const Color(
+                                                                        0xFF2F80ED,
+                                                                      )
+                                                                      : (recording
+                                                                              .user!
+                                                                              .name ==
+                                                                          'John')
+                                                                      ? const Color(
+                                                                        0xFFEB5757,
+                                                                      )
+                                                                      : (recording
+                                                                              .user!
+                                                                              .name ==
+                                                                          'Steve')
+                                                                      ? const Color(
+                                                                        0xFF27AE60,
+                                                                      )
+                                                                      : Colors
+                                                                          .transparent,
+                                                              width: 1.5,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    const SizedBox(height: 4),
+                                                    Row(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        if (recording.status ==
+                                                            'Recording...')
+                                                          Image.asset(
+                                                            'assets/images/recordingIcon.png',
+                                                            width: 14,
+                                                            height: 14,
+                                                            color: const Color(
+                                                              0xFFEB5757,
+                                                            ),
+                                                          ),
+                                                        if (recording.status ==
+                                                            'Recording...')
+                                                          const SizedBox(
+                                                            width: 4,
+                                                          ),
+                                                        if (recording.status ==
+                                                            'completed')
+                                                          Image.asset(
+                                                            'assets/images/recordingIcon.png',
+                                                            width: 14,
+                                                            height: 14,
+                                                            color: const Color(
+                                                              0xFFBDBDBD,
+                                                            ),
+                                                          ),
+                                                        if (recording.status ==
+                                                            'completed')
+                                                          const SizedBox(
+                                                            width: 4,
+                                                          ),
+                                                        Text(
+                                                          recording.status ==
+                                                                  'Recording...'
+                                                              ? 'Recording...'
+                                                              : recording
+                                                                  .duration!,
+                                                          style: TextStyle(
+                                                            color:
+                                                                recording.status ==
+                                                                        'Recording...'
+                                                                    ? const Color(
+                                                                      0xFFEB5757,
+                                                                    )
+                                                                    : const Color(
+                                                                      0xFFBDBDBD,
+                                                                    ),
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.w400,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       );
@@ -935,7 +993,9 @@ class _LyricsTabImageExact extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Flexible(child: _SelectableLyricsLine(text: 'Floating when you hold me')),
+              Flexible(
+                child: _SelectableLyricsLine(text: 'Floating when you hold me'),
+              ),
               const SizedBox(width: 8),
               _NameTag(label: 'Mark', color: Color(0xFF1976D2)),
             ],
@@ -954,15 +1014,15 @@ class _LyricsTabImageExact extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _SelectableLyricsLine(text: "When it feels like I'm running out of time"),
-          _SelectableLyricsLine(text: "I know that you'll breath me back again"),
+          _SelectableLyricsLine(
+            text: "When it feels like I'm running out of time",
+          ),
+          _SelectableLyricsLine(
+            text: "I know that you'll breath me back again",
+          ),
           _SelectableLyricsLine(text: "When I'm in danger you're my saviour"),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              _PenPopupMenu(),
-            ],
-          ),
+          Row(children: [_PenPopupMenu()]),
         ],
       ),
     );
@@ -973,18 +1033,22 @@ class _SelectableLyricsLine extends StatelessWidget {
   final String text;
   final bool play;
   final bool removePadding;
-  const _SelectableLyricsLine({required this.text, this.play = false, this.removePadding = false});
+  const _SelectableLyricsLine({
+    required this.text,
+    this.play = false,
+    this.removePadding = false,
+  });
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: removePadding ? EdgeInsets.zero : const EdgeInsets.symmetric(vertical: 2.5),
+      padding:
+          removePadding
+              ? EdgeInsets.zero
+              : const EdgeInsets.symmetric(vertical: 2.5),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (play) ...[
-            _PlayPopupMenu(),
-            const SizedBox(width: 4),
-          ],
+          if (play) ...[_PlayPopupMenu(), const SizedBox(width: 4)],
           Flexible(child: _CustomSelectableText(text: text)),
         ],
       ),
@@ -1053,58 +1117,78 @@ class _PenPopupMenuState extends State<_PenPopupMenu> {
   OverlayEntry? _overlayEntry;
 
   void _showMenu() {
-    final RenderBox renderBox = _key.currentContext!.findRenderObject() as RenderBox;
+    final RenderBox renderBox =
+        _key.currentContext!.findRenderObject() as RenderBox;
     final Offset offset = renderBox.localToGlobal(Offset.zero);
     _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        left: offset.dx,
-        top: offset.dy - 70,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: 140,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
+      builder:
+          (context) => Positioned(
+            left: offset.dx,
+            top: offset.dy - 70,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 140,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Text('Generate...', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        'Generate...',
+                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        _removeMenu();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Text(
+                          'Next line',
+                          style: TextStyle(fontSize: 15, color: Colors.black),
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        _removeMenu();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Text(
+                          'Rhyme',
+                          style: TextStyle(fontSize: 15, color: Colors.black),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                InkWell(
-                  onTap: () {
-                    _removeMenu();
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: Text('Next line', style: TextStyle(fontSize: 15, color: Colors.black)),
-                  ),
-                ),
-                InkWell(
-                  onTap: () {
-                    _removeMenu();
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: Text('Rhyme', style: TextStyle(fontSize: 15, color: Colors.black)),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
     );
     Overlay.of(context).insert(_overlayEntry!);
   }
@@ -1146,70 +1230,98 @@ class _PlayPopupMenuState extends State<_PlayPopupMenu> {
   OverlayEntry? _overlayEntry;
 
   void _showMenu() {
-    final RenderBox renderBox = _key.currentContext!.findRenderObject() as RenderBox;
+    final RenderBox renderBox =
+        _key.currentContext!.findRenderObject() as RenderBox;
     final Offset offset = renderBox.localToGlobal(Offset.zero);
     _overlayEntry = OverlayEntry(
-      builder: (context) => Positioned(
-        left: offset.dx,
-        top: offset.dy + 28,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: 170,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Text('Play from...', style: TextStyle(fontSize: 12, color: Colors.black54)),
-                ),
-                InkWell(
-                  onTap: () {
-                    _removeMenu();
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: Row(
-                      children: [
-                        Text('Melody idea', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black)),
-                        Spacer(),
-                        Icon(Icons.play_arrow, color: Colors.black),
-                      ],
+      builder:
+          (context) => Positioned(
+            left: offset.dx,
+            top: offset.dy + 28,
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 170,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 8,
+                      offset: Offset(0, 2),
                     ),
-                  ),
+                  ],
                 ),
-                InkWell(
-                  onTap: () {
-                    _removeMenu();
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: Row(
-                      children: [
-                        Text('Harmony', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black)),
-                        Spacer(),
-                        Icon(Icons.play_arrow, color: Colors.black),
-                      ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      child: Text(
+                        'Play from...',
+                        style: TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
                     ),
-                  ),
+                    InkWell(
+                      onTap: () {
+                        _removeMenu();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Melody idea',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            Spacer(),
+                            Icon(Icons.play_arrow, color: Colors.black),
+                          ],
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () {
+                        _removeMenu();
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Harmony',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            Spacer(),
+                            Icon(Icons.play_arrow, color: Colors.black),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
     );
     Overlay.of(context).insert(_overlayEntry!);
   }
@@ -1238,5 +1350,33 @@ class _PlayPopupMenuState extends State<_PlayPopupMenu> {
   void dispose() {
     _removeMenu();
     super.dispose();
+  }
+}
+
+class _RecordingOptionsSheet extends StatelessWidget {
+  final VoidCallback onMove;
+  final VoidCallback onDelete;
+
+  const _RecordingOptionsSheet({required this.onMove, required this.onDelete});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: Icon(Icons.drive_file_move, color: Colors.blueGrey),
+            title: Text('Move'),
+            onTap: onMove,
+          ),
+          ListTile(
+            leading: Icon(Icons.delete, color: Colors.red),
+            title: Text('Delete'),
+            onTap: onDelete,
+          ),
+        ],
+      ),
+    );
   }
 }
