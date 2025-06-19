@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_detail_controller.dart';
-import '../views/new_recording.dart';
 
 class SessionDetailView extends StatefulWidget {
   const SessionDetailView({super.key});
@@ -897,8 +896,8 @@ class _SessionDetailViewState extends State<SessionDetailView>
                               ],
                             );
                           }),
-                          // Lyrics Tab Content (Placeholder)
-                          const Center(child: Text('Lyrics Tab Content')),
+                          // Lyrics Tab Content (custom, matches image)
+                          const _LyricsTabImageExact(),
                         ],
                       ),
                     ),
@@ -910,5 +909,334 @@ class _SessionDetailViewState extends State<SessionDetailView>
         ),
       ),
     );
+  }
+}
+
+class _LyricsTabImageExact extends StatelessWidget {
+  const _LyricsTabImageExact();
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'VERSE',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SelectableLyricsLine(text: 'Heaven only knows', play: true),
+          _SelectableLyricsLine(text: 'Where my body goes'),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(child: _SelectableLyricsLine(text: 'Floating when you hold me')),
+              const SizedBox(width: 8),
+              _NameTag(label: 'Mark', color: Color(0xFF1976D2)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _SelectableLyricsLine(text: 'More than physical', play: true),
+          _SelectableLyricsLine(text: "It's deeper in my soul"),
+          _SelectableLyricsLine(text: 'The Taste of you is golden'),
+          const SizedBox(height: 24),
+          Text(
+            'PRE',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SelectableLyricsLine(text: "When it feels like I'm running out of time"),
+          _SelectableLyricsLine(text: "I know that you'll breath me back again"),
+          _SelectableLyricsLine(text: "When I'm in danger you're my saviour"),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              _PenPopupMenu(),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectableLyricsLine extends StatelessWidget {
+  final String text;
+  final bool play;
+  final bool removePadding;
+  const _SelectableLyricsLine({required this.text, this.play = false, this.removePadding = false});
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: removePadding ? EdgeInsets.zero : const EdgeInsets.symmetric(vertical: 2.5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          if (play) ...[
+            _PlayPopupMenu(),
+            const SizedBox(width: 4),
+          ],
+          Flexible(child: _CustomSelectableText(text: text)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CustomSelectableText extends StatelessWidget {
+  final String text;
+  const _CustomSelectableText({required this.text});
+  @override
+  Widget build(BuildContext context) {
+    return SelectableText(
+      text,
+      style: const TextStyle(fontSize: 16),
+      contextMenuBuilder: (context, selectableTextState) {
+        final defaultItems = selectableTextState.contextMenuButtonItems;
+        return AdaptiveTextSelectionToolbar.buttonItems(
+          anchors: selectableTextState.contextMenuAnchors,
+          buttonItems: [
+            ContextMenuButtonItem(
+              onPressed: () {
+                Navigator.of(context).maybePop();
+              },
+              label: 'Rhyme',
+            ),
+            ...defaultItems,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _NameTag extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _NameTag({required this.label, required this.color});
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+}
+
+class _PenPopupMenu extends StatefulWidget {
+  @override
+  State<_PenPopupMenu> createState() => _PenPopupMenuState();
+}
+
+class _PenPopupMenuState extends State<_PenPopupMenu> {
+  final GlobalKey _key = GlobalKey();
+  OverlayEntry? _overlayEntry;
+
+  void _showMenu() {
+    final RenderBox renderBox = _key.currentContext!.findRenderObject() as RenderBox;
+    final Offset offset = renderBox.localToGlobal(Offset.zero);
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        left: offset.dx,
+        top: offset.dy - 70,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 140,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Text('Generate...', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                ),
+                InkWell(
+                  onTap: () {
+                    _removeMenu();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Text('Next line', style: TextStyle(fontSize: 15, color: Colors.black)),
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    _removeMenu();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Text('Rhyme', style: TextStyle(fontSize: 15, color: Colors.black)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _removeMenu() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: _key,
+      onTap: () {
+        if (_overlayEntry == null) {
+          _showMenu();
+        } else {
+          _removeMenu();
+        }
+      },
+      child: Icon(Icons.edit, color: Colors.blue, size: 28),
+    );
+  }
+
+  @override
+  void dispose() {
+    _removeMenu();
+    super.dispose();
+  }
+}
+
+class _PlayPopupMenu extends StatefulWidget {
+  @override
+  State<_PlayPopupMenu> createState() => _PlayPopupMenuState();
+}
+
+class _PlayPopupMenuState extends State<_PlayPopupMenu> {
+  final GlobalKey _key = GlobalKey();
+  OverlayEntry? _overlayEntry;
+
+  void _showMenu() {
+    final RenderBox renderBox = _key.currentContext!.findRenderObject() as RenderBox;
+    final Offset offset = renderBox.localToGlobal(Offset.zero);
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        left: offset.dx,
+        top: offset.dy + 28,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            width: 170,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Text('Play from...', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                ),
+                InkWell(
+                  onTap: () {
+                    _removeMenu();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Row(
+                      children: [
+                        Text('Melody idea', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black)),
+                        Spacer(),
+                        Icon(Icons.play_arrow, color: Colors.black),
+                      ],
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: () {
+                    _removeMenu();
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Row(
+                      children: [
+                        Text('Harmony', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black)),
+                        Spacer(),
+                        Icon(Icons.play_arrow, color: Colors.black),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _removeMenu() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      key: _key,
+      onTap: () {
+        if (_overlayEntry == null) {
+          _showMenu();
+        } else {
+          _removeMenu();
+        }
+      },
+      child: Icon(Icons.play_arrow, size: 18, color: Colors.black),
+    );
+  }
+
+  @override
+  void dispose() {
+    _removeMenu();
+    super.dispose();
   }
 }

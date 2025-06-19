@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_controller.dart';
 import '../controllers/navigation_controller.dart';
+import 'settings_view.dart';
+import 'session_detail_view.dart';
 // ✅ Import the settings screen
 
 class SessionsView extends StatefulWidget {
@@ -13,7 +15,9 @@ class SessionsView extends StatefulWidget {
 
 class _SessionsViewState extends State<SessionsView> {
   final SessionController controller = Get.put(SessionController());
-  final NavigationController navigationController = Get.put(NavigationController());
+  final NavigationController navigationController = Get.put(
+    NavigationController(),
+  );
 
   bool _showNotifications = false;
 
@@ -46,7 +50,11 @@ class _SessionsViewState extends State<SessionsView> {
                           Stack(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.notifications, color: Color(0xFF2F80ED), size: 30),
+                                icon: const Icon(
+                                  Icons.notifications,
+                                  color: Color(0xFF2F80ED),
+                                  size: 30,
+                                ),
                                 onPressed: () {
                                   setState(() {
                                     _showNotifications = !_showNotifications;
@@ -62,7 +70,10 @@ class _SessionsViewState extends State<SessionsView> {
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFEB5757),
                                     shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 1.5),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1.5,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -80,25 +91,40 @@ class _SessionsViewState extends State<SessionsView> {
                       textAlignVertical: TextAlignVertical.center,
                       decoration: InputDecoration(
                         hintText: 'search...',
-                        hintStyle: const TextStyle(color: Color(0xFFBDBDBD), fontSize: 15),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                        hintStyle: const TextStyle(
+                          color: Color(0xFFBDBDBD),
+                          fontSize: 15,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 0,
+                          horizontal: 16,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE0E0E0),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFBDBDBD),
+                          ),
                         ),
                         suffixIcon: const Padding(
                           padding: EdgeInsets.only(right: 12),
                           child: Icon(Icons.search, color: Color(0xFF222222)),
                         ),
-                        suffixIconConstraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        suffixIconConstraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
                       ),
                     ),
                   ),
@@ -109,15 +135,21 @@ class _SessionsViewState extends State<SessionsView> {
                       width: 220,
                       child: OutlinedButton(
                         onPressed: () {
-                          final freeFallingSession = controller.sessions.firstWhere(
-                            (session) => session.name == 'Free Falling v2',
-                            orElse: () => controller.sessions.first,
+                          final freeFallingSession = controller.sessions
+                              .firstWhere(
+                                (session) => session.name == 'Free Falling v2',
+                                orElse: () => controller.sessions.first,
+                              );
+                          Get.find<NavigationController>().showSessionDetails(
+                            freeFallingSession,
                           );
-                          Get.find<NavigationController>().showSessionDetails(freeFallingSession);
                         },
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: const BorderSide(color: Color(0xFFFF6B6B), width: 2),
+                          side: const BorderSide(
+                            color: Color(0xFFFF6B6B),
+                            width: 2,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(0),
                           ),
@@ -125,7 +157,11 @@ class _SessionsViewState extends State<SessionsView> {
                         ),
                         child: const Text(
                           'Create Session',
-                          style: TextStyle(fontSize: 22, color: Color(0xFF000000), fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                            fontSize: 22,
+                            color: Color(0xFF000000),
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     ),
@@ -141,34 +177,55 @@ class _SessionsViewState extends State<SessionsView> {
                             children: [
                               Text(
                                 '${sessions.length} sessions',
-                                style: const TextStyle(color: Color(0xFF959595), fontSize: 13, fontWeight: FontWeight.w400),
+                                style: const TextStyle(
+                                  color: Color(0xFF959595),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w400,
+                                ),
                               ),
                               const Spacer(),
-                              const Icon(Icons.swap_vert, color: Color(0xFF000000), size: 20),
+                              const Icon(
+                                Icons.swap_vert,
+                                color: Color(0xFF000000),
+                                size: 20,
+                              ),
                             ],
                           ),
                           const SizedBox(height: 8),
                           Expanded(
                             child: ListView.separated(
                               itemCount: sessions.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1, thickness: 1, color: Color(0xFFF0F0F0)),
+                              separatorBuilder:
+                                  (_, __) => const Divider(
+                                    height: 1,
+                                    thickness: 1,
+                                    color: Color(0xFFF0F0F0),
+                                  ),
                               itemBuilder: (context, index) {
                                 final session = sessions[index];
                                 return InkWell(
                                   onTap: () {},
                                   borderRadius: BorderRadius.circular(8),
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8.0,
+                                    ),
                                     child: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 session.name,
-                                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17, color: Color(0xFF222222)),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 17,
+                                                  color: Color(0xFF222222),
+                                                ),
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
@@ -176,7 +233,11 @@ class _SessionsViewState extends State<SessionsView> {
                                                 '${session.dateTime.month.toString().padLeft(2, '0')}/'
                                                 '${session.dateTime.year.toString().substring(2)} '
                                                 '${session.dateTime.hour.toString().padLeft(2, '0')}:${session.dateTime.minute.toString().padLeft(2, '0')}',
-                                                style: const TextStyle(fontSize: 13, color: Color(0xFF828282), fontWeight: FontWeight.w400),
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Color(0xFF828282),
+                                                  fontWeight: FontWeight.w400,
+                                                ),
                                               ),
                                             ],
                                           ),
@@ -184,24 +245,42 @@ class _SessionsViewState extends State<SessionsView> {
                                         const SizedBox(width: 12),
                                         Column(
                                           mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
                                           children: [
                                             Row(
                                               mainAxisSize: MainAxisSize.min,
-                                              children: session.users.map((user) => Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                                                child: CircleAvatar(
-                                                  radius: 18,
-                                                  backgroundImage: NetworkImage((user).avatarUrl),
+                                              children:
+                                                  session.users
+                                                      .map(
+                                                        (user) => Padding(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 2.0,
+                                                              ),
+                                                          child: CircleAvatar(
+                                                            radius: 18,
+                                                            backgroundImage:
+                                                                NetworkImage(
+                                                                  (user)
+                                                                      .avatarUrl,
+                                                                ),
 
-                                                  backgroundColor: Colors.white,
-                                                ),
-                                              )).toList(),
+                                                            backgroundColor:
+                                                                Colors.white,
+                                                          ),
+                                                        ),
+                                                      )
+                                                      .toList(),
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
                                               '${session.recordingsCount} recordings',
-                                              style: const TextStyle(color: Color(0xFFBDBDBD), fontSize: 12, fontWeight: FontWeight.w400),
+                                              style: const TextStyle(
+                                                color: Color(0xFFBDBDBD),
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w400,
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -238,7 +317,10 @@ class _SessionsViewState extends State<SessionsView> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text("🔔 Notifications", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        "🔔 Notifications",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 8),
                       const Divider(),
                       Expanded(
@@ -247,13 +329,19 @@ class _SessionsViewState extends State<SessionsView> {
                             ListTile(
                               contentPadding: EdgeInsets.zero,
                               title: const Text("New session created"),
-                              subtitle: const Text("Free Falling v2", style: TextStyle(fontSize: 12)),
+                              subtitle: const Text(
+                                "Free Falling v2",
+                                style: TextStyle(fontSize: 12),
+                              ),
                               onTap: () {},
                             ),
                             ListTile(
                               contentPadding: EdgeInsets.zero,
                               title: const Text("Recording uploaded"),
-                              subtitle: const Text("By user A", style: TextStyle(fontSize: 12)),
+                              subtitle: const Text(
+                                "By user A",
+                                style: TextStyle(fontSize: 12),
+                              ),
                               onTap: () {},
                             ),
                           ],
@@ -264,7 +352,7 @@ class _SessionsViewState extends State<SessionsView> {
                           setState(() => _showNotifications = false);
                         },
                         child: const Text("Close"),
-                      )
+                      ),
                     ],
                   ),
                 ),

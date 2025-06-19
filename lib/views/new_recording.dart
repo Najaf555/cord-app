@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'settings_view.dart';
+import 'sessions_view.dart';
+import 'paused_recording.dart';
 
 class NewRecordingScreen extends StatelessWidget {
   const NewRecordingScreen({super.key});
@@ -7,48 +10,130 @@ class NewRecordingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      // Bottom navigation and floating pause button
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Color(0xFF222222),
-        unselectedItemColor: Color(0xFFBDBDBD),
-        selectedLabelStyle: TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-        ),
-        unselectedLabelStyle: TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w400,
-          fontSize: 12,
-        ),
-        currentIndex: 1, // Sessions tab selected by default
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.of(context).pushReplacementNamed('/sessions');
-          } else if (index == 1) {
-            // Already on Sessions (New Recording)
-          } else if (index == 2) {
-            Navigator.of(context).pushReplacementNamed('/settings');
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.folder), label: 'Sessions'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_border),
-            label: 'Bookmarks',
+      bottomNavigationBar: Stack(
+        children: [
+          // Top border line
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(height: 2, color: Color(0xFFE0E0E0)),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+          // Shadow overlay just below the border line
+          Positioned(
+            top: 1,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 12,
+              decoration: const BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 0),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // BottomAppBar with nav bar
+          BottomAppBar(
+            color: Colors.white,
+            elevation: 0,
+            notchMargin: 0,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                splashFactory: NoSplash.splashFactory,
+                highlightColor: Colors.transparent,
+                splashColor: Colors.transparent,
+              ),
+              child: BottomNavigationBar(
+                backgroundColor: Colors.white,
+                elevation: 0,
+                type: BottomNavigationBarType.fixed,
+                selectedItemColor: Color(0xFF222222),
+                unselectedItemColor: Color(0xFFBDBDBD),
+                selectedLabelStyle: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 12,
+                ),
+                currentIndex: 1, // Sessions tab selected by default
+                onTap: (index) {
+                  if (index == 0) {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => SessionsView()),
+                    );
+                  } else if (index == 1) {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (context) => SettingsView()),
+                    );
+                  }
+                },
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.folder),
+                    label: 'Sessions',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.settings),
+                    label: 'Settings',
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
+      floatingActionButton: SizedBox(
+        height: 64,
+        width: 64,
+        child: FloatingActionButton(
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => SizedBox.expand(
+                child: PausedRecording(),
+              ),
+            );
+          },
+          elevation: 0,
+          backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+          shape: const CircleBorder(),
+          child: Image.asset(
+            'images/linemdpause.png',
+            width: 64,
+            height: 64,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       body: SafeArea(
         child: Column(
           children: [
+            // Top indicator for closing screen
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
+              child: Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
             // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -78,7 +163,9 @@ class NewRecordingScreen extends StatelessWidget {
                     ],
                   ),
                   TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
                     child: const Text(
                       'Done',
                       style: TextStyle(
@@ -125,9 +212,9 @@ class NewRecordingScreen extends StatelessWidget {
             ),
             // Bookmark button and share icon
             const SizedBox(height: 32),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+            Center(
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   OutlinedButton.icon(
                     onPressed: () {},
@@ -143,11 +230,50 @@ class NewRecordingScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 16),
                   IconButton(
                     icon: const Icon(Icons.share, color: Colors.black54),
                     onPressed: () {},
                   ),
+                ],
+              ),
+            ),
+            // Bookmark filter chips and list (as in the image)
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _BookmarkChip(label: 'John', color: Color(0xFFFFA726)),
+                    SizedBox(width: 8),
+                    _BookmarkChip(label: 'Mark', color: Color(0xFF1976D2), selected: true),
+                    SizedBox(width: 8),
+                    _BookmarkChip(label: 'Steve', color: Color(0xFF66BB6A)),
+                    SizedBox(width: 8),
+                    _BookmarkChip(label: 'All', color: Color(0xFFE0E0E0), textColor: Colors.black),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: [
+                  Icon(Icons.bookmark, color: Color(0xFF1976D2)),
+                  SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text('00:03', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                  ),
+                  SizedBox(width: 8),
+                  Text('Intro melody', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -181,4 +307,42 @@ class _WaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _BookmarkChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool selected;
+  final Color? textColor;
+  const _BookmarkChip({
+    required this.label,
+    required this.color,
+    this.selected = false,
+    this.textColor,
+  });
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: selected ? color : Colors.transparent,
+        border: Border.all(color: color, width: 2),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.bookmark, color: color, size: 16),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: selected ? Colors.white : (textColor ?? color),
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
