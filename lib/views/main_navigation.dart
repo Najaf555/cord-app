@@ -10,7 +10,10 @@ import '../views/new_recording.dart';
 class MainNavigation extends StatelessWidget {
   MainNavigation({super.key});
 
-  final NavigationController navController = Get.put(NavigationController());
+  final NavigationController navController = Get.put(
+    NavigationController(),
+    permanent: true,
+  );
 
   final List<Widget> _pages = [SessionsView(), const SettingsView()];
 
@@ -19,20 +22,22 @@ class MainNavigation extends StatelessWidget {
     return Obx(
       () => Scaffold(
         resizeToAvoidBottomInset: false,
-        body: Obx(() {
-          if (navController.currentSession.value != null) {
-            // If a session is selected, show SessionDetailView
-            return GetBuilder<SessionDetailController>(
-              init: SessionDetailController(
-                session: navController.currentSession.value!,
-              ),
-              builder: (_) => SessionDetailView(),
-            );
-          } else {
-            // Otherwise, show the selected tab (SessionsView or SettingsView)
-            return _pages[navController.selectedIndex.value];
-          }
-        }),
+        body: SafeArea(
+          child: Obx(() {
+            if (navController.currentSession.value != null) {
+              // If a session is selected, show SessionDetailView
+              return GetBuilder<SessionDetailController>(
+                init: SessionDetailController(
+                  session: navController.currentSession.value!,
+                ),
+                builder: (_) => SessionDetailView(),
+              );
+            } else {
+              // Otherwise, show the selected tab (SessionsView or SettingsView)
+              return _pages[navController.selectedIndex.value];
+            }
+          }),
+        ),
         floatingActionButton: SizedBox(
           height: 64,
           width: 64,
@@ -42,9 +47,8 @@ class MainNavigation extends StatelessWidget {
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (context) => SizedBox.expand(
-                  child: NewRecordingScreen(),
-                ),
+                builder:
+                    (context) => SizedBox.expand(child: NewRecordingScreen()),
               );
             },
             elevation: 0,

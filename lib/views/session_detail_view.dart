@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_detail_controller.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'new_recording.dart';
 
 class SessionDetailView extends StatefulWidget {
   const SessionDetailView({super.key});
@@ -730,7 +731,8 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                               onPressed: (context) {
                                                 // Move action
                                               },
-                                              backgroundColor: Colors.blueGrey[50]!,
+                                              backgroundColor:
+                                                  Colors.blueGrey[50]!,
                                               foregroundColor: Colors.blueGrey,
                                               icon: Icons.drive_file_move,
                                               label: 'Move',
@@ -748,7 +750,9 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                         ),
                                         child: InkWell(
                                           onTap: () {},
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                           child: Padding(
                                             padding: const EdgeInsets.symmetric(
                                               vertical: 8.0,

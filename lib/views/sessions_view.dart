@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_controller.dart';
 import '../controllers/navigation_controller.dart';
-import 'settings_view.dart';
-import 'session_detail_view.dart';
 // ✅ Import the settings screen
 
 class SessionsView extends StatefulWidget {
