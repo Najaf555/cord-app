@@ -18,7 +18,21 @@ class _SessionsViewState extends State<SessionsView> {
   );
 
   bool _showNotifications = false;
-
+  final List<Map<String, dynamic>> _notifications = [
+    {
+      'type': 'invite_accepted',
+      'email': 'theo@email.com',
+    },
+    {
+      'type': 'invite_accepted',
+      'email': 'ian@email.com',
+    },
+    {
+      'type': 'session_invite',
+      'email': 'andrew@email.com',
+      'session': 'Free Falling v2',
+    },
+  ];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -297,65 +311,226 @@ class _SessionsViewState extends State<SessionsView> {
               ),
             ),
           ),
-          if (_showNotifications)
-            Positioned(
-              right: 16,
-              top: 70,
-              bottom: 0,
-              child: Material(
-                elevation: 6,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  width: 250,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+          Positioned(
+            right: 16,
+            top: 70,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, -0.1),
+                      end: Offset.zero,
+                    ).animate(
+                      CurvedAnimation(parent: animation, curve: Curves.easeOut),
+                    ),
+                    child: child,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        "🔔 Notifications",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      const Divider(),
-                      Expanded(
-                        child: ListView(
-                          children: [
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text("New session created"),
-                              subtitle: const Text(
-                                "Free Falling v2",
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              onTap: () {},
-                            ),
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text("Recording uploaded"),
-                              subtitle: const Text(
-                                "By user A",
-                                style: TextStyle(fontSize: 12),
-                              ),
-                              onTap: () {},
-                            ),
-                          ],
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          setState(() => _showNotifications = false);
-                        },
-                        child: const Text("Close"),
-                      ),
-                    ],
+                );
+              },
+              child: _showNotifications
+                  ? _buildNotificationPanel()
+                  : Container(key: const ValueKey('empty-panel')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationPanel() {
+    return Material(
+      key: const ValueKey('notification-panel'),
+      elevation: 6,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: 320,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Notifications (${_notifications.length})',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    setState(() => _showNotifications = false);
+                  },
+                  child: const Text(
+                    'Close',
+                    style: TextStyle(color: Colors.blue, fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView.separated(
+                itemCount: _notifications.length,
+                shrinkWrap: true,
+                physics: const AlwaysScrollableScrollPhysics(),
+                separatorBuilder: (_, __) => const Divider(
+                  color: Color(0xFFE0E0E0),
+                  thickness: 1,
+                ),
+                itemBuilder: (context, index) {
+                  final notification = _notifications[index];
+                  if (notification['type'] == 'invite_accepted') {
+                    return _buildInviteAcceptedNotification(
+                      notification['email'],
+                    );
+                  } else if (notification['type'] == 'session_invite') {
+                    return _buildSessionInviteNotification(
+                      notification['email'],
+                      notification['session'],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInviteAcceptedNotification(String email) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                  height: 1.4,
+                ),
+                children: [
+                  TextSpan(text: '$email has accepted your invite'),
+                ],
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              // Handle clear
+            },
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(50, 24),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              alignment: Alignment.centerRight,
+            ),
+            child: const Text(
+              'Clear',
+              style: TextStyle(
+                color: Colors.grey,
+                fontSize: 16,
+                fontWeight: FontWeight.normal,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionInviteNotification(String email, String sessionName) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.black87,
+                  height: 1.4,
+                ),
+                children: [
+                  TextSpan(
+                    text: '$email has invited you to the session ‘$sessionName’',
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextButton(
+                onPressed: () {
+                  // Handle Accept
+                },
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(50, 24),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  alignment: Alignment.centerRight,
+                ),
+                child: const Text(
+                  'Accept',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
                   ),
                 ),
               ),
-            ),
+              const SizedBox(height: 4),
+              TextButton(
+                onPressed: () {
+                  // Handle Reject
+                },
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(50, 24),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  alignment: Alignment.centerRight,
+                ),
+                child: const Text(
+                  'Reject',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

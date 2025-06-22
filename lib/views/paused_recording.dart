@@ -33,124 +33,183 @@ class PausedRecording extends StatelessWidget {
                 ),
               ),
               // Header
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Paused Recording',
-                        style:
-                            TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    Text('00:07', style: TextStyle(fontSize: 16)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          const Text(
+                            'New Session',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Text(
+                                'New Recording',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.black54,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(
+                                Icons.edit,
+                                size: 16,
+                                color: Colors.black54,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        'Next',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              const Text(
+                '00:06.67',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontFamily: 'monospace',
+                  letterSpacing: 1.2,
+                  color: Colors.black,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
               const Divider(height: 1),
               // Waveform
               Stack(
-                alignment: Alignment.bottomCenter,
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
                 children: [
                   Container(
-                    height: 80,
+                    height: 110,
                     width: double.infinity,
                     color: const Color(0xFFF5F5F5),
                     child: Center(
-                      child: SizedBox(
-                        width: 180,
-                        height: 60,
-                        child: CustomPaint(painter: _WaveformPainter()),
+                      child: Container(
+                        width: 250,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.blue, width: 1.5),
+                        ),
+                        child: ClipRect(
+                          child: CustomPaint(
+                            painter: _WaveformPainter(),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                   const Positioned(
-                    bottom: -10,
+                    bottom: -12,
                     child: Icon(
                       Icons.arrow_drop_down,
                       color: Colors.blue,
-                      size: 40,
+                      size: 30,
                     ),
                   ),
                 ],
               ),
               // Bookmark button and share icon
               const SizedBox(height: 32),
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              SizedBox(
+                height: 48,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.bookmark_border, color: Colors.red),
-                      label: const Text(
-                        'Set Bookmark',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
+                    Center(
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Colors.orange, Colors.pink],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        child: Container(
+                          margin: const EdgeInsets.all(1.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.zero,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(
+                                Icons.bookmark_add_outlined,
+                                color: Colors.black,
+                                size: 24,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Set Bookmark',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    IconButton(
-                      icon: const Icon(Icons.share, color: Colors.black54),
-                      onPressed: () {},
+                    const Positioned(
+                      right: 32,
+                      child: Icon(
+                        Icons.ios_share,
+                        color: Colors.blue,
+                        size: 28,
+                      ),
                     ),
                   ],
                 ),
               ),
               const Spacer(),
-              // Play back and Continue buttons (centered)
+              // Play back and Continue buttons
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    Column(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.black54, width: 2),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.play_arrow,
-                              color: Colors.black,
-                              size: 32,
-                            ),
-                            onPressed: () {},
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text('Play back', style: TextStyle(fontSize: 12)),
-                      ],
+                    _buildControlButton(
+                      icon: Icons.play_arrow,
+                      label: 'Play back',
+                      onPressed: () {},
+                      iconColor: Colors.black,
+                      textColor: Colors.black,
                     ),
-                    Column(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.red, width: 2),
-                          ),
-                          child: IconButton(
-                            icon: const Icon(
-                              Icons.fiber_manual_record,
-                              color: Colors.red,
-                              size: 32,
-                            ),
-                            onPressed: () {},
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Continue',
-                          style: TextStyle(fontSize: 12, color: Colors.red),
-                        ),
-                      ],
+                    _buildControlButton(
+                      icon: Icons.fiber_manual_record_outlined,
+                      label: 'Continue',
+                      onPressed: () {},
+                      iconColor: Colors.red,
+                      textColor: Colors.black,
                     ),
                   ],
                 ),
@@ -237,6 +296,34 @@ class PausedRecording extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    required Color iconColor,
+    required Color textColor,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(icon, size: 48),
+          color: iconColor,
+          onPressed: onPressed,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: textColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _WaveformPainter extends CustomPainter {
@@ -244,18 +331,26 @@ class _WaveformPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = Colors.black87
-      ..strokeWidth = 3
+      ..strokeWidth = 2
       ..strokeCap = StrokeCap.round;
-    final heights = [10, 30, 50, 30, 10, 30, 50, 30, 10];
-    final barWidth = size.width / (heights.length * 2 - 1);
+
+    final heights = [
+      2, 2, 3, 2, 2, 3, 2, 5, 8, 12, 18, 25, 30, 33, 30, 25, 18, 12, 8, 5,
+      8, 12, 18, 25, 30, 35, 38, 35, 30, 25, 18, 12, 8, 5, 3,
+    ];
+    final barWidth = size.width / (heights.length * 1.8);
+
     for (int i = 0; i < heights.length; i++) {
-      final x = i * barWidth * 2;
-      final y1 = size.height / 2 - heights[i] / 2;
-      final y2 = size.height / 2 + heights[i] / 2;
-      canvas.drawLine(Offset(x, y1), Offset(x, y2), paint);
+      final x = barWidth * (i * 1.8);
+      final barHeight = heights[i].toDouble();
+      canvas.drawLine(
+        Offset(x, size.height / 2 - barHeight / 2),
+        Offset(x, size.height / 2 + barHeight / 2),
+        paint,
+      );
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

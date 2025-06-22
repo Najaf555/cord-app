@@ -75,12 +75,12 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                 color: Color(0xFF222222),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 4),
                             IconButton(
                               icon: const Icon(
                                 Icons.edit,
-                                color: Color(0xFF2F80ED),
-                                size: 24,
+                                color: Colors.black,
+                                size: 20,
                               ),
                               onPressed: () {
                                 showDialog(

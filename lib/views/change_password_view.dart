@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../controllers/navigation_controller.dart';
+import 'main_navigation.dart';
 
 class ChangePasswordView extends StatefulWidget {
   const ChangePasswordView({super.key});
@@ -12,6 +14,7 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
   final TextEditingController currentPasswordController = TextEditingController();
   final TextEditingController newPasswordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
+  final NavigationController navController = Get.find<NavigationController>();
 
   void _changePassword() {
     final current = currentPasswordController.text.trim();
@@ -38,6 +41,11 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
     );
 
     Get.back(); // Navigate back to previous screen
+  }
+
+  void _onTabSelected(int index) {
+    navController.changeTab(index);
+    Get.offAll(() => MainNavigation());
   }
 
   @override
@@ -133,6 +141,77 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
             ),
           ],
         ),
+      ),
+      bottomNavigationBar: Stack(
+        children: [
+          // Top border line
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(height: 2, color: Color(0xFFE0E0E0)),
+          ),
+          // Shadow overlay just below the border line
+          Positioned(
+            top: 1,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 12,
+              decoration: const BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 0),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // BottomAppBar with nav bar
+          BottomAppBar(
+            color: Colors.white,
+            elevation: 0,
+            notchMargin: 0,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                splashFactory: NoSplash.splashFactory,
+                highlightColor: Colors.transparent,
+                splashColor: Colors.transparent,
+              ),
+              child: Obx(() => BottomNavigationBar(
+                backgroundColor: Colors.white,
+                elevation: 0,
+                type: BottomNavigationBarType.fixed,
+                selectedItemColor: Color(0xFF222222),
+                unselectedItemColor: Color(0xFFBDBDBD),
+                selectedLabelStyle: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 12,
+                ),
+                currentIndex: navController.selectedIndex.value,
+                onTap: _onTabSelected,
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.folder),
+                    label: 'Sessions',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.settings),
+                    label: 'Settings',
+                  ),
+                ],
+              )),
+            ),
+          ),
+        ],
       ),
     );
   }

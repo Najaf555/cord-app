@@ -1,20 +1,25 @@
+import 'package:Cord/views/main_navigation.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../controllers/navigation_controller.dart';
 
 class FAQScreen extends StatefulWidget {
   const FAQScreen({super.key});
 
-@override
+  @override
   _FAQScreenState createState() => _FAQScreenState();
 }
 
 class _FAQScreenState extends State<FAQScreen> {
   int? expandedIndex;
   TextEditingController searchController = TextEditingController();
+  final NavigationController navController = Get.put(NavigationController());
 
   final List<Map<String, String>> faqData = [
     {
       'question': 'FAQ Question',
-      'answer': 'Lorem ipsum dolor sit amet consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.'
+      'answer':
+          'Lorem ipsum dolor sit amet consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.'
     },
     {'question': 'FAQ Question', 'answer': 'Answer for FAQ question 2'},
     {'question': 'FAQ Question', 'answer': 'Answer for FAQ question 3'},
@@ -24,6 +29,11 @@ class _FAQScreenState extends State<FAQScreen> {
     {'question': 'FAQ Question', 'answer': 'Answer for FAQ question 7'},
   ];
 
+  void _onTabSelected(int index) {
+    navController.changeTab(index);
+    Get.offAll(() => MainNavigation());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -32,10 +42,10 @@ class _FAQScreenState extends State<FAQScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'FAQs',
           style: TextStyle(
             color: Colors.black,
@@ -49,7 +59,7 @@ class _FAQScreenState extends State<FAQScreen> {
         children: [
           // Search Bar
           Padding(
-            padding: EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(16.0),
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.grey[100],
@@ -63,12 +73,13 @@ class _FAQScreenState extends State<FAQScreen> {
                   hintStyle: TextStyle(color: Colors.grey[500]),
                   prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
               ),
             ),
           ),
-          
+
           // FAQ List
           Expanded(
             child: ListView.builder(
@@ -76,7 +87,8 @@ class _FAQScreenState extends State<FAQScreen> {
               itemBuilder: (context, index) {
                 bool isExpanded = expandedIndex == index;
                 return Container(
-                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
                   decoration: BoxDecoration(
                     color: isExpanded ? Colors.grey[100] : Colors.white,
                     borderRadius: BorderRadius.circular(8),
@@ -84,14 +96,16 @@ class _FAQScreenState extends State<FAQScreen> {
                   child: ExpansionTile(
                     title: Text(
                       faqData[index]['question']!,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
                         color: Colors.black,
                       ),
                     ),
                     trailing: Icon(
-                      isExpanded ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_right,
+                      isExpanded
+                          ? Icons.keyboard_arrow_down
+                          : Icons.keyboard_arrow_right,
                       color: Colors.grey[600],
                     ),
                     onExpansionChanged: (expanded) {
@@ -101,7 +115,7 @@ class _FAQScreenState extends State<FAQScreen> {
                     },
                     children: [
                       Padding(
-                        padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         child: Text(
                           faqData[index]['answer']!,
                           style: TextStyle(
@@ -119,38 +133,80 @@ class _FAQScreenState extends State<FAQScreen> {
           ),
         ],
       ),
-      
+
       // Bottom Navigation Bar
-      bottomNavigationBar: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: Offset(0, -2),
+      bottomNavigationBar: Stack(
+        children: [
+          // Top border line
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(height: 2, color: const Color(0xFFE0E0E0)),
+          ),
+          // Shadow overlay just below the border line
+          Positioned(
+            top: 1,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 12,
+              decoration: const BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 0),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            IconButton(
-              icon: Icon(Icons.home, color: Colors.grey[600]),
-              onPressed: () {
-                // Handle home navigation
-              },
+          ),
+          // BottomAppBar with nav bar
+          BottomAppBar(
+            color: Colors.white,
+            elevation: 0,
+            notchMargin: 0,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                splashFactory: NoSplash.splashFactory,
+                highlightColor: Colors.transparent,
+                splashColor: Colors.transparent,
+              ),
+              child: Obx(
+                () => BottomNavigationBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  type: BottomNavigationBarType.fixed,
+                  selectedItemColor: const Color(0xFF222222),
+                  unselectedItemColor: const Color(0xFFBDBDBD),
+                  selectedLabelStyle: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12,
+                  ),
+                  currentIndex: navController.selectedIndex.value,
+                  onTap: _onTabSelected,
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.folder),
+                      label: 'Sessions',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.settings),
+                      label: 'Settings',
+                    ),
+                  ],
+                ),
+              ),
             ),
-            IconButton(
-              icon: Icon(Icons.person, color: Colors.grey[600]),
-              onPressed: () {
-                // Handle profile navigation
-              },
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'settings_view.dart';
-import 'sessions_view.dart';
 import 'paused_recording.dart';
 import '../controllers/navigation_controller.dart';
-import 'main_navigation.dart';
 
 class NewRecordingScreen extends StatelessWidget {
   const NewRecordingScreen({super.key});
