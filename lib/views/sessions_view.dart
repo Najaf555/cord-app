@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_controller.dart';
 import '../controllers/navigation_controller.dart';
-// ✅ Import the settings screen
+import '../utils/date_util.dart';
+import '../utils/validators.dart';
+
 
 class SessionsView extends StatefulWidget {
   const SessionsView({super.key});
@@ -347,13 +349,11 @@ class _SessionsViewState extends State<SessionsView> {
       borderRadius: BorderRadius.circular(8),
       child: Container(
         width: 320,
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.7,
-        ),
+        height: MediaQuery.of(context).size.height - 90,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.zero,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),

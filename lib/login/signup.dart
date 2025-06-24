@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../views/main_navigation.dart';
+import '../utils/validators.dart';
+import '../utils/constants.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -12,7 +14,8 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -77,23 +80,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     hintText: 'Email',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 14,
-                    ),
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                      borderSide: BorderSide(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                      borderSide: BorderSide(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(color: Colors.black, width: 1),
+                      borderSide: const BorderSide(
+                        color: Colors.black,
+                        width: 1,
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
                     filled: true,
                     fillColor: Colors.white,
                   ),
@@ -104,23 +116,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   obscureText: true,
                   decoration: InputDecoration(
                     hintText: 'Password',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 14,
-                    ),
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                      borderSide: BorderSide(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                      borderSide: BorderSide(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(color: Colors.black, width: 1),
+                      borderSide: const BorderSide(
+                        color: Colors.black,
+                        width: 1,
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
                     filled: true,
                     fillColor: Colors.white,
                   ),
@@ -131,23 +152,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   obscureText: true,
                   decoration: InputDecoration(
                     hintText: 'Confirm Password',
-                    hintStyle: TextStyle(
-                      color: Colors.grey[400],
-                      fontSize: 14,
-                    ),
+                    hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                      borderSide: BorderSide(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                      borderSide: BorderSide(
+                        color: Colors.grey[300]!,
+                        width: 1,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(color: Colors.black, width: 1),
+                      borderSide: const BorderSide(
+                        color: Colors.black,
+                        width: 1,
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 14,
+                    ),
                     filled: true,
                     fillColor: Colors.white,
                   ),
@@ -158,10 +188,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   height: 48,
                   child: ElevatedButton(
                     onPressed: () {
-                      if (_passwordController.text == _confirmPasswordController.text) {
+                      if (_passwordController.text ==
+                          _confirmPasswordController.text) {
                         final email = _emailController.text.trim();
                         final password = _passwordController.text.trim();
-                        print('Creating account for: $email with password: $password');
+                        print(
+                          'Creating account for: $email with password: $password',
+                        );
                         Get.off(() => MainNavigation());
                       } else {
                         Get.snackbar(
@@ -177,8 +210,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                        side: const BorderSide(color: Color(0xFFFF6B6B), width: 1.5),
+                        borderRadius: BorderRadius.zero,
+                        side: const BorderSide(
+                          color: Color(0xFFFF6B6B),
+                          width: 1.5,
+                        ),
                       ),
                     ),
                     child: const Text(
@@ -193,10 +229,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 40),
                 const Text(
                   'Or sign up with',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
                 ),
                 const SizedBox(height: 12),
                 Image.asset(
@@ -212,10 +245,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     children: [
                       const Text(
                         "Already have an account? ",
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
                       ),
                       GestureDetector(
                         onTap: () => Get.back(),

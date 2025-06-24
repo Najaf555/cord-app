@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../views/main_navigation.dart';
 import '../login/signup.dart'; // <-- Make sure this path is correct
+import '../utils/validators.dart';
+import '../utils/constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

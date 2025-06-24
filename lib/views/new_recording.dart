@@ -215,28 +215,57 @@ class NewRecordingScreen extends StatelessWidget {
               ),
               // Bookmark button and share icon
               const SizedBox(height: 32),
-              Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+              SizedBox(
+                height: 44,
+                child: Stack(
+                  alignment: Alignment.center,
                   children: [
-                    OutlinedButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.bookmark_border, color: Colors.red),
-                      label: const Text(
-                        'Set Bookmark',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(4),
+                    Center(
+                      child: Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Colors.orange, Colors.pink],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        child: Container(
+                          margin: const EdgeInsets.all(1.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.zero,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(
+                                Icons.bookmark_add_outlined,
+                                color: Colors.black,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Set Bookmark',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    IconButton(
-                      icon: const Icon(Icons.share, color: Colors.black54),
-                      onPressed: () {},
+                    const Positioned(
+                      right: 32,
+                      child: Icon(
+                        Icons.ios_share,
+                        color: Colors.blue,
+                        size: 24,
+                      ),
                     ),
                   ],
                 ),

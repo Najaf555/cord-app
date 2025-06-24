@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_detail_controller.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'new_recording.dart';
+import '../utils/date_util.dart';
+import '../utils/validators.dart';
 
 class SessionDetailView extends StatefulWidget {
   const SessionDetailView({super.key});
@@ -89,7 +90,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                     return Dialog(
                                       backgroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(0),
+                                        borderRadius: BorderRadius.zero,
                                       ),
                                       child: Padding(
                                         padding: const EdgeInsets.all(20.0),
@@ -323,9 +324,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                       return Dialog(
                                         backgroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                          borderRadius: BorderRadius.zero,
                                         ),
                                         child: Padding(
                                           padding: const EdgeInsets.all(20.0),
