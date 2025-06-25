@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "667372664517",
+    "project_id": "cord-bfb48",
+    "storage_bucket": "cord-bfb48.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:667372664517:android:e4adb80925f3dbaff322ac",
+        "android_client_info": {
+          "package_name": "com.cord"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHhK4xoz056-4Tc9HgeC1SCDxXFVjhmio"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

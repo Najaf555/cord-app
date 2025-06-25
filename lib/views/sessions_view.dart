@@ -4,6 +4,7 @@ import '../controllers/session_controller.dart';
 import '../controllers/navigation_controller.dart';
 import '../utils/date_util.dart';
 import '../utils/validators.dart';
+import '../utils/responsive.dart';
 
 
 class SessionsView extends StatefulWidget {

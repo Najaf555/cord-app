@@ -2,6 +2,7 @@ import 'package:Cord/views/main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
+import '../utils/responsive.dart';
 
 class NotificationsView extends StatefulWidget {
   const NotificationsView({super.key});

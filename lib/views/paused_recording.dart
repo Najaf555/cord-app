@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
 import 'main_navigation.dart';
+import '../utils/responsive.dart';
 
 class PausedRecording extends StatelessWidget {
   const PausedRecording({super.key});

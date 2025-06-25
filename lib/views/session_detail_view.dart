@@ -4,6 +4,7 @@ import '../controllers/session_detail_controller.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import '../utils/date_util.dart';
 import '../utils/validators.dart';
+import '../utils/responsive.dart';
 
 class SessionDetailView extends StatefulWidget {
   const SessionDetailView({super.key});

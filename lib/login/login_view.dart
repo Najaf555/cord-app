@@ -4,6 +4,7 @@ import '../views/main_navigation.dart';
 import '../login/signup.dart'; // <-- Make sure this path is correct
 import '../utils/validators.dart';
 import '../utils/constants.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,9 +19,27 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
   bool isPasswordHidden = true;
 
-  void _login() {
+  void _login() async {
     if (_formKey.currentState!.validate()) {
-      Get.off(() => MainNavigation());
+      try {
+        await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: emailController.text.trim(),
+          password: passwordController.text.trim(),
+        );
+        Get.snackbar('Success', 'Logged in successfully!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        await Future.delayed(Duration(seconds: 1)); // Give user time to see the message
+        Get.off(() => MainNavigation());
+      } on FirebaseAuthException catch (e) {
+        Get.snackbar('Login Failed', e.message ?? 'Unknown error',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
     }
   }
 
@@ -41,7 +60,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   Center(
                     child: Column(
                       children: [
-                        Image.asset('assets/images/logo.png', width: 100, height: 100),
+                        Image.asset(
+                          'assets/images/logo.png',
+                          width: 100,
+                          height: 100,
+                        ),
                         const SizedBox(height: 16),
                         const Text(
                           'Your one-stop music hub - no more juggling multiple apps, just create.',
@@ -51,7 +74,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 32),
                         const Text(
                           'Welcome Back!',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
@@ -70,9 +96,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   TextFormField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      hintText: 'Email',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.zero,
+                        borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.zero,
+                        borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.zero,
+                        borderSide: BorderSide(color: Colors.grey[400]!, width: 1),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
                     validator: (value) {
                       if (value == null || !value.contains('@')) {
@@ -88,11 +132,31 @@ class _LoginScreenState extends State<LoginScreen> {
                     controller: passwordController,
                     obscureText: isPasswordHidden,
                     decoration: InputDecoration(
-                      labelText: 'Password',
-                      border: const OutlineInputBorder(),
+                      hintText: 'Password',
+                      hintStyle: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 14,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.zero,
+                        borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.zero,
+                        borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.zero,
+                        borderSide: BorderSide(color: Colors.grey[400]!, width: 1),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      filled: true,
+                      fillColor: Colors.white,
                       suffixIcon: IconButton(
                         icon: Icon(
-                          isPasswordHidden ? Icons.visibility_off : Icons.visibility,
+                          isPasswordHidden
+                              ? Icons.visibility_off
+                              : Icons.visibility,
                         ),
                         onPressed: () {
                           setState(() {
@@ -111,20 +175,40 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 24),
 
                   // Sign In button
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: _login,
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: const RoundedRectangleBorder(
-                          borderRadius: BorderRadius.zero,
+                  Center(
+                    child: Container(
+                      width: 160,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.zero,
+                        gradient: const LinearGradient(
+                          colors: [Colors.orange, Colors.pink],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
                         ),
                       ),
-                      child: const Text(
-                        'Sign In',
-                        style: TextStyle(fontSize: 16, color: Colors.black),
+                      child: Container(
+                        margin: const EdgeInsets.all(1.2),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _login,
+                            child: const Center(
+                              child: Text(
+                                'Sign In',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.normal,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),

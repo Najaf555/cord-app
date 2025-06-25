@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
 import 'main_navigation.dart';
 import '../utils/validators.dart';
+import '../utils/responsive.dart';
 
 class ChangePasswordView extends StatefulWidget {
   const ChangePasswordView({super.key});
