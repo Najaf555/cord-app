@@ -20,6 +20,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordHidden = true;
+  bool _isConfirmPasswordHidden = true;
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +117,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   width: screenWidthPct(context, 0.8),
                   child: TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: _isPasswordHidden,
                   decoration: InputDecoration(
                     hintText: 'Password',
                     hintStyle: TextStyle(
@@ -137,6 +139,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     filled: true,
                     fillColor: Colors.white,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordHidden ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordHidden = !_isPasswordHidden;
+                        });
+                      },
+                    ),
                     ),
                   ),
                 ),
@@ -145,7 +157,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   width: screenWidthPct(context, 0.8),
                   child: TextField(
                   controller: _confirmPasswordController,
-                  obscureText: true,
+                  obscureText: _isConfirmPasswordHidden,
                   decoration: InputDecoration(
                     hintText: 'Confirm Password',
                     hintStyle: TextStyle(
@@ -167,6 +179,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                     filled: true,
                     fillColor: Colors.white,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isConfirmPasswordHidden ? Icons.visibility_off : Icons.visibility,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isConfirmPasswordHidden = !_isConfirmPasswordHidden;
+                        });
+                      },
+                    ),
                     ),
                   ),
                 ),
