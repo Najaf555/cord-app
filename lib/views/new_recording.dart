@@ -99,13 +99,7 @@ class NewRecordingScreen extends StatelessWidget {
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (context) => Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
-                  child: PausedRecording(),
-                ),
+                builder: (context) => const NewRecordingContent(),
               );
             },
             elevation: 0,
@@ -374,6 +368,32 @@ class _BookmarkChip extends StatelessWidget {
               fontSize: 14,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class NewRecordingContent extends StatelessWidget {
+  const NewRecordingContent({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      // You can add a top border radius for modal effect
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Add your new recording content here
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text('New Recording Content'),
+          ),
+          // ...rest of your content...
         ],
       ),
     );

@@ -73,24 +73,6 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
           children: [
             const SizedBox(height: 16),
 
-            // Lock Icon
-            const CircleAvatar(
-              radius: 45,
-              backgroundColor: Colors.redAccent,
-              child: Icon(Icons.lock_outline, color: Colors.white, size: 40),
-            ),
-            const SizedBox(height: 16),
-
-            const Text(
-              'Change Password',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 32),
-
             TextField(
               controller: currentPasswordController,
               decoration: const InputDecoration(
@@ -121,23 +103,25 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
             ),
             const SizedBox(height: 32),
 
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _changePassword,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  side: const BorderSide(color: Colors.red, width: 2),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero, // Square corners
+            Center(
+              child: SizedBox(
+                width: 200,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _changePassword,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    side: const BorderSide(color: Colors.red, width: 2),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero, // Square corners
+                    ),
                   ),
-                ),
-                child: const Text(
-                  'Change Password',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),

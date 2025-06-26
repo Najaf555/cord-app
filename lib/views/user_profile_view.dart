@@ -3,6 +3,11 @@ import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
 import 'main_navigation.dart';
 import '../utils/responsive.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class UserProfileView extends StatefulWidget {
   const UserProfileView({super.key});
@@ -16,24 +21,77 @@ class _UserProfileViewState extends State<UserProfileView> {
   final TextEditingController lastNameController = TextEditingController();
   final TextEditingController emailController = TextEditingController(); // ✅ Email Controller
   final NavigationController navController = Get.find<NavigationController>();
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
 
-  void _saveProfile() {
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null) {
+          firstNameController.text = data['firstName'] ?? '';
+          lastNameController.text = data['lastName'] ?? '';
+          emailController.text = data['email'] ?? '';
+        }
+      }
+    }
+  }
+
+  void _saveProfile() async {
     final firstName = firstNameController.text.trim();
     final lastName = lastNameController.text.trim();
-    final email = emailController.text.trim(); // ✅ Email
+    final email = emailController.text.trim();
 
-    Get.snackbar(
-      'Profile Saved',
-      'First Name: $firstName\nLast Name: $lastName\nEmail: $email',
-      snackPosition: SnackPosition.BOTTOM,
-    );
-
-    Get.back(); // Navigate back to previous screen (Settings)
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'firstName': firstName,
+          'lastName': lastName,
+          'email': email,
+        });
+        Get.snackbar(
+          'Success',
+          'Profile saved successfully!',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+        );
+        await Future.delayed(Duration(seconds: 1));
+        Get.back();
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to save profile: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   void _onTabSelected(int index) {
     navController.changeTab(index);
     Get.offAll(() => MainNavigation());
+  }
+
+  Future<void> _pickImage() async {
+    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFile = File(pickedFile.path);
+      });
+      // Optionally, upload to Firebase Storage here
+    }
   }
 
   @override
@@ -53,16 +111,22 @@ class _UserProfileViewState extends State<UserProfileView> {
           onPressed: () => Get.back(),
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             const SizedBox(height: 16),
 
             // Circle Profile Image
-            const CircleAvatar(
-              radius: 45,
-              backgroundImage: AssetImage('assets/profile.jpg'), // Replace with your asset
+            GestureDetector(
+              onTap: _pickImage,
+              child: CircleAvatar(
+                radius: 50,
+                backgroundImage: _imageFile != null
+                    ? FileImage(_imageFile!)
+                    : null,
+                child: _imageFile == null ? Icon(Icons.camera_alt) : null,
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -109,23 +173,25 @@ class _UserProfileViewState extends State<UserProfileView> {
             const SizedBox(height: 32),
 
             // Save Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: _saveProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black,
-                  side: const BorderSide(color: Colors.red, width: 2),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.zero, // Square corners
+            Center(
+              child: SizedBox(
+                width: 200,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _saveProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    side: const BorderSide(color: Colors.red, width: 2),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero, // Square corners
+                    ),
                   ),
-                ),
-                child: const Text(
-                  'Save',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),
