@@ -99,7 +99,7 @@ class NewRecordingScreen extends StatelessWidget {
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (context) => const NewRecordingContent(),
+                builder: (context) => const PausedRecording(),
               );
             },
             elevation: 0,

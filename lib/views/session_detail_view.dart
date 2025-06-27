@@ -5,6 +5,12 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import '../utils/date_util.dart';
 import '../utils/validators.dart';
 import '../utils/responsive.dart';
+import '../models/session.dart';
+import 'session_detail_view.dart';
+import '../widgets/custom_bottom_navigation_bar.dart';
+import 'new_recording.dart';
+import 'sessions_view.dart';
+import 'settings_view.dart';
 
 class SessionDetailView extends StatefulWidget {
   const SessionDetailView({super.key});
@@ -93,111 +99,127 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.zero,
                                       ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(20.0),
-                                        child: SingleChildScrollView(
-                                          child: Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              const Text(
-                                                'Edit Session Name',
-                                                style: TextStyle(
-                                                  fontSize: 20,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.black,
-                                                ),
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final maxHeight = MediaQuery.of(context).size.height * 0.8;
+                                          final maxWidth = MediaQuery.of(context).size.width * 0.95;
+                                          return ConstrainedBox(
+                                            constraints: BoxConstraints(
+                                              maxHeight: maxHeight,
+                                              maxWidth: maxWidth,
+                                            ),
+                                            child: SingleChildScrollView(
+                                              padding: EdgeInsets.only(
+                                                left: 20,
+                                                right: 20,
+                                                top: 20,
+                                                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                                               ),
-                                              const SizedBox(height: 20),
-                                              TextField(
-                                                decoration: InputDecoration(
-                                                  hintText: 'Session Name',
-                                                  hintStyle: TextStyle(
-                                                    color: Colors.grey[400],
-                                                    fontSize: 14,
-                                                  ),
-                                                  border: OutlineInputBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          0,
-                                                        ),
-                                                    borderSide: BorderSide(
-                                                      color: Colors.grey[300]!,
-                                                      width: 1,
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                children: [
+                                                  const Text(
+                                                    'Edit Session Name',
+                                                    style: TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.black,
                                                     ),
                                                   ),
-                                                  enabledBorder:
-                                                      OutlineInputBorder(
+                                                  const SizedBox(height: 20),
+                                                  TextField(
+                                                    decoration: InputDecoration(
+                                                      hintText: 'Session Name',
+                                                      hintStyle: TextStyle(
+                                                        color: Colors.grey[400],
+                                                        fontSize: 14,
+                                                      ),
+                                                      border: OutlineInputBorder(
                                                         borderRadius:
                                                             BorderRadius.circular(
                                                               0,
                                                             ),
                                                         borderSide: BorderSide(
-                                                          color:
-                                                              Colors.grey[300]!,
+                                                          color: Colors.grey[300]!,
                                                           width: 1,
                                                         ),
                                                       ),
-                                                  focusedBorder:
-                                                      OutlineInputBorder(
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              0,
-                                                            ),
-                                                        borderSide:
-                                                            const BorderSide(
+                                                      enabledBorder:
+                                                          OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  0,
+                                                                ),
+                                                            borderSide: BorderSide(
                                                               color:
-                                                                  Colors.black,
+                                                                  Colors.grey[300]!,
                                                               width: 1,
                                                             ),
-                                                      ),
-                                                  contentPadding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 14,
-                                                        vertical: 14,
-                                                      ),
-                                                  filled: true,
-                                                  fillColor: Colors.white,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 20),
-                                              SizedBox(
-                                                width: double.infinity,
-                                                height: 48,
-                                                child: ElevatedButton(
-                                                  onPressed: () {
-                                                    Navigator.pop(context);
-                                                  },
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor:
-                                                        Colors.white,
-                                                    foregroundColor:
-                                                        Colors.black,
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            0,
                                                           ),
-                                                      side: const BorderSide(
-                                                        color: Color(
-                                                          0xFFFF6B6B,
+                                                      focusedBorder:
+                                                          OutlineInputBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  0,
+                                                                ),
+                                                            borderSide:
+                                                                const BorderSide(
+                                                                  color:
+                                                                      Colors.black,
+                                                                  width: 1,
+                                                                ),
+                                                          ),
+                                                      contentPadding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 14,
+                                                            vertical: 14,
+                                                          ),
+                                                      filled: true,
+                                                      fillColor: Colors.white,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 20),
+                                                  SizedBox(
+                                                    width: double.infinity,
+                                                    height: 48,
+                                                    child: ElevatedButton(
+                                                      onPressed: () {
+                                                        Navigator.pop(context);
+                                                      },
+                                                      style: ElevatedButton.styleFrom(
+                                                        backgroundColor:
+                                                            Colors.white,
+                                                        foregroundColor:
+                                                            Colors.black,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                0,
+                                                              ),
+                                                          side: const BorderSide(
+                                                            color: Color(
+                                                              0xFFFF6B6B,
+                                                            ),
+                                                            width: 1.5,
+                                                          ),
                                                         ),
-                                                        width: 1.5,
+                                                      ),
+                                                      child: const Text(
+                                                        'Save',
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
                                                       ),
                                                     ),
                                                   ),
-                                                  child: const Text(
-                                                    'Save',
-                                                    style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        ),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     );
                                   },
@@ -327,66 +349,63 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.zero,
                                         ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(20.0),
-                                          child: SingleChildScrollView(
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment
-                                                          .spaceBetween,
-                                                  children: [
-                                                    const Text(
-                                                      'Invite users by email',
-                                                      style: TextStyle(
-                                                        fontSize: 20,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: Colors.black,
-                                                      ),
-                                                    ),
-                                                    TextButton(
-                                                      onPressed:
-                                                          () => Navigator.pop(
-                                                            context,
-                                                          ),
-                                                      child: const Text(
-                                                        'Done',
-                                                        style: TextStyle(
-                                                          color: Color(
-                                                            0xFF2F80ED,
-                                                          ),
-                                                          fontSize: 16,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
+                                        child: LayoutBuilder(
+                                          builder: (context, constraints) {
+                                            final maxHeight = MediaQuery.of(context).size.height * 0.8;
+                                            final maxWidth = MediaQuery.of(context).size.width * 0.95;
+                                            return ConstrainedBox(
+                                              constraints: BoxConstraints(
+                                                maxHeight: maxHeight,
+                                                maxWidth: maxWidth,
+                                              ),
+                                              child: SingleChildScrollView(
+                                                padding: EdgeInsets.only(
+                                                  left: 20,
+                                                  right: 20,
+                                                  top: 20,
+                                                  bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                                                 ),
-                                                const SizedBox(height: 20),
-                                                TextField(
-                                                  decoration: InputDecoration(
-                                                    hintText: 'Email Address',
-                                                    hintStyle: TextStyle(
-                                                      color: Colors.grey[400],
-                                                      fontSize: 14,
-                                                    ),
-                                                    border: OutlineInputBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            0,
+                                                child: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                  children: [
+                                                    Row(
+                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                      children: [
+                                                        Expanded(
+                                                          child: Text(
+                                                            'Invite users',
+                                                            style: TextStyle(
+                                                              fontSize: 20,
+                                                              fontWeight: FontWeight.bold,
+                                                              color: Colors.black,
+                                                            ),
+                                                            overflow: TextOverflow.ellipsis,
+                                                            maxLines: 1,
                                                           ),
-                                                      borderSide: BorderSide(
-                                                        color:
-                                                            Colors.grey[300]!,
-                                                        width: 1,
-                                                      ),
+                                                        ),
+                                                        TextButton(
+                                                          onPressed: () => Navigator.pop(context),
+                                                          child: const Text(
+                                                            'Done',
+                                                            style: TextStyle(
+                                                              color: Color(0xFF2F80ED),
+                                                              fontSize: 16,
+                                                              fontWeight: FontWeight.w500,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                    enabledBorder:
-                                                        OutlineInputBorder(
+                                                    const SizedBox(height: 20),
+                                                    TextField(
+                                                      decoration: InputDecoration(
+                                                        hintText: 'Email Address',
+                                                        hintStyle: TextStyle(
+                                                          color: Colors.grey[400],
+                                                          fontSize: 14,
+                                                        ),
+                                                        border: OutlineInputBorder(
                                                           borderRadius:
                                                               BorderRadius.circular(
                                                                 0,
@@ -398,240 +417,239 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                             width: 1,
                                                           ),
                                                         ),
-                                                    focusedBorder:
-                                                        OutlineInputBorder(
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                0,
-                                                              ),
-                                                          borderSide:
-                                                              const BorderSide(
+                                                        enabledBorder:
+                                                            OutlineInputBorder(
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    0,
+                                                                  ),
+                                                              borderSide: BorderSide(
                                                                 color:
                                                                     Colors
-                                                                        .black,
+                                                                        .grey[300]!,
                                                                 width: 1,
                                                               ),
+                                                            ),
+                                                        focusedBorder:
+                                                            OutlineInputBorder(
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    0,
+                                                                  ),
+                                                              borderSide:
+                                                                  const BorderSide(
+                                                                    color:
+                                                                        Colors
+                                                                            .black,
+                                                                    width: 1,
+                                                                  ),
+                                                            ),
+                                                        contentPadding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 14,
+                                                              vertical: 14,
+                                                            ),
+                                                        filled: true,
+                                                        fillColor: Colors.white,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 20),
+                                                    SizedBox(
+                                                      width: double.infinity,
+                                                      height: 48,
+                                                      child: ElevatedButton(
+                                                        onPressed: () {
+                                                          // Handle invite action
+                                                          Navigator.pop(context);
+                                                        },
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor:
+                                                              Colors.white,
+                                                          foregroundColor:
+                                                              Colors.black,
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  0,
+                                                                ),
+                                                            side: const BorderSide(
+                                                              color: Color(
+                                                                0xFFFF6B6B,
+                                                              ),
+                                                              width: 1.5,
+                                                            ),
+                                                          ),
                                                         ),
-                                                    contentPadding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 14,
-                                                          vertical: 14,
+                                                        child: const Text(
+                                                          'Invite',
+                                                          style: TextStyle(
+                                                            fontSize: 16,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
                                                         ),
-                                                    filled: true,
-                                                    fillColor: Colors.white,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 20),
-                                                SizedBox(
-                                                  width: double.infinity,
-                                                  height: 48,
-                                                  child: ElevatedButton(
-                                                    onPressed: () {
-                                                      // Handle invite action
-                                                      Navigator.pop(context);
-                                                    },
-                                                    style: ElevatedButton.styleFrom(
-                                                      backgroundColor:
-                                                          Colors.white,
-                                                      foregroundColor:
-                                                          Colors.black,
-                                                      shape: RoundedRectangleBorder(
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 16),
+                                                    Align(
+                                                      alignment:
+                                                          Alignment.centerLeft,
+                                                      child: Text(
+                                                        'Preview Users',
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          color: Color(0xFF222222),
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 8),
+                                                    Container(
+                                                      padding: const EdgeInsets.all(
+                                                        12,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
                                                         borderRadius:
                                                             BorderRadius.circular(
-                                                              0,
+                                                              6,
                                                             ),
-                                                        side: const BorderSide(
-                                                          color: Color(
-                                                            0xFFFF6B6B,
-                                                          ),
-                                                          width: 1.5,
-                                                        ),
                                                       ),
-                                                    ),
-                                                    child: const Text(
-                                                      'Invite',
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 16),
-                                                Align(
-                                                  alignment:
-                                                      Alignment.centerLeft,
-                                                  child: Text(
-                                                    'Preview Users',
-                                                    style: const TextStyle(
-                                                      fontSize: 14,
-                                                      color: Color(0xFF222222),
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 8),
-                                                Container(
-                                                  padding: const EdgeInsets.all(
-                                                    12,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.white,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          6,
+                                                      child: ConstrainedBox(
+                                                        constraints: BoxConstraints(
+                                                          maxHeight:
+                                                              180, // or whatever max height you want
                                                         ),
-                                                  ),
-                                                  child: ConstrainedBox(
-                                                    constraints: BoxConstraints(
-                                                      maxHeight:
-                                                          180, // or whatever max height you want
-                                                    ),
-                                                    child: ListView(
-                                                      shrinkWrap: true,
-                                                      children: [
-                                                        Row(
+                                                        child: ListView(
+                                                          shrinkWrap: true,
                                                           children: [
-                                                            Expanded(
-                                                              child: Text(
-                                                                'mark@example.com',
-                                                                style: const TextStyle(
-                                                                  fontSize: 14,
-                                                                  color: Color(
-                                                                    0xFF000000,
-                                                                  ),
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            IconButton(
-                                                              icon: const Icon(
-                                                                Icons.add,
-                                                                color: Color(
-                                                                  0xFF000000,
-                                                                ),
-                                                                size: 20,
-                                                              ),
-                                                              onPressed: () {},
-                                                              padding:
-                                                                  EdgeInsets
-                                                                      .zero,
-                                                              constraints:
-                                                                  const BoxConstraints(),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 8,
-                                                        ),
-                                                        Row(
-                                                          children: [
-                                                            Expanded(
-                                                              child: Text(
-                                                                'john@example.com',
-                                                                style: const TextStyle(
-                                                                  fontSize: 14,
-                                                                  color: Color(
-                                                                    0xFF000000,
-                                                                  ),
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            IconButton(
-                                                              icon: const Icon(
-                                                                Icons.add,
-                                                                color: Color(
-                                                                  0xFF000000,
-                                                                ),
-                                                                size: 20,
-                                                              ),
-                                                              onPressed: () {},
-                                                              padding:
-                                                                  EdgeInsets
-                                                                      .zero,
-                                                              constraints:
-                                                                  const BoxConstraints(),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 8,
-                                                        ),
-                                                        Row(
-                                                          children: [
-                                                            Expanded(
-                                                              child: Text(
-                                                                'steve@example.com',
-                                                                style: const TextStyle(
-                                                                  fontSize: 14,
-                                                                  color: Color(
-                                                                    0xFF000000,
-                                                                  ),
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                              ),
-                                                            ),
                                                             Row(
-                                                              mainAxisSize:
-                                                                  MainAxisSize
-                                                                      .min,
                                                               children: [
-                                                                const Text(
-                                                                  'pending',
-                                                                  style: TextStyle(
-                                                                    fontSize:
-                                                                        12,
-                                                                    color:
-                                                                        Color.fromARGB(
-                                                                          255,
-                                                                          138,
-                                                                          123,
-                                                                          123,
-                                                                        ),
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w500,
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    'mark@example.com',
+                                                                    style: const TextStyle(
+                                                                      fontSize: 14,
+                                                                      color: Color(0xFF000000),
+                                                                      fontWeight: FontWeight.w500,
+                                                                    ),
+                                                                    overflow: TextOverflow.ellipsis,
+                                                                    maxLines: 1,
                                                                   ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 4,
                                                                 ),
                                                                 IconButton(
                                                                   icon: const Icon(
-                                                                    Icons.close,
-                                                                    color: Color(
-                                                                      0xFFEB5757,
-                                                                    ),
+                                                                    Icons.add,
+                                                                    color: Color(0xFF000000),
                                                                     size: 20,
                                                                   ),
-                                                                  onPressed:
-                                                                      () {},
-                                                                  padding:
-                                                                      EdgeInsets
-                                                                          .zero,
-                                                                  constraints:
-                                                                      const BoxConstraints(),
+                                                                  onPressed: () {},
+                                                                  padding: EdgeInsets.zero,
+                                                                  constraints: const BoxConstraints(),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 8,
+                                                            ),
+                                                            Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    'john@example.com',
+                                                                    style: const TextStyle(
+                                                                      fontSize: 14,
+                                                                      color: Color(0xFF000000),
+                                                                      fontWeight: FontWeight.w500,
+                                                                    ),
+                                                                    overflow: TextOverflow.ellipsis,
+                                                                    maxLines: 1,
+                                                                  ),
+                                                                ),
+                                                                IconButton(
+                                                                  icon: const Icon(
+                                                                    Icons.add,
+                                                                    color: Color(0xFF000000),
+                                                                    size: 20,
+                                                                  ),
+                                                                  onPressed: () {},
+                                                                  padding: EdgeInsets.zero,
+                                                                  constraints: const BoxConstraints(),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                            const SizedBox(
+                                                              height: 8,
+                                                            ),
+                                                            Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    'steve@example.com',
+                                                                    style: const TextStyle(
+                                                                      fontSize: 14,
+                                                                      color: Color(0xFF000000),
+                                                                      fontWeight: FontWeight.w500,
+                                                                    ),
+                                                                    overflow: TextOverflow.ellipsis,
+                                                                    maxLines: 1,
+                                                                  ),
+                                                                ),
+                                                                Row(
+                                                                  mainAxisSize:
+                                                                      MainAxisSize
+                                                                          .min,
+                                                                  children: [
+                                                                    const Text(
+                                                                      'pending',
+                                                                      style: TextStyle(
+                                                                        fontSize:
+                                                                            12,
+                                                                        color:
+                                                                            Color.fromARGB(
+                                                                              255,
+                                                                              138,
+                                                                              123,
+                                                                              123,
+                                                                            ),
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .w500,
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(
+                                                                      width: 4,
+                                                                    ),
+                                                                    IconButton(
+                                                                      icon: const Icon(
+                                                                        Icons.close,
+                                                                        color: Color(
+                                                                          0xFFEB5757,
+                                                                        ),
+                                                                        size: 20,
+                                                                      ),
+                                                                      onPressed:
+                                                                          () {},
+                                                                      padding:
+                                                                          EdgeInsets
+                                                                              .zero,
+                                                                      constraints:
+                                                                          const BoxConstraints(),
+                                                                    ),
+                                                                  ],
                                                                 ),
                                                               ],
                                                             ),
                                                           ],
                                                         ),
-                                                      ],
+                                                      ),
                                                     ),
-                                                  ),
+                                                  ],
                                                 ),
-                                              ],
-                                            ),
-                                          ),
+                                              ),
+                                            );
+                                          },
                                         ),
                                       );
                                     },
@@ -969,6 +987,39 @@ class _SessionDetailViewState extends State<SessionDetailView>
             ],
           ),
         ),
+      ),
+      floatingActionButton: SizedBox(
+        height: 64,
+        width: 64,
+        child: FloatingActionButton(
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (context) => SizedBox.expand(child: NewRecordingScreen()),
+            );
+          },
+          elevation: 0,
+          backgroundColor: Colors.white,
+          shape: const CircleBorder(),
+          child: Image.asset(
+            'assets/images/centerButton.png',
+            width: 64,
+            height: 64,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: CustomBottomNavigationBar(
+        onTabSelected: (index) {
+          if (index == 0) {
+            Get.offAll(() => SessionsView());
+          } else if (index == 1) {
+            Get.offAll(() => SettingsView());
+          }
+        },
       ),
     );
   }

@@ -6,6 +6,8 @@ import '../utils/constants.dart';
 import '../utils/responsive.dart';
 import 'dart:io' show Platform;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -229,6 +231,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                   colorText: Colors.white,
                                 );
                                 await Future.delayed(Duration(seconds: 1)); // Give user time to see the message
+                                final user = FirebaseAuth.instance.currentUser;
+                                if (user != null) {
+                                  await _saveFcmToken(user.uid);
+                                }
                                 Get.off(() => MainNavigation());
                               } on FirebaseAuthException catch (e) {
                                 setState(() { _isLoading = false; });
@@ -316,5 +322,38 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveFcmToken(String uid) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || user.uid != uid) {
+        print('User not authenticated or UID mismatch.');
+        return;
+      }
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      if (fcmToken != null) {
+        await FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'fcmTokens': FieldValue.arrayUnion([fcmToken]),
+          'tokenUpdatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        print('FCM token saved to Firestore: $fcmToken');
+      } else {
+        print('Failed to get FCM token.');
+      }
+      FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+        try {
+          await FirebaseFirestore.instance.collection('users').doc(uid).update({
+            'fcmTokens': FieldValue.arrayUnion([newToken]),
+            'tokenUpdatedAt': FieldValue.serverTimestamp(),
+          });
+          print('FCM token refreshed and saved: $newToken');
+        } catch (e) {
+          print('Error updating FCM token on refresh: $e');
+        }
+      });
+    } catch (e) {
+      print('Error saving FCM token: $e');
+    }
   }
 }

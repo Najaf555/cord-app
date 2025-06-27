@@ -6,6 +6,10 @@ import '../utils/date_util.dart';
 import '../utils/validators.dart';
 import '../utils/responsive.dart';
 import '../views/new_recording.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'session_detail_view.dart';
+import '../controllers/session_detail_controller.dart';
 
 
 class SessionsView extends StatefulWidget {
@@ -37,6 +41,9 @@ class _SessionsViewState extends State<SessionsView> {
       'session': 'Free Falling v2',
     },
   ];
+
+  final TextEditingController _sessionNameController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,14 +157,107 @@ class _SessionsViewState extends State<SessionsView> {
                     child: SizedBox(
                       width: 220,
                       child: OutlinedButton(
-                        onPressed: () {
-                          final freeFallingSession = controller.sessions
-                              .firstWhere(
-                                (session) => session.name == 'Free Falling v2',
-                                orElse: () => controller.sessions.first,
+                        onPressed: () async {
+                          await showDialog(
+                            context: context,
+                            builder: (context) {
+                              return Dialog(
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.zero,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24.0),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      const Text(
+                                        'Create Session',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.left,
+                                      ),
+                                      const SizedBox(height: 24),
+                                      TextField(
+                                        controller: _sessionNameController,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Session Name',
+                                          border: OutlineInputBorder(
+                                            borderRadius: BorderRadius.zero,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 32),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [Color(0xFFFF9800), Color(0xFFE91E63)],
+                                                begin: Alignment.centerLeft,
+                                                end: Alignment.centerRight,
+                                              ),
+                                              borderRadius: BorderRadius.zero,
+                                            ),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(1.5),
+                                              child: Container(
+                                                decoration: const BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius: BorderRadius.zero,
+                                                ),
+                                                child: TextButton(
+                                                  onPressed: () async {
+                                                    final sessionName = _sessionNameController.text.trim();
+                                                    if (sessionName.isEmpty) return;
+                                                    final user = FirebaseAuth.instance.currentUser;
+                                                    if (user == null) return;
+                                                    final sessionsRef = FirebaseFirestore.instance.collection('sessions');
+                                                    final newDocRef = sessionsRef.doc();
+                                                    final sessionId = 'SESSION_${newDocRef.id.substring(0, 6).toUpperCase()}';
+                                                    await newDocRef.set({
+                                                      'sessionId': sessionId,
+                                                      'name': sessionName,
+                                                      'hostId': user.uid,
+                                                      'createdAt': FieldValue.serverTimestamp(),
+                                                      'updatedAt': FieldValue.serverTimestamp(),
+                                                    });
+                                                    _sessionNameController.clear();
+                                                    Navigator.of(context).pop();
+                                                    Get.snackbar('Success', 'Session created!', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green, colorText: Colors.white);
+                                                  },
+                                                  style: TextButton.styleFrom(
+                                                    backgroundColor: Colors.white,
+                                                    foregroundColor: Colors.black,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.zero,
+                                                    ),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                                                  ),
+                                                  child: const Text(
+                                                    'Create',
+                                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               );
-                          Get.find<NavigationController>().showSessionDetails(
-                            freeFallingSession,
+                            },
                           );
                         },
                         style: OutlinedButton.styleFrom(
@@ -220,7 +320,10 @@ class _SessionsViewState extends State<SessionsView> {
                               itemBuilder: (context, index) {
                                 final session = sessions[index];
                                 return InkWell(
-                                  onTap: () {},
+                                  onTap: () {
+                                    Get.put(SessionDetailController(session: session));
+                                    Get.to(() => SessionDetailView());
+                                  },
                                   borderRadius: BorderRadius.circular(8),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(

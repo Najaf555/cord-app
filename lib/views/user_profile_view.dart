@@ -53,11 +53,23 @@ class _UserProfileViewState extends State<UserProfileView> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final docSnapshot = await userDocRef.get();
+        final data = {
+          'uid': user.uid,
+          'email': user.email,
           'firstName': firstName,
           'lastName': lastName,
-          'email': email,
-        });
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        if (docSnapshot.exists) {
+          // Only update existing document
+          await userDocRef.update(data);
+        } else {
+          // Create new document with createdAt
+          data['createdAt'] = FieldValue.serverTimestamp();
+          await userDocRef.set(data);
+        }
         Get.snackbar(
           'Success',
           'Profile saved successfully!',
