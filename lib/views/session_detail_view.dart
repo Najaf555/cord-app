@@ -7,10 +7,11 @@ import '../utils/validators.dart';
 import '../utils/responsive.dart';
 import '../models/session.dart';
 import 'session_detail_view.dart';
-import '../widgets/custom_bottom_navigation_bar.dart';
 import 'new_recording.dart';
 import 'sessions_view.dart';
 import 'settings_view.dart';
+import '../controllers/navigation_controller.dart';
+import '../views/main_navigation.dart';
 
 class SessionDetailView extends StatefulWidget {
   const SessionDetailView({super.key});
@@ -495,10 +496,10 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                       alignment:
                                                           Alignment.centerLeft,
                                                       child: Text(
-                                                        'Preview Users',
+                                                        'Previous users',
                                                         style: const TextStyle(
-                                                          fontSize: 14,
-                                                          color: Color(0xFF222222),
+                                                          fontSize: 12,
+                                                          color: Color(0xFF4D4D4D),
                                                           fontWeight:
                                                               FontWeight.w500,
                                                         ),
@@ -1012,14 +1013,86 @@ class _SessionDetailViewState extends State<SessionDetailView>
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: CustomBottomNavigationBar(
-        onTabSelected: (index) {
-          if (index == 0) {
-            Get.offAll(() => SessionsView());
-          } else if (index == 1) {
-            Get.offAll(() => SettingsView());
-          }
-        },
+      bottomNavigationBar: Stack(
+        children: [
+          // Top border line
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(height: 2, color: Color(0xFFE0E0E0)),
+          ),
+          // Shadow overlay just below the border line
+          Positioned(
+            top: 1,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 12,
+              decoration: const BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x33000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 0),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // BottomAppBar with nav bar
+          BottomAppBar(
+            color: Colors.white,
+            elevation: 0,
+            notchMargin: 0,
+            child: Theme(
+              data: Theme.of(context).copyWith(
+                splashFactory: NoSplash.splashFactory,
+                highlightColor: Colors.transparent,
+                splashColor: Colors.transparent,
+              ),
+              child: BottomNavigationBar(
+                backgroundColor: Colors.white,
+                elevation: 0,
+                type: BottomNavigationBarType.fixed,
+                selectedItemColor: Color(0xFF222222),
+                unselectedItemColor: Color(0xFFBDBDBD),
+                selectedLabelStyle: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 12,
+                ),
+                currentIndex: 0, // Sessions tab is selected
+                onTap: (index) {
+                  if (index == 0) {
+                    // Navigate back to main navigation with sessions tab selected
+                    Get.offAll(() => MainNavigation());
+                  } else if (index == 1) {
+                    // Navigate back to main navigation with settings tab selected
+                    final navController = Get.put(NavigationController(), permanent: true);
+                    navController.changeTab(1);
+                    Get.offAll(() => MainNavigation());
+                  }
+                },
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.folder),
+                    label: 'Sessions',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(Icons.settings),
+                    label: 'Settings',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

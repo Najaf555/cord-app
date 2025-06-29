@@ -8,6 +8,7 @@ import 'dart:io' show Platform;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'social_login_service.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -24,6 +25,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _isLoading = false;
   bool _isPasswordHidden = true;
   bool _isConfirmPasswordHidden = true;
+  final SocialLoginService _socialLoginService = SocialLoginService();
 
   @override
   Widget build(BuildContext context) {
@@ -279,10 +281,128 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   style: TextStyle(fontSize: 13, color: Colors.grey),
                 ),
                 const SizedBox(height: 12),
-                Image.asset(
-                  'assets/images/social_logos.png',
-                  height: 40,
-                  fit: BoxFit.contain,
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Google button
+                      GestureDetector(
+                        onTap: () async {
+                          try {
+                            final userCredential = await _socialLoginService.signInWithGoogle();
+                            if (userCredential != null) {
+                              Get.snackbar('Success', 'Google sign up successful!',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                              );
+                              await Future.delayed(Duration(seconds: 1));
+                              Get.off(() => MainNavigation());
+                            }
+                          } catch (e) {
+                            Get.snackbar('Google Sign-Up Failed', e.toString(),
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red,
+                              colorText: Colors.white,
+                            );
+                          }
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(0.0),
+                            child: Image.asset(
+                              'assets/images/googleIcon.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      // Facebook button
+                      GestureDetector(
+                        onTap: () async {
+                          try {
+                            final userCredential = await _socialLoginService.signInWithFacebook();
+                            if (userCredential != null) {
+                              Get.snackbar('Success', 'Facebook sign up successful!',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                              );
+                              await Future.delayed(Duration(seconds: 1));
+                              Get.off(() => MainNavigation());
+                            }
+                          } catch (e) {
+                            Get.snackbar('Facebook Sign-Up Failed', e.toString(),
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red,
+                              colorText: Colors.white,
+                            );
+                          }
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(0.0),
+                            child: Image.asset(
+                              'assets/images/facebookIcon.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      // Apple button
+                      GestureDetector(
+                        onTap: () async {
+                          try {
+                            final userCredential = await _socialLoginService.signInWithApple();
+                            if (userCredential != null) {
+                              Get.snackbar('Success', 'Apple sign up successful!',
+                                snackPosition: SnackPosition.BOTTOM,
+                                backgroundColor: Colors.green,
+                                colorText: Colors.white,
+                              );
+                              await Future.delayed(Duration(seconds: 1));
+                              Get.off(() => MainNavigation());
+                            }
+                          } catch (e) {
+                            Get.snackbar('Apple Sign-Up Failed', e.toString(),
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red,
+                              colorText: Colors.white,
+                            );
+                          }
+                        },
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey[300]!),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(0.0),
+                            child: Image.asset(
+                              'assets/images/appleIcon.png',
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Padding(

@@ -10,8 +10,7 @@ plugins {
 
 android {
     namespace = "com.cord"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -23,15 +22,25 @@ android {
         jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
+    sourceSets {
+        getByName("main") {
+            manifest.srcFile("src/main/AndroidManifest.xml")
+            java.srcDirs("src/main/kotlin")
+            res.srcDirs("src/main/res")
+            assets.srcDirs("src/main/assets")
+        }
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.cord"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        minSdk = 21
+        targetSdk = 35
+        versionCode = 1
+        versionName = "1.0"
+        multiDexEnabled = true
     }
 
     buildTypes {

@@ -1,24 +1,168 @@
 import 'package:get/get.dart';
 import '../models/session.dart';
-import '../models/user.dart';
+import '../models/user.dart' as app_user;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SessionController extends GetxController {
   var sessions = <Session>[].obs;
   var searchQuery = ''.obs;
+  var isLoading = false.obs;
+  var isAuthenticated = false.obs;
+  var isDescendingOrder = true.obs; // true = newest first, false = oldest first
 
   @override
   void onInit() {
     super.onInit();
-    loadMockSessions();
+    // Listen to authentication state changes
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      isAuthenticated.value = user != null;
+      if (user != null) {
+        print('User authenticated: ${user.uid}');
+        loadSessionsFromFirestore();
+      } else {
+        print('User signed out');
+        sessions.clear();
+      }
+    });
+    
+    // Check if user is already authenticated
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      isAuthenticated.value = true;
+      print('User already authenticated: ${currentUser.uid}');
+      loadSessionsFromFirestore();
+    } else {
+      print('No user authenticated initially');
+      // Load mock data initially
+      loadMockSessions();
+    }
+  }
+
+  Future<void> loadSessionsFromFirestore() async {
+    try {
+      isLoading.value = true;
+      
+      // Get current user
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        print('No authenticated user found - falling back to mock data');
+        loadMockSessions();
+        return;
+      }
+
+      print('Loading sessions for user: ${currentUser.uid}');
+
+      // First, let's see what sessions exist in the database (for debugging)
+      final allSessionsSnapshot = await FirebaseFirestore.instance
+          .collection('sessions')
+          .get();
+      
+      print('Total sessions in database: ${allSessionsSnapshot.docs.length}');
+      
+      // Show all sessions for debugging
+      for (var doc in allSessionsSnapshot.docs) {
+        final data = doc.data();
+        print('Session ${doc.id}: ${doc.data()}');
+        print('  - hostId: ${data['hostId']}');
+        print('  - current user UID: ${currentUser.uid}');
+        print('  - hostId matches current user: ${data['hostId'] == currentUser.uid}');
+      }
+
+      // Now try to fetch sessions for the current user
+      // Temporarily fetch ALL sessions to debug
+      final sessionsSnapshot = await FirebaseFirestore.instance
+          .collection('sessions')
+          // .where('hostId', isEqualTo: currentUser.uid) // Temporarily commented out to see all sessions
+          // .orderBy('createdAt', descending: true) // Temporarily commented out until index is created
+          .get();
+
+      print('Found ${sessionsSnapshot.docs.length} sessions for current user');
+
+      final List<Session> sessionsList = [];
+
+      for (var doc in sessionsSnapshot.docs) {
+        final data = doc.data();
+        print('Processing session document: ${doc.id}');
+        print('Session data: $data');
+        
+        // Create dummy users for now (as requested)
+        final dummyUsers = [
+          app_user.User(
+            id: '1', 
+            name: 'User1', 
+            avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'
+          ),
+          app_user.User(
+            id: '2', 
+            name: 'User2', 
+            avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'
+          ),
+          app_user.User(
+            id: '3', 
+            name: 'User3', 
+            avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'
+          ),
+        ];
+
+        // Parse timestamps
+        DateTime createdAt = DateTime.now();
+        DateTime updatedAt = DateTime.now();
+        
+        if (data['createdAt'] != null) {
+          createdAt = (data['createdAt'] as Timestamp).toDate();
+        }
+        if (data['updatedAt'] != null) {
+          updatedAt = (data['updatedAt'] as Timestamp).toDate();
+        }
+
+        // Create session object
+        final session = Session(
+          id: doc.id,
+          name: data['name'] ?? 'Untitled Session',
+          dateTime: updatedAt, // Using updatedAt as the session date
+          createdDate: createdAt,
+          users: dummyUsers, // Using dummy users for now
+          recordingsCount: 0, // Using 0 as dummy recording count for now
+        );
+
+        sessionsList.add(session);
+        print('Added session: ${session.name}');
+      }
+
+      if (sessionsList.isEmpty) {
+        print('No sessions found for current user - falling back to mock data');
+        loadMockSessions();
+        return;
+      }
+
+      // Sort sessions by createdAt based on current sort order
+      if (isDescendingOrder.value) {
+        sessionsList.sort((a, b) => b.createdDate.compareTo(a.createdDate));
+      } else {
+        sessionsList.sort((a, b) => a.createdDate.compareTo(b.createdDate));
+      }
+
+      sessions.value = sessionsList;
+      print('Successfully loaded ${sessionsList.length} sessions from Firestore');
+      
+    } catch (e) {
+      print('Error loading sessions from Firestore: $e');
+      print('Stack trace: ${StackTrace.current}');
+      // Fallback to mock data if Firestore fails
+      loadMockSessions();
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void loadMockSessions() {
     final users = [
-      User(id: '1', name: 'User1', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
-      User(id: '2', name: 'User2', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
-      User(id: '3', name: 'User3', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
-      User(id: '4', name: 'User4', avatarUrl: 'https://randomuser.me/api/portraits/men/4.jpg'),
-      User(id: '5', name: 'User5', avatarUrl: 'https://randomuser.me/api/portraits/men/5.jpg'),
+      app_user.User(id: '1', name: 'User1', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
+      app_user.User(id: '2', name: 'User2', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
+      app_user.User(id: '3', name: 'User3', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
+      app_user.User(id: '4', name: 'User4', avatarUrl: 'https://randomuser.me/api/portraits/men/4.jpg'),
+      app_user.User(id: '5', name: 'User5', avatarUrl: 'https://randomuser.me/api/portraits/men/5.jpg'),
     ];
     sessions.value = [
       Session(
@@ -67,5 +211,109 @@ class SessionController extends GetxController {
 
   void setSearchQuery(String query) {
     searchQuery.value = query;
+  }
+
+  // Refresh sessions from Firestore
+  Future<void> refreshSessions() async {
+    await loadSessionsFromFirestore();
+  }
+
+  // Toggle sort order (newest first vs oldest first)
+  void toggleSortOrder() {
+    isDescendingOrder.value = !isDescendingOrder.value;
+    // Re-sort the current sessions list
+    final currentSessions = List<Session>.from(sessions);
+    if (isDescendingOrder.value) {
+      currentSessions.sort((a, b) => b.createdDate.compareTo(a.createdDate));
+    } else {
+      currentSessions.sort((a, b) => a.createdDate.compareTo(b.createdDate));
+    }
+    sessions.value = currentSessions;
+    print('Sort order changed to: ${isDescendingOrder.value ? "newest first" : "oldest first"}');
+  }
+
+  // Temporary method to load all sessions (for testing)
+  Future<void> loadAllSessionsFromFirestore() async {
+    try {
+      isLoading.value = true;
+      
+      print('Loading ALL sessions from Firestore (for testing)');
+
+      // Fetch all sessions from Firestore
+      final sessionsSnapshot = await FirebaseFirestore.instance
+          .collection('sessions')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      print('Found ${sessionsSnapshot.docs.length} total sessions in Firestore');
+
+      final List<Session> sessionsList = [];
+
+      for (var doc in sessionsSnapshot.docs) {
+        final data = doc.data();
+        print('Processing session document: ${doc.id}');
+        print('Session data: $data');
+        
+        // Create dummy users for now (as requested)
+        final dummyUsers = [
+          app_user.User(
+            id: '1', 
+            name: 'User1', 
+            avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'
+          ),
+          app_user.User(
+            id: '2', 
+            name: 'User2', 
+            avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'
+          ),
+          app_user.User(
+            id: '3', 
+            name: 'User3', 
+            avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'
+          ),
+        ];
+
+        // Parse timestamps
+        DateTime createdAt = DateTime.now();
+        DateTime updatedAt = DateTime.now();
+        
+        if (data['createdAt'] != null) {
+          createdAt = (data['createdAt'] as Timestamp).toDate();
+        }
+        if (data['updatedAt'] != null) {
+          updatedAt = (data['updatedAt'] as Timestamp).toDate();
+        }
+
+        // Create session object
+        final session = Session(
+          id: doc.id,
+          name: data['name'] ?? 'Untitled Session',
+          dateTime: updatedAt, // Using updatedAt as the session date
+          createdDate: createdAt,
+          users: dummyUsers, // Using dummy users for now
+          recordingsCount: 0, // Using 0 as dummy recording count for now
+        );
+
+        sessionsList.add(session);
+        print('Added session: ${session.name}');
+      }
+
+      if (sessionsList.isEmpty) {
+        print('No sessions found in Firestore - falling back to mock data');
+        loadMockSessions();
+        return;
+      }
+
+      sessions.value = sessionsList;
+      print('Successfully loaded ${sessionsList.length} sessions from Firestore');
+      
+    } catch (e) {
+      print('Error loading all sessions from Firestore: $e');
+      print('Stack trace: ${StackTrace.current}');
+      // Fallback to mock data if Firestore fails
+      loadMockSessions();
+    } finally {
+      isLoading.value = false;
+    }
   }
 } 
