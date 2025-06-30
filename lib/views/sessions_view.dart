@@ -43,6 +43,94 @@ class _SessionsViewState extends State<SessionsView> {
   ];
 
   final TextEditingController _sessionNameController = TextEditingController();
+  List<Map<String, dynamic>> _pendingInvites = [];
+  bool _isLoadingInvitations = false;
+  List<Map<String, dynamic>> _userInvitations = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPendingInvites();
+  }
+
+  Future<void> _fetchPendingInvites() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final query = await FirebaseFirestore.instance
+        .collection('user_invitations')
+        .where('invitedEmail', isEqualTo: user.email)
+        .where('status', isEqualTo: 'pending')
+        .get();
+    setState(() {
+      _pendingInvites = query.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+    });
+  }
+
+  Future<void> _respondToInvite(String docId, String status, String? sessionId) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      Get.snackbar('Error', 'You must be logged in to respond.');
+      return;
+    }
+
+    try {
+      // 1. Update the invitation status
+      await FirebaseFirestore.instance.collection('user_invitations').doc(docId).update({'status': status});
+
+      // 2. If accepted, add user to the session's participants
+      if (status == 'accepted') {
+        if (sessionId == null || sessionId.isEmpty) {
+          Get.snackbar('Error', 'Cannot join session: Session ID is missing.');
+          // Optionally, you might want to set the status back to 'pending' or handle this case differently
+          await FirebaseFirestore.instance.collection('user_invitations').doc(docId).update({'status': 'failed'});
+          return;
+        }
+        await FirebaseFirestore.instance.collection('sessions').doc(sessionId).update({
+          'participantIds': FieldValue.arrayUnion([currentUser.uid])
+        });
+        Get.snackbar('Invitation Accepted', 'You have been added to the session!', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green, colorText: Colors.white);
+      } else {
+        Get.snackbar('Invitation Rejected', 'You have rejected the invitation.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'An error occurred. Please try again.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red, colorText: Colors.white);
+      print('Error responding to invite: $e');
+    }
+  }
+
+  Future<void> _fetchUserInvitations() async {
+    setState(() => _isLoadingInvitations = true);
+    
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser?.email == null) {
+        throw Exception('User not logged in');
+      }
+
+      final QuerySnapshot<Map<String, dynamic>> query = await FirebaseFirestore.instance
+          .collection('user_invitations')
+          .where('invitedEmail', isEqualTo: currentUser!.email)
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      if (!mounted) return;
+
+      setState(() {
+        _userInvitations = query.docs.map((doc) {
+          final data = doc.data();
+          data['id'] = doc.id;
+          return data;
+        }).toList();
+        _isLoadingInvitations = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingInvitations = false;
+        _userInvitations = [];
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -228,7 +316,8 @@ class _SessionsViewState extends State<SessionsView> {
                                                       'sessionId': sessionId,
                                                       'name': sessionName,
                                                       'hostId': user.uid,
-                                                      'createdAt': FieldValue.serverTimestamp(),
+                                                      'createdAt': DateTime.now(),
+                                                      'serverCreatedAt': FieldValue.serverTimestamp(),
                                                       'updatedAt': FieldValue.serverTimestamp(),
                                                     });
                                                     _sessionNameController.clear();
@@ -554,9 +643,9 @@ class _SessionsViewState extends State<SessionsView> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Notifications (${_notifications.length})',
-                  style: const TextStyle(
+                const Text(
+                  'Notifications',
+                  style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -573,28 +662,105 @@ class _SessionsViewState extends State<SessionsView> {
               ],
             ),
             const SizedBox(height: 8),
-            Flexible(
-              child: ListView.separated(
-                itemCount: _notifications.length,
-                shrinkWrap: true,
-                physics: const AlwaysScrollableScrollPhysics(),
-                separatorBuilder: (_, __) => const Divider(
-                  color: Color(0xFFE0E0E0),
-                  thickness: 1,
-                ),
-                itemBuilder: (context, index) {
-                  final notification = _notifications[index];
-                  if (notification['type'] == 'invite_accepted') {
-                    return _buildInviteAcceptedNotification(
-                      notification['email'],
-                    );
-                  } else if (notification['type'] == 'session_invite') {
-                    return _buildSessionInviteNotification(
-                      notification['email'],
-                      notification['session'],
-                    );
+            Expanded(
+              child: StreamBuilder<List<Map<String, dynamic>>>(
+                stream: getAllUserNotificationsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
                   }
-                  return const SizedBox.shrink();
+                  if (snapshot.hasError) {
+                    return const Center(child: Text('Error loading invitations'));
+                  }
+                  final notifications = snapshot.data ?? [];
+                  if (notifications.isEmpty) {
+                    return const Center(child: Text('No invitations'));
+                  }
+                  return ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: notifications.length,
+                    separatorBuilder: (context, index) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final data = notifications[index];
+                      final type = data['type'] ?? '';
+                      final email = data['email'] ?? 'Unknown';
+                      if (type == 'invite_accepted') {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(email, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                            TextButton(
+                              onPressed: () {
+                                // TODO: Implement clear notification logic
+                              },
+                              style: TextButton.styleFrom(
+                                padding: EdgeInsets.zero,
+                                minimumSize: const Size(50, 24),
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                alignment: Alignment.centerRight,
+                              ),
+                              child: const Text(
+                                'Clear',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      } else if (type == 'session_invite') {
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(email, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: () => _respondToInvite(data['id'], 'accepted', null),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(50, 24),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    alignment: Alignment.centerRight,
+                                  ),
+                                  child: const Text(
+                                    'Accept',
+                                    style: TextStyle(
+                                      color: Colors.blue,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => _respondToInvite(data['id'], 'rejected', null),
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(50, 24),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    alignment: Alignment.centerRight,
+                                  ),
+                                  child: const Text(
+                                    'Reject',
+                                    style: TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        );
+                      } else {
+                        return const SizedBox.shrink();
+                      }
+                    },
+                  );
                 },
               ),
             ),
@@ -604,120 +770,86 @@ class _SessionsViewState extends State<SessionsView> {
     );
   }
 
-  Widget _buildInviteAcceptedNotification(String email) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                  height: 1.4,
-                ),
-                children: [
-                  TextSpan(text: '$email has accepted your invite'),
-                ],
-              ),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              // Handle clear
-            },
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(50, 24),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              alignment: Alignment.centerRight,
-            ),
-            child: const Text(
-              'Clear',
-              style: TextStyle(
-                color: Colors.grey,
-                fontSize: 16,
-                fontWeight: FontWeight.normal,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  Stream<List<Map<String, dynamic>>> getAllUserNotificationsStream() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Stream.empty();
+    return FirebaseFirestore.instance
+        .collection('user_invitations')
+        .where('invitedEmail', isEqualTo: user.email)
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = Map<String, dynamic>.from(doc.data() as Map);
+              data['id'] = doc.id;
+              return <String, dynamic>{
+                'type': 'session_invite',
+                'email': data['inviterEmail'],
+                'id': doc.id,
+              };
+            }).toList());
   }
+}
 
-  Widget _buildSessionInviteNotification(String email, String sessionName) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.black87,
-                  height: 1.4,
-                ),
-                children: [
-                  TextSpan(
-                    text: '$email has invited you to the session ‘$sessionName’',
-                  ),
-                ],
-              ),
+Future<void> sendInvitation(String inviteeEmail, String sessionId) async {
+  final inviter = FirebaseAuth.instance.currentUser;
+  if (inviter == null) return;
+  await FirebaseFirestore.instance.collection('user_invitations').add({
+    'invitedEmail': inviteeEmail,
+    'inviterEmail': inviter.email,
+    'sessionId': sessionId,
+    'status': 'pending',
+    'createdAt': DateTime.now(),
+    'serverCreatedAt': FieldValue.serverTimestamp(),
+  });
+}
+
+Future<List<Map<String, dynamic>>> fetchPendingInvites() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return [];
+  final query = await FirebaseFirestore.instance
+      .collection('user_invitations')
+      .where('invitedEmail', isEqualTo: user.email)
+      .where('status', isEqualTo: 'pending')
+      .get();
+  return query.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList();
+}
+
+Widget buildInvites(List<Map<String, dynamic>> invites) {
+  return Column(
+    children: invites.map((invite) {
+      return ListTile(
+        title: Text('${invite['fromEmail']} invited you'),
+        subtitle: Text('Session: ${invite['sessionId']}'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton(
+              onPressed: () => respondToInvite(invite['id'], 'accepted'),
+              child: Text('Accept'),
             ),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextButton(
-                onPressed: () {
-                  // Handle Accept
-                },
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(50, 24),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  alignment: Alignment.centerRight,
-                ),
-                child: const Text(
-                  'Accept',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              TextButton(
-                onPressed: () {
-                  // Handle Reject
-                },
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(50, 24),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  alignment: Alignment.centerRight,
-                ),
-                child: const Text(
-                  'Reject',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+            TextButton(
+              onPressed: () => respondToInvite(invite['id'], 'rejected'),
+              child: Text('Reject'),
+            ),
+          ],
+        ),
+      );
+    }).toList(),
+  );
+}
+
+Future<void> respondToInvite(String inviteId, String status) async {
+  await FirebaseFirestore.instance
+      .collection('user_invitations')
+      .doc(inviteId)
+      .update({'status': status});
+}
+
+Stream<List<Map<String, dynamic>>> inviteStream(String email) {
+  return FirebaseFirestore.instance
+      .collection('user_invitations')
+      .where('invitedEmail', isEqualTo: email)
+      .where('status', isEqualTo: 'pending')
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map((doc) => {...doc.data(), 'id': doc.id}).toList());
 }

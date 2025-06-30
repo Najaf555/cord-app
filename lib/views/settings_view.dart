@@ -22,103 +22,103 @@ class SettingsView extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Settings',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Settings',
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
                 ),
-                const SizedBox(height: 24),
+              ),
+              const SizedBox(height: 24),
 
-                InkWell(
-                  onTap: () {},
-                  borderRadius: BorderRadius.circular(12),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 30,
-                        backgroundImage: AssetImage('assets/profile.jpg'),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome,',
-                              style: TextStyle(fontSize: 16, color: Colors.grey),
+              InkWell(
+                onTap: () {},
+                borderRadius: BorderRadius.circular(12),
+                child: Row(
+                  children: [
+                    const CircleAvatar(
+                      radius: 30,
+                      backgroundImage: AssetImage('assets/profile.jpg'),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Welcome,',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                          Text(
+                            'Mark Jones',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
                             ),
-                            Text(
-                              'Mark Jones',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.grey,
-                        size: 20,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.grey,
+                      size: 20,
+                    ),
+                  ],
                 ),
+              ),
 
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 20.0),
-                  child: Divider(color: Color(0xFFE0E0E0), thickness: 1),
-                ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20.0),
+                child: Divider(color: Color(0xFFE0E0E0), thickness: 1),
+              ),
 
-                _settingsTile(
-                  title: 'User Profile',
-                  icon: Icons.person,
-                  onTap: () => Get.to(() => const UserProfileView()),
-                ),
-                _divider(),
+              _settingsTile(
+                title: 'User Profile',
+                icon: Icons.person,
+                onTap: () => Get.to(() => const UserProfileView()),
+              ),
+              _divider(),
 
-                _settingsTile(
-                  title: 'Change Password',
-                  icon: Icons.lock,
-                  onTap: () => Get.to(() => const ChangePasswordView()),
-                  forceBlackIcon: true,
-                ),
-                _divider(),
+              _settingsTile(
+                title: 'Change Password',
+                icon: Icons.lock,
+                onTap: () => Get.to(() => const ChangePasswordView()),
+                forceBlackIcon: true,
+              ),
+              _divider(),
 
-                // ✅ Updated FAQs navigation
-                _settingsTile(
-                  title: 'FAQs',
-                  icon: Icons.help_outline,
-                  onTap:
-                      () => Get.to(
-                        () => const FAQScreen(),
-                      ), // ← Navigates to FAQsView
-                ),
-                _divider(),
+              // ✅ Updated FAQs navigation
+              _settingsTile(
+                title: 'FAQs',
+                icon: Icons.help_outline,
+                onTap:
+                    () => Get.to(
+                      () => const FAQScreen(),
+                    ), // ← Navigates to FAQsView
+              ),
+              _divider(),
 
-                _settingsTile(
-                  title: 'Notifications',
-                  icon: Icons.notifications,
-                  onTap: () => Get.to(() => const NotificationsView()),
-                  forceBlackIcon: true,
-                ),
-                _divider(),
+              _settingsTile(
+                title: 'Notifications',
+                icon: Icons.notifications,
+                onTap: () => Get.to(() => const NotificationsView()),
+                forceBlackIcon: true,
+              ),
+              _divider(),
 
-                _settingsTile(
-                  title: 'Contact Us',
-                  icon: Icons.mail_outline,
-                  onTap: () => Get.to(() => ContactUsScreen()),
-                  forceBlackIcon: true,
-                ),
-                _divider(),
+              _settingsTile(
+                title: 'Contact Us',
+                icon: Icons.mail_outline,
+                onTap: () => Get.to(() => ContactUsScreen()),
+                forceBlackIcon: true,
+              ),
+              _divider(),
 
                 // Logout option
                 _settingsTile(

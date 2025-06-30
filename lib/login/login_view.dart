@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'social_login_service.dart';
+import '../controllers/navigation_controller.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -72,8 +73,9 @@ class _LoginScreenState extends State<LoginScreen> {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           await _saveFcmToken(user.uid);
+          Get.find<NavigationController>().selectedIndex.value = 0;
+          Get.off(() => MainNavigation());
         }
-        Get.off(() => MainNavigation());
       } on FirebaseAuthException catch (e) {
         Get.snackbar('Login Failed', e.message ?? 'Unknown error',
           snackPosition: SnackPosition.BOTTOM,
