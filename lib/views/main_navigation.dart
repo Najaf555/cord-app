@@ -38,31 +38,34 @@ class MainNavigation extends StatelessWidget {
             }
           }),
         ),
-        floatingActionButton: SizedBox(
-          height: 64,
-          width: 64,
-          child: FloatingActionButton(
-            onPressed: () {
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder:
-                    (context) => SizedBox.expand(child: NewRecordingScreen()),
-              );
-            },
-            elevation: 0,
-            backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-            shape: const CircleBorder(),
-            child: Image.asset(
-              'assets/images/centerButton.png',
-              width: 64,
-              height: 64,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        floatingActionButton: navController.selectedIndex.value == 1
+            ? null
+            : SizedBox(
+                height: 64,
+                width: 64,
+                child: FloatingActionButton(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => SizedBox.expand(child: NewRecordingScreen()),
+                    );
+                  },
+                  elevation: 0,
+                  backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+                  shape: const CircleBorder(),
+                  child: Image.asset(
+                    'assets/images/centerButton.png',
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+        floatingActionButtonLocation: navController.selectedIndex.value == 1
+            ? null
+            : FloatingActionButtonLocation.centerDocked,
         bottomNavigationBar: Stack(
           children: [
             // Top border line
