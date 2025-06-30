@@ -73,6 +73,8 @@ class _SessionsViewState extends State<SessionsView> {
       return;
     }
 
+    print('Responding to invite - docId: $docId, status: $status, sessionId: $sessionId');
+
     try {
       // 1. Update the invitation status
       await FirebaseFirestore.instance.collection('user_invitations').doc(docId).update({'status': status});
@@ -80,21 +82,25 @@ class _SessionsViewState extends State<SessionsView> {
       // 2. If accepted, add user to the session's participants
       if (status == 'accepted') {
         if (sessionId == null || sessionId.isEmpty) {
+          print('Session ID is missing for invitation: $docId');
           Get.snackbar('Error', 'Cannot join session: Session ID is missing.');
           // Optionally, you might want to set the status back to 'pending' or handle this case differently
           await FirebaseFirestore.instance.collection('user_invitations').doc(docId).update({'status': 'failed'});
           return;
         }
+        
+        print('Adding user ${currentUser.uid} to session: $sessionId');
         await FirebaseFirestore.instance.collection('sessions').doc(sessionId).update({
           'participantIds': FieldValue.arrayUnion([currentUser.uid])
         });
+        print('Successfully added user to session');
         Get.snackbar('Invitation Accepted', 'You have been added to the session!', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green, colorText: Colors.white);
       } else {
         Get.snackbar('Invitation Rejected', 'You have rejected the invitation.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
       }
     } catch (e) {
-      Get.snackbar('Error', 'An error occurred. Please try again.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red, colorText: Colors.white);
       print('Error responding to invite: $e');
+      Get.snackbar('Error', 'An error occurred. Please try again.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red, colorText: Colors.white);
     }
   }
 
@@ -719,7 +725,7 @@ class _SessionsViewState extends State<SessionsView> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 TextButton(
-                                  onPressed: () => _respondToInvite(data['id'], 'accepted', null),
+                                  onPressed: () => _respondToInvite(data['id'], 'accepted', data['sessionId']),
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(50, 24),
@@ -736,7 +742,7 @@ class _SessionsViewState extends State<SessionsView> {
                                   ),
                                 ),
                                 TextButton(
-                                  onPressed: () => _respondToInvite(data['id'], 'rejected', null),
+                                  onPressed: () => _respondToInvite(data['id'], 'rejected', data['sessionId']),
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(50, 24),
@@ -778,15 +784,22 @@ class _SessionsViewState extends State<SessionsView> {
         .where('invitedEmail', isEqualTo: user.email)
         .where('status', isEqualTo: 'pending')
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) {
-              final data = Map<String, dynamic>.from(doc.data() as Map);
-              data['id'] = doc.id;
-              return <String, dynamic>{
-                'type': 'session_invite',
-                'email': data['inviterEmail'],
-                'id': doc.id,
-              };
-            }).toList());
+        .map((snapshot) {
+          final notifications = snapshot.docs.map((doc) {
+            final data = Map<String, dynamic>.from(doc.data() as Map);
+            data['id'] = doc.id;
+            final notification = <String, dynamic>{
+              'type': 'session_invite',
+              'email': data['inviterEmail'],
+              'id': doc.id,
+              'sessionId': data['sessionId'], // Include the sessionId
+            };
+            print('Notification data: $notification'); // Debug print
+            return notification;
+          }).toList();
+          print('Total notifications: ${notifications.length}'); // Debug print
+          return notifications;
+        });
   }
 }
 
@@ -839,10 +852,46 @@ Widget buildInvites(List<Map<String, dynamic>> invites) {
 }
 
 Future<void> respondToInvite(String inviteId, String status) async {
-  await FirebaseFirestore.instance
-      .collection('user_invitations')
-      .doc(inviteId)
-      .update({'status': status});
+  final currentUser = FirebaseAuth.instance.currentUser;
+  if (currentUser == null) {
+    print('User not logged in');
+    return;
+  }
+
+  try {
+    // First, get the invitation document to get the sessionId
+    final inviteDoc = await FirebaseFirestore.instance
+        .collection('user_invitations')
+        .doc(inviteId)
+        .get();
+    
+    if (!inviteDoc.exists) {
+      print('Invitation document not found');
+      return;
+    }
+
+    final inviteData = inviteDoc.data()!;
+    final sessionId = inviteData['sessionId'];
+
+    // Update the invitation status
+    await FirebaseFirestore.instance
+        .collection('user_invitations')
+        .doc(inviteId)
+        .update({'status': status});
+
+    // If accepted, add user to the session's participants
+    if (status == 'accepted' && sessionId != null) {
+      await FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(sessionId)
+          .update({
+        'participantIds': FieldValue.arrayUnion([currentUser.uid])
+      });
+      print('User added to session: $sessionId');
+    }
+  } catch (e) {
+    print('Error responding to invite: $e');
+  }
 }
 
 Stream<List<Map<String, dynamic>>> inviteStream(String email) {

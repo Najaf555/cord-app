@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'social_login_service.dart';
+import '../controllers/navigation_controller.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -235,8 +236,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 await Future.delayed(Duration(seconds: 1)); // Give user time to see the message
                                 final user = FirebaseAuth.instance.currentUser;
                                 if (user != null) {
+                                  await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+                                    'uid': user.uid,
+                                    'email': user.email,
+                                    'createdAt': FieldValue.serverTimestamp(),
+                                  }, SetOptions(merge: true));
                                   await _saveFcmToken(user.uid);
                                 }
+                                // Ensure navigation goes to Sessions tab (index 0)
+                                final navController = Get.put(NavigationController(), permanent: true);
+                                navController.changeTab(0);
                                 Get.off(() => MainNavigation());
                               } on FirebaseAuthException catch (e) {
                                 setState(() { _isLoading = false; });
@@ -297,6 +306,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 colorText: Colors.white,
                               );
                               await Future.delayed(Duration(seconds: 1));
+                              // Ensure navigation goes to Sessions tab (index 0)
+                              final navController = Get.put(NavigationController(), permanent: true);
+                              navController.changeTab(0);
                               Get.off(() => MainNavigation());
                             }
                           } catch (e) {
@@ -336,6 +348,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 colorText: Colors.white,
                               );
                               await Future.delayed(Duration(seconds: 1));
+                              // Ensure navigation goes to Sessions tab (index 0)
+                              final navController = Get.put(NavigationController(), permanent: true);
+                              navController.changeTab(0);
                               Get.off(() => MainNavigation());
                             }
                           } catch (e) {
@@ -375,6 +390,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 colorText: Colors.white,
                               );
                               await Future.delayed(Duration(seconds: 1));
+                              // Ensure navigation goes to Sessions tab (index 0)
+                              final navController = Get.put(NavigationController(), permanent: true);
+                              navController.changeTab(0);
                               Get.off(() => MainNavigation());
                             }
                           } catch (e) {

@@ -118,5 +118,5 @@ flutter:
 flutter_launcher_icons:
   android: "sessionate_logo"
   ios: "sessionate_logo"
-  image_path: "assets/images/sessionatelogo.png"
+  image_path: "assets/images/logo.png"
   remove_alpha_ios: true

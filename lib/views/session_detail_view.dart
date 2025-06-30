@@ -30,8 +30,9 @@ class _SessionDetailViewState extends State<SessionDetailView>
       Get.find<SessionDetailController>();
   late TabController _tabController;
   final TextEditingController inviteEmailController = TextEditingController();
-  List<Map<String, dynamic>> _previouslyInvitedUsers = [];
-  bool _isLoadingInvitedUsers = false;
+  var _previouslyInvitedUsers = <Map<String, dynamic>>[].obs;
+  var _isLoadingInvitedUsers = false.obs;
+  bool _isInvitingUser = false; // Loading state for invite user functionality
   String? inviteError;
   String currentUserEmail = '';
 
@@ -129,56 +130,44 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                 bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                                               ),
                                               child: StatefulBuilder(
-                                                builder: (BuildContext context, StateSetter setState) {
-                                                  List<Map<String, dynamic>> previouslyInvitedUsers = [];
-                                                  bool isLoadingInvitedUsers = true;
-
-                                                  void fetchPreviouslyInvitedUsers() async {
-                                                    final query = await FirebaseFirestore.instance
-                                                        .collection('user_invitations')
-                                                        .where('sessionId', isEqualTo: controller.session.id)
-                                                        .where('status', isEqualTo: 'accepted')
-                                                        .orderBy('createdAt', descending: true)
-                                                        .get();
-                                                    if (context.mounted) {
-                                                      setState(() {
-                                                        previouslyInvitedUsers = query.docs.map((doc) => doc.data()).toList();
-                                                        isLoadingInvitedUsers = false;
-                                                      });
+                                                builder: (context, setState) {
+                                                  // Fetch data when dialog opens
+                                                  WidgetsBinding.instance.addPostFrameCallback((_) async {
+                                                    if (_previouslyInvitedUsers.isEmpty && !_isLoadingInvitedUsers.value) {
+                                                      await _fetchPreviouslyInvitedUsers();
+                                                      if (context.mounted) {
+                                                        setState(() {});
+                                                      }
                                                     }
-                                                  }
-
-                                                  if (isLoadingInvitedUsers) {
-                                                    fetchPreviouslyInvitedUsers();
-                                                  }
+                                                  });
 
                                                   return Column(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                                    children: [
-                                                      const Text(
-                                                        'Edit Session Name',
-                                                        style: TextStyle(
-                                                          fontSize: 20,
-                                                          fontWeight: FontWeight.bold,
-                                                          color: Colors.black,
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                children: [
+                                                  const Text(
+                                                    'Edit Session Name',
+                                                    style: TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.black,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 20),
+                                                  TextField(
+                                                    decoration: InputDecoration(
+                                                      hintText: 'Session Name',
+                                                      hintStyle: TextStyle(
+                                                        color: Colors.grey[400],
+                                                        fontSize: 14,
+                                                      ),
+                                                      border: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(0),
+                                                        borderSide: BorderSide(
+                                                          color: Colors.grey[300]!,
+                                                          width: 1,
                                                         ),
                                                       ),
-                                                      const SizedBox(height: 20),
-                                                      TextField(
-                                                        decoration: InputDecoration(
-                                                          hintText: 'Session Name',
-                                                          hintStyle: TextStyle(
-                                                            color: Colors.grey[400],
-                                                            fontSize: 14,
-                                                          ),
-                                                          border: OutlineInputBorder(
-                                                            borderRadius: BorderRadius.circular(0),
-                                                            borderSide: BorderSide(
-                                                              color: Colors.grey[300]!,
-                                                              width: 1,
-                                                            ),
-                                                          ),
                                                           enabledBorder: OutlineInputBorder(
                                                             borderRadius: BorderRadius.circular(0),
                                                             borderSide: BorderSide(
@@ -190,46 +179,46 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                             borderRadius: BorderRadius.circular(0),
                                                             borderSide: const BorderSide(
                                                               color: Colors.black,
-                                                              width: 1,
-                                                            ),
+                                                                  width: 1,
+                                                                ),
                                                           ),
                                                           contentPadding: const EdgeInsets.symmetric(
                                                             horizontal: 14,
                                                             vertical: 14,
                                                           ),
-                                                          filled: true,
-                                                          fillColor: Colors.white,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 20),
-                                                      SizedBox(
-                                                        width: double.infinity,
-                                                        height: 48,
-                                                        child: ElevatedButton(
-                                                          onPressed: () {
-                                                            Navigator.pop(context);
-                                                          },
-                                                          style: ElevatedButton.styleFrom(
+                                                      filled: true,
+                                                      fillColor: Colors.white,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 20),
+                                                  SizedBox(
+                                                    width: double.infinity,
+                                                    height: 48,
+                                                    child: ElevatedButton(
+                                                      onPressed: () {
+                                                        Navigator.pop(context);
+                                                      },
+                                                      style: ElevatedButton.styleFrom(
                                                             backgroundColor: Colors.white,
                                                             foregroundColor: Colors.black,
-                                                            shape: RoundedRectangleBorder(
+                                                        shape: RoundedRectangleBorder(
                                                               borderRadius: BorderRadius.circular(0),
-                                                              side: const BorderSide(
+                                                          side: const BorderSide(
                                                                 color: Color(0xFFFF6B6B),
-                                                                width: 1.5,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          child: const Text(
-                                                            'Save',
-                                                            style: TextStyle(
-                                                              fontSize: 16,
-                                                              fontWeight: FontWeight.w500,
-                                                            ),
+                                                            width: 1.5,
                                                           ),
                                                         ),
                                                       ),
-                                                    ],
+                                                      child: const Text(
+                                                        'Save',
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                              fontWeight: FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                                   );
                                                 },
                                               ),
@@ -366,191 +355,226 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.zero,
                                         ),
-                                        child: StatefulBuilder(
-                                          builder: (context, setState) {
-                                            return Padding(
-                                              padding: const EdgeInsets.all(20),
-                                              child: Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                    children: [
-                                                      const Text(
-                                                        'Invite users ',
-                                                        style: TextStyle(
-                                                          fontSize: 20,
-                                                          fontWeight: FontWeight.w400,
-                                                          color: Colors.black,
+                                        child: Obx(() => ConstrainedBox(
+                                              constraints: BoxConstraints(
+                                            maxHeight: MediaQuery.of(context).size.height * 0.5,
+                                            maxWidth: MediaQuery.of(context).size.width * 0.9,
+                                          ),
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(20),
+                                                child: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Row(
+                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                      children: [
+                                                    const Text(
+                                                      'Invite users ',
+                                                            style: TextStyle(
+                                                              fontSize: 20,
+                                                        fontWeight: FontWeight.w400,
+                                                              color: Colors.black,
+                                                            ),
+                                                          ),
+                                                    GestureDetector(
+                                                      onTap: () => Navigator.pop(context),
+                                                          child: const Text(
+                                                            'Done',
+                                                            style: TextStyle(
+                                                          color: Color(0xFF1976D2),
+                                                          fontWeight: FontWeight.w600,
+                                                              fontSize: 16,
+                                                            ),
+                                                          ),
                                                         ),
+                                                      ],
+                                                    ),
+                                                const SizedBox(height: 18),
+                                                    TextField(
+                                                  controller: inviteEmailController,
+                                                      decoration: InputDecoration(
+                                                    hintText: 'Email address',
+                                                    hintStyle: TextStyle(color: Colors.grey[400]),
+                                                        border: OutlineInputBorder(
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      borderSide: BorderSide(color: Colors.grey[300]!),
+                                                    ),
+                                                    enabledBorder: OutlineInputBorder(
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      borderSide: BorderSide(color: Colors.grey[300]!),
+                                                    ),
+                                                    focusedBorder: OutlineInputBorder(
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      borderSide: const BorderSide(color: Colors.black),
+                                                    ),
+                                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                                        filled: true,
+                                                        fillColor: Colors.white,
                                                       ),
-                                                      GestureDetector(
-                                                        onTap: () => Navigator.pop(context),
-                                                        child: const Text(
-                                                          'Done',
+                                                    ),
+                                                const SizedBox(height: 24),
+                                                Center(
+                                                  child: GestureDetector(
+                                                    onTap: _isInvitingUser ? null : () async {
+                                                      final email = inviteEmailController.text.trim();
+                                                      if (email.isEmpty) {
+                                                        Get.snackbar('Error', 'Please enter an email address', 
+                                                          snackPosition: SnackPosition.BOTTOM, 
+                                                          backgroundColor: Colors.red, 
+                                                          colorText: Colors.white);
+                                                        return;
+                                                      }
+                                                      setState(() {
+                                                        _isInvitingUser = true;
+                                                      });
+                                                      await _inviteUser(email);
+                                                      setState(() {
+                                                        _isInvitingUser = false;
+                                                      });
+                                                    },
+                                                    child: SizedBox(
+                                                      width: 180,
+                                                      height: 48,
+                                                      child: Stack(
+                                                        children: [
+                                                          // Gradient border layer
+                                                          Positioned.fill(
+                                                            child: Container(
+                                                              decoration: BoxDecoration(
+                                                                borderRadius: BorderRadius.zero,
+                                                                gradient: const LinearGradient(
+                                                                  colors: [Color(0xFFFF914D), Color(0xFFFF006A)],
+                                                                  begin: Alignment.centerLeft,
+                                                                  end: Alignment.centerRight,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          // White background with margin for border effect
+                                                          Positioned.fill(
+                                                            child: Container(
+                                                              margin: const EdgeInsets.all(2),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors.white,
+                                                                borderRadius: BorderRadius.zero,
+                                                              ),
+                                                              alignment: Alignment.center,
+                                                              child: _isInvitingUser
+                                                                  ? const SizedBox(
+                                                                      width: 20,
+                                                                      height: 20,
+                                                                      child: CircularProgressIndicator(
+                                                                        strokeWidth: 2,
+                                                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                                                                      ),
+                                                                    )
+                                                                  : const Text(
+                                                          'Invite',
                                                           style: TextStyle(
-                                                            color: Color(0xFF1976D2),
-                                                            fontWeight: FontWeight.w600,
-                                                            fontSize: 16,
+                                                                        fontSize: 18,
+                                                                        fontWeight: FontWeight.w400,
+                                                                        color: Colors.black,
                                                           ),
                                                         ),
                                                       ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 18),
-                                                  TextField(
-                                                    controller: inviteEmailController,
-                                                    decoration: InputDecoration(
-                                                      hintText: 'Email address',
-                                                      hintStyle: TextStyle(color: Colors.grey[400]),
-                                                      border: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        borderSide: BorderSide(color: Colors.grey[300]!),
-                                                      ),
-                                                      enabledBorder: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        borderSide: BorderSide(color: Colors.grey[300]!),
-                                                      ),
-                                                      focusedBorder: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.circular(6),
-                                                        borderSide: const BorderSide(color: Colors.black),
-                                                      ),
-                                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                                                      filled: true,
-                                                      fillColor: Colors.white,
                                                     ),
-                                                  ),
-                                                  const SizedBox(height: 24),
-                                                  Center(
-                                                    child: GestureDetector(
-                                                      onTap: () async {
-                                                        final email = inviteEmailController.text.trim();
-                                                        await _inviteUser(email);
-                                                        setState(() {});
-                                                      },
-                                                      child: SizedBox(
-                                                        width: 180,
-                                                        height: 48,
-                                                        child: Stack(
-                                                          children: [
-                                                            // Gradient border layer
-                                                            Positioned.fill(
-                                                              child: Container(
-                                                                decoration: BoxDecoration(
-                                                                  borderRadius: BorderRadius.zero,
-                                                                  gradient: const LinearGradient(
-                                                                    colors: [Color(0xFFFF914D), Color(0xFFFF006A)],
-                                                                    begin: Alignment.centerLeft,
-                                                                    end: Alignment.centerRight,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                            // White background with margin for border effect
-                                                            Positioned.fill(
-                                                              child: Container(
-                                                                margin: const EdgeInsets.all(2),
-                                                                decoration: BoxDecoration(
-                                                                  color: Colors.white,
-                                                                  borderRadius: BorderRadius.zero,
-                                                                ),
-                                                                alignment: Alignment.center,
-                                                                child: const Text(
-                                                                  'Invite',
-                                                                  style: TextStyle(
-                                                                    fontSize: 18,
-                                                                    fontWeight: FontWeight.w400,
-                                                                    color: Colors.black,
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                            ),
-                                                          ],
+                                                        ],
                                                         ),
                                                       ),
                                                     ),
+                                                ),
+                                                const SizedBox(height: 28),
+                                                const Text(
+                                                  'Previous users',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Color(0xFF828282),
+                                                    fontWeight: FontWeight.w500,
                                                   ),
-                                                  const SizedBox(height: 28),
-                                                  const Text(
-                                                    'Previous users',
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: Color(0xFF828282),
-                                                      fontWeight: FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 8),
-                                                  _isLoadingInvitedUsers
-                                                      ? const SizedBox.shrink()
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Flexible(
+                                                  child: _isLoadingInvitedUsers.value
+                                                      ? const Center(child: CircularProgressIndicator())
                                                       : _previouslyInvitedUsers.isEmpty
-                                                          ? const Padding(
-                                                              padding: EdgeInsets.symmetric(vertical: 8.0),
-                                                              child: Text('No previous users', style: TextStyle(color: Colors.grey)),
+                                                          ? const Center(
+                                                              child: Padding(
+                                                                padding: EdgeInsets.symmetric(vertical: 8.0),
+                                                                child: Text('No previous users', style: TextStyle(color: Colors.grey)),
+                                                              ),
                                                             )
                                                           : ListView.separated(
-                                                              shrinkWrap: true,
-                                                              physics: const NeverScrollableScrollPhysics(),
+                                                          shrinkWrap: true,
                                                               itemCount: _previouslyInvitedUsers.length,
                                                               separatorBuilder: (context, index) => const SizedBox(height: 8),
                                                               itemBuilder: (context, index) {
                                                                 final invite = _previouslyInvitedUsers[index];
                                                                 final isPending = (invite['status'] ?? 'pending') == 'pending';
                                                                 return Row(
-                                                                  children: [
-                                                                    Expanded(
-                                                                      child: Text(
+                                                              children: [
+                                                                Expanded(
+                                                                  child: Text(
                                                                         invite['invitedEmail'] ?? '',
-                                                                        style: const TextStyle(
+                                                                    style: const TextStyle(
                                                                           fontSize: 15,
                                                                           color: Colors.black,
-                                                                          fontWeight: FontWeight.w500,
-                                                                        ),
-                                                                      ),
+                                                                      fontWeight: FontWeight.w500,
                                                                     ),
+                                                                  ),
+                                                                ),
                                                                     if (!isPending)
-                                                                      IconButton(
+                                                                IconButton(
                                                                         icon: const Icon(Icons.add, color: Colors.black),
-                                                                        onPressed: () {},
+                                                                  onPressed: () {},
                                                                       ),
                                                                     if (isPending)
                                                                       Row(
-                                                                        children: [
-                                                                          const Text(
+                                                                  children: [
+                                                                    const Text(
                                                                             'Pending',
-                                                                            style: TextStyle(
+                                                                      style: TextStyle(
                                                                               fontSize: 13,
                                                                               color: Color(0xFF828282),
                                                                               fontWeight: FontWeight.w400,
                                                                             ),
                                                                           ),
                                                                           const SizedBox(width: 4),
-                                                                          IconButton(
+                                                                    IconButton(
                                                                             icon: const Icon(Icons.close, color: Color(0xFFFF6B6B)),
                                                                             onPressed: () async {
+                                                                              final currentUser = FirebaseAuth.instance.currentUser;
+                                                                              if (currentUser == null || currentUser.email == null) {
+                                                                                Get.snackbar('Error', 'User not authenticated', 
+                                                                                  snackPosition: SnackPosition.BOTTOM, 
+                                                                                  backgroundColor: Colors.red, 
+                                                                                  colorText: Colors.white);
+                                                                                return;
+                                                                              }
+                                                                              
                                                                               final invitationQuery = await FirebaseFirestore.instance
                                                                                   .collection('user_invitations')
                                                                                   .where('invitedEmail', isEqualTo: invite['invitedEmail'])
                                                                                   .where('sessionId', isEqualTo: controller.session.id)
+                                                                                  .where('inviterEmail', isEqualTo: currentUser.email)
                                                                                   .get();
                                                                               if (invitationQuery.docs.isNotEmpty) {
                                                                                 await invitationQuery.docs.first.reference.delete();
                                                                                 _fetchPreviouslyInvitedUsers();
-                                                                                setState(() {});
                                                                               }
                                                                             },
-                                                                          ),
-                                                                        ],
-                                                                      ),
+                                                                    ),
                                                                   ],
+                                                                ),
+                                                              ],
                                                                 );
                                                               },
-                                                            ),
-                                                ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
-                                            );
-                                          },
-                                        ),
+                                        )),
                                       );
                                     },
                                   );
@@ -968,10 +992,10 @@ class _SessionDetailViewState extends State<SessionDetailView>
                 ),
                 currentIndex: 0, // Sessions tab is selected
                 onTap: (index) {
-                  if (index == 0) {
+          if (index == 0) {
                     // Navigate back to main navigation with sessions tab selected
                     Get.offAll(() => MainNavigation());
-                  } else if (index == 1) {
+          } else if (index == 1) {
                     // Navigate back to main navigation with settings tab selected
                     final navController = Get.put(NavigationController(), permanent: true);
                     navController.changeTab(1);
@@ -997,16 +1021,22 @@ class _SessionDetailViewState extends State<SessionDetailView>
   }
 
   Future<void> _fetchPreviouslyInvitedUsers() async {
-    setState(() => _isLoadingInvitedUsers = true);
+    _isLoadingInvitedUsers.value = true;
     
     try {
       if (controller.session.id == null || controller.session.id.isEmpty) {
         throw Exception('Invalid session ID');
       }
 
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null || currentUser.email == null) {
+        throw Exception('User not authenticated');
+      }
+
       final QuerySnapshot<Map<String, dynamic>> query = await FirebaseFirestore.instance
           .collection('user_invitations')
           .where('sessionId', isEqualTo: controller.session.id)
+          .where('inviterEmail', isEqualTo: currentUser.email)
           .get()
           .timeout(
             const Duration(seconds: 10),
@@ -1015,27 +1045,23 @@ class _SessionDetailViewState extends State<SessionDetailView>
 
       if (!mounted) return;
 
-      setState(() {
-        _previouslyInvitedUsers = query.docs
-            .map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return data;
-            })
-            .where((data) =>
-              data['invitedEmail'] != null &&
-              data['status'] != null
-            )
-            .toList();
-        _isLoadingInvitedUsers = false;
-      });
+      _previouslyInvitedUsers.value = query.docs
+          .map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return data;
+          })
+          .where((data) =>
+            data['invitedEmail'] != null &&
+            data['status'] != null
+          )
+          .toList();
+      _isLoadingInvitedUsers.value = false;
     } catch (e) {
       if (!mounted) return;
 
-      setState(() {
-        _isLoadingInvitedUsers = false;
-        _previouslyInvitedUsers = [];
-      });
+      _isLoadingInvitedUsers.value = false;
+      _previouslyInvitedUsers.value = [];
 
       String errorMessage = 'Failed to load invited users';
       if (e is TimeoutException) {
@@ -1066,6 +1092,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
         Get.snackbar('Invalid Email', 'You cannot invite your own email address', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red, colorText: Colors.white);
         return;
       }
+      
       // Check if user exists in Firestore users collection
       final userQuery = await FirebaseFirestore.instance
           .collection('users')
@@ -1079,6 +1106,39 @@ class _SessionDetailViewState extends State<SessionDetailView>
             colorText: Colors.white);
         return;
       }
+      
+      // Check if user has already been invited to this session by the current user
+      final existingInvitationQuery = await FirebaseFirestore.instance
+          .collection('user_invitations')
+          .where('invitedEmail', isEqualTo: inviteeEmail)
+          .where('sessionId', isEqualTo: controller.session.id)
+          .where('inviterEmail', isEqualTo: inviter.email)
+          .limit(1)
+          .get();
+      
+      if (existingInvitationQuery.docs.isNotEmpty) {
+        final existingInvitation = existingInvitationQuery.docs.first.data();
+        final status = existingInvitation['status'] ?? 'pending';
+        
+        if (status == 'pending') {
+          Get.snackbar('Already Invited', 'This user has already been invited to this session.',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.orange,
+              colorText: Colors.white);
+        } else if (status == 'accepted') {
+          Get.snackbar('Already Member', 'This user is already a member of this session.',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.blue,
+              colorText: Colors.white);
+        } else {
+          Get.snackbar('Already Invited', 'This user has already been invited to this session.',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.orange,
+              colorText: Colors.white);
+        }
+        return;
+      }
+      
       await FirebaseFirestore.instance.collection('user_invitations').add({
         'inviterEmail': inviter.email,
         'invitedEmail': inviteeEmail,
@@ -1087,8 +1147,9 @@ class _SessionDetailViewState extends State<SessionDetailView>
         'createdAt': FieldValue.serverTimestamp(),
       });
       inviteEmailController.clear();
-      setState(() {});
-      Get.snackbar('Invitation Sent', 'User has been invited.',
+      // Refresh the previously invited users list
+      await _fetchPreviouslyInvitedUsers();
+      Get.snackbar('Invitation Sent', 'User has been invited successfully.',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white);

@@ -176,6 +176,7 @@ class _UserProfileViewState extends State<UserProfileView> {
             // ✅ Email Field
             TextField(
               controller: emailController,
+              readOnly: true,
               decoration: const InputDecoration(
                 labelText: 'Email',
                 border: OutlineInputBorder(),
