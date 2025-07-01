@@ -3,9 +3,137 @@ import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
 import 'main_navigation.dart';
 import '../utils/responsive.dart';
+import 'dart:math';
+import 'dart:async';
+import 'save.recording.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class PausedRecording extends StatelessWidget {
+class PausedRecording extends StatefulWidget {
   const PausedRecording({super.key});
+
+  @override
+  State<PausedRecording> createState() => _PausedRecordingState();
+}
+
+class _PausedRecordingState extends State<PausedRecording> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  bool _isPlaying = false;
+  Timer? _timer;
+  double _elapsedSeconds = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..addListener(() {
+        setState(() {});
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _onPlayPressed() async {
+    // If recording has started (i.e., timer > 0), show dialog
+    if (_elapsedSeconds > 0) {
+      final result = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.zero,
+          ),
+          title: const Text('Do you want to save recording?'),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                final user = FirebaseAuth.instance.currentUser;
+                const sessionId = '6xfhQsVPQkTGCeFDfcIt'; // Hardcoded session ID
+                final recordingsRef = FirebaseFirestore.instance
+                    .collection('sessions')
+                    .doc(sessionId)
+                    .collection('recordings');
+                final docRef = await recordingsRef.add({
+                  'recordingId': '', // will be updated below
+                  'userId': user?.uid ?? '',
+                  'fileName': 'audio123.m4a',
+                  'duration': _formatElapsed(_elapsedSeconds),
+                  'createdAt': FieldValue.serverTimestamp(),
+                });
+                await recordingsRef.doc(docRef.id).update({
+                  'recordingId': docRef.id,
+                });
+                Navigator.of(context).pop(true); // Yes
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Recording saved successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              child: const Text('Yes'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(false); // No
+              },
+              child: const Text('No'),
+            ),
+          ],
+        ),
+      );
+      if (result == true) {
+        // TODO: Add save logic here if needed
+        return;
+      }
+      // If No, continue to start playback
+    }
+    setState(() {
+      _isPlaying = true;
+    });
+    _controller.repeat();
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      setState(() {
+        _elapsedSeconds += 0.03;
+      });
+    });
+  }
+
+  void _onStopPlayback() {
+    setState(() {
+      _isPlaying = false;
+    });
+    _controller.stop();
+    _timer?.cancel();
+  }
+
+  void _onContinuePressed() {
+    if (!_isPlaying) {
+      setState(() {
+        _isPlaying = true;
+      });
+      _controller.repeat();
+      _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+        setState(() {
+          _elapsedSeconds += 0.03;
+        });
+      });
+    }
+  }
+
+  String _formatElapsed(double seconds) {
+    final int min = seconds ~/ 60;
+    final int sec = seconds.toInt() % 60;
+    final int ms = ((seconds - seconds.floor()) * 100).toInt();
+    return '${min.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}.${ms.toString().padLeft(2, '0')}' ;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,9 +214,9 @@ class PausedRecording extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                '00:06.67',
-                style: TextStyle(
+              Text(
+                _formatElapsed(_elapsedSeconds),
+                style: const TextStyle(
                   fontSize: 18,
                   fontFamily: 'monospace',
                   letterSpacing: 1.2,
@@ -116,7 +244,9 @@ class PausedRecording extends StatelessWidget {
                         ),
                         child: ClipRect(
                           child: CustomPaint(
-                            painter: _WaveformPainter(),
+                            painter: _WaveformPainter(
+                              phase: _isPlaying ? _controller.value : 0.0,
+                            ),
                           ),
                         ),
                       ),
@@ -199,16 +329,16 @@ class PausedRecording extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildControlButton(
-                      icon: Icons.play_arrow,
-                      label: 'Play back',
-                      onPressed: () {},
+                      icon: _isPlaying ? Icons.stop : Icons.play_arrow,
+                      label: _isPlaying ? 'Stop' : 'Play back',
+                      onPressed: _isPlaying ? _onStopPlayback : _onPlayPressed,
                       iconColor: Colors.black,
                       textColor: Colors.black,
                     ),
                     _buildControlButton(
                       icon: Icons.fiber_manual_record_outlined,
                       label: 'Continue',
-                      onPressed: () {},
+                      onPressed: _onContinuePressed,
                       iconColor: Colors.red,
                       textColor: Colors.black,
                     ),
@@ -328,6 +458,9 @@ class PausedRecording extends StatelessWidget {
 }
 
 class _WaveformPainter extends CustomPainter {
+  final double phase;
+  _WaveformPainter({this.phase = 0.0});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -341,9 +474,13 @@ class _WaveformPainter extends CustomPainter {
     ];
     final barWidth = size.width / (heights.length * 1.8);
 
+    // Animate the waveform by shifting the bars horizontally based on phase
+    final shift = (phase * heights.length) % heights.length;
     for (int i = 0; i < heights.length; i++) {
+      // Calculate shifted index for animation
+      int shiftedIndex = (i + shift.toInt()) % heights.length;
       final x = barWidth * (i * 1.8);
-      final barHeight = heights[i].toDouble();
+      final barHeight = heights[shiftedIndex].toDouble();
       canvas.drawLine(
         Offset(x, size.height / 2 - barHeight / 2),
         Offset(x, size.height / 2 + barHeight / 2),
@@ -353,5 +490,5 @@ class _WaveformPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _WaveformPainter oldDelegate) => oldDelegate.phase != phase;
 }
