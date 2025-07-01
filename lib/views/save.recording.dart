@@ -5,6 +5,7 @@ import 'main_navigation.dart';
 import 'sessions_view.dart';
 import 'settings_view.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SaveRecordingScreen extends StatelessWidget {
   const SaveRecordingScreen({super.key});
@@ -70,36 +71,30 @@ class SaveRecordingScreen extends StatelessWidget {
             const SizedBox(height: 8),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('recordings').orderBy('createdAt', descending: true).snapshots(),
+                stream: _userSessionsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
                   if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    return const Center(child: Text('No recordings found.'));
+                    return const Center(child: Text('No sessions found.'));
                   }
-                  final recordings = snapshot.data!.docs;
+                  final sessions = snapshot.data!.docs;
                   return ListView.builder(
-                    itemCount: recordings.length,
+                    itemCount: sessions.length,
                     itemBuilder: (context, index) {
-                      final data = recordings[index].data() as Map<String, dynamic>;
+                      final data = sessions[index].data() as Map<String, dynamic>;
+                      final sessionName = data['name'] ?? 'Unnamed Session';
+                      final createdAt = data['createdAt'] is Timestamp
+                          ? (data['createdAt'] as Timestamp).toDate()
+                          : null;
                       return ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                        leading: const Icon(Icons.audiotrack, color: Colors.blue),
-                        title: Text(data['fileName'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w600)),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Duration: ${data['duration'] ?? '--:--'}', style: const TextStyle(fontSize: 13, color: Colors.black54)),
-                            if (data['createdAt'] != null)
-                              Text(
-                                'Created: ' + (data['createdAt'] is Timestamp
-                                    ? (data['createdAt'] as Timestamp).toDate().toString().substring(0, 16)
-                                    : data['createdAt'].toString()),
-                                style: const TextStyle(fontSize: 12, color: Colors.black38),
-                              ),
-                          ],
-                        ),
+                        leading: const Icon(Icons.folder, color: Colors.blue),
+                        title: Text(sessionName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: createdAt != null
+                            ? Text('Created: ${createdAt.toString().substring(0, 16)}', style: const TextStyle(fontSize: 12, color: Colors.black38))
+                            : null,
                         trailing: const Icon(Icons.chevron_right, color: Colors.black38),
                         onTap: () {},
                       );
@@ -111,48 +106,81 @@ class SaveRecordingScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF222222),
-        unselectedItemColor: const Color(0xFFBDBDBD),
-        selectedLabelStyle: const TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
+      bottomNavigationBar: GetBuilder<NavigationController>(
+        builder: (navController) => Stack(
+          children: [
+            // Top border line
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Container(height: 2, color: Color(0xFFE0E0E0)),
+            ),
+            // Shadow overlay just below the border line
+            Positioned(
+              top: 1,
+              left: 0,
+              right: 0,
+              child: Container(
+                height: 12,
+                decoration: const BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 8,
+                      offset: Offset(0, 0),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // BottomAppBar with nav bar
+            BottomAppBar(
+              color: Colors.white,
+              elevation: 0,
+              notchMargin: 0,
+              child: Theme(
+                data: Theme.of(context).copyWith(
+                  splashFactory: NoSplash.splashFactory,
+                  highlightColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                ),
+                child: BottomNavigationBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  type: BottomNavigationBarType.fixed,
+                  selectedItemColor: Color(0xFF222222),
+                  unselectedItemColor: Color(0xFFBDBDBD),
+                  selectedLabelStyle: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w500,
+                    fontSize: 12,
+                  ),
+                  unselectedLabelStyle: TextStyle(
+                    fontFamily: 'Inter',
+                    fontWeight: FontWeight.w400,
+                    fontSize: 12,
+                  ),
+                  currentIndex: navController.selectedIndex.value,
+                  onTap: (index) {
+                    navController.changeTab(index);
+                    Navigator.of(context).pop(); // Close the bottom sheet
+                  },
+                  items: const [
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.folder),
+                      label: 'Sessions',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(Icons.settings),
+                      label: 'Settings',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-        unselectedLabelStyle: const TextStyle(
-          fontFamily: 'Inter',
-          fontWeight: FontWeight.w400,
-          fontSize: 12,
-        ),
-        currentIndex: 0,
-        onTap: (index) {
-          if (index == 0) {
-            if (!(context.widget is SessionsView)) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const SessionsView()),
-              );
-            }
-          } else if (index == 1) {
-            if (!(context.widget is SettingsView)) {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const SettingsView()),
-              );
-            }
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.folder),
-            label: 'Sessions',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
       ),
     );
   }
@@ -209,4 +237,47 @@ class _SessionTile extends StatelessWidget {
       onTap: () {},
     );
   }
+}
+
+Stream<QuerySnapshot> _userSessionsStream() {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    // Return an empty stream if not logged in
+    return const Stream.empty();
+  }
+  final uid = user.uid;
+  // Query sessions where hostId == uid OR participantIds contains uid
+  return FirebaseFirestore.instance
+      .collection('sessions')
+      .where('participantIds', arrayContains: uid)
+      .snapshots()
+      .asyncMap((participantSnap) async {
+        final participantSessions = participantSnap.docs;
+        final hostSnap = await FirebaseFirestore.instance
+            .collection('sessions')
+            .where('hostId', isEqualTo: uid)
+            .get();
+        final hostSessions = hostSnap.docs;
+        // Merge and deduplicate by document ID
+        final allSessions = <String, QueryDocumentSnapshot>{};
+        for (var doc in participantSessions) {
+          allSessions[doc.id] = doc;
+        }
+        for (var doc in hostSessions) {
+          allSessions[doc.id] = doc;
+        }
+        return QuerySnapshotFake(allSessions.values.toList());
+      })
+      .asyncExpand((snap) => Stream.value(snap));
+}
+
+// Helper class to fake a QuerySnapshot for the builder
+class QuerySnapshotFake implements QuerySnapshot {
+  @override
+  final List<QueryDocumentSnapshot> docs;
+  QuerySnapshotFake(this.docs);
+  // The rest of the QuerySnapshot members are not used in this context
+  @override
+  // ignore: no_override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
