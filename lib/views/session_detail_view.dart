@@ -51,6 +51,8 @@ class _SessionDetailViewState extends State<SessionDetailView>
     });
     final user = FirebaseAuth.instance.currentUser;
     currentUserEmail = user?.email ?? '';
+    // Fetch recordings for the hardcoded session on view open
+    controller.loadRecordingsFromFirestore();
   }
 
   @override
@@ -531,15 +533,15 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                                     if (isPending)
                                                                       Row(
                                                                   children: [
-                                                                    const Text(
-                                                                            'Pending',
+                                                                    Text(
+                                                                      'Pending',
                                                                       style: TextStyle(
-                                                                              fontSize: 13,
-                                                                              color: Color(0xFF828282),
-                                                                              fontWeight: FontWeight.w400,
-                                                                            ),
-                                                                          ),
-                                                                          const SizedBox(width: 4),
+                                                                        fontSize: 13,
+                                                                        color: Color(0xFF828282),
+                                                                        fontWeight: FontWeight.w400,
+                                                                      ),
+                                                                    ),
+                                                                    const SizedBox(width: 4),
                                                                     IconButton(
                                                                             icon: const Icon(Icons.close, color: Color(0xFFFF6B6B)),
                                                                             onPressed: () async {
@@ -630,7 +632,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                         children: [
                           // Recordings Tab Content
                           Obx(() {
-                            final recordings = controller.recordings;
+                            final recordings = controller.sortedRecordings;
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -645,10 +647,15 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                       ),
                                     ),
                                     const Spacer(),
-                                    const Icon(
-                                      Icons.swap_vert,
-                                      color: Color(0xFF222222),
-                                      size: 20,
+                                    GestureDetector(
+                                      onTap: controller.toggleSortOrder,
+                                      child: Obx(() => Icon(
+                                        Icons.swap_vert,
+                                        color: controller.isDescendingOrder.value
+                                            ? const Color(0xFF2F80ED)
+                                            : const Color(0xFF222222),
+                                        size: 20,
+                                      )),
                                     ),
                                   ],
                                 ),

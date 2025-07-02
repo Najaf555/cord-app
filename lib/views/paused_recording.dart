@@ -8,6 +8,7 @@ import 'dart:async';
 import 'save.recording.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/widgets.dart';
 
 class PausedRecording extends StatefulWidget {
   const PausedRecording({super.key});
@@ -21,6 +22,8 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   bool _isPlaying = false;
   Timer? _timer;
   double _elapsedSeconds = 0.0;
+  String _recordingFileName = 'New Recording';
+  final TextEditingController _fileNameController = TextEditingController();
 
   @override
   void initState() {
@@ -63,6 +66,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                 final docRef = await recordingsRef.add({
                   'recordingId': '', // will be updated below
                   'userId': user?.uid ?? '',
+                  'name': _recordingFileName,
                   'fileName': 'audio123.m4a',
                   'duration': _formatElapsed(_elapsedSeconds),
                   'createdAt': FieldValue.serverTimestamp(),
@@ -181,19 +185,108 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                           const SizedBox(height: 4),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
+                            children: [
                               Text(
-                                'New Recording',
-                                style: TextStyle(
+                                _recordingFileName,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   color: Colors.black54,
                                 ),
                               ),
-                              SizedBox(width: 4),
-                              Icon(
-                                Icons.edit,
-                                size: 16,
-                                color: Colors.black54,
+                              const SizedBox(width: 4),
+                              GestureDetector(
+                                onTap: () async {
+                                  _fileNameController.text = _recordingFileName;
+                                  final result = await showDialog<String>(
+                                    context: context,
+                                    builder: (context) => Dialog(
+                                      backgroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(0),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(24.0),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children: [
+                                            TextField(
+                                              controller: _fileNameController,
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15,
+                                              ),
+                                              decoration: InputDecoration(
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
+                                                ),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(4),
+                                                  borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
+                                                ),
+                                                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                                              ),
+                                              autofocus: true,
+                                            ),
+                                            const SizedBox(height: 32),
+                                            Center(
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  Navigator.of(context).pop(_fileNameController.text.trim());
+                                                },
+                                                child: Container(
+                                                  width: 120,
+                                                  height: 40,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius: BorderRadius.circular(4),
+                                                    gradient: const LinearGradient(
+                                                      colors: [Color(0xFFFF9800), Color(0xFFE91E63)],
+                                                      begin: Alignment.centerLeft,
+                                                      end: Alignment.centerRight,
+                                                    ),
+                                                  ),
+                                                  child: Container(
+                                                    margin: const EdgeInsets.all(2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    child: const Center(
+                                                      child: Text(
+                                                        'Save',
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight: FontWeight.w500,
+                                                          color: Colors.black,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                  if (result != null && result.isNotEmpty) {
+                                    setState(() {
+                                      _recordingFileName = result;
+                                    });
+                                  }
+                                },
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 16,
+                                  color: Colors.black54,
+                                ),
                               ),
                             ],
                           ),
