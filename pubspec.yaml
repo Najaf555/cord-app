@@ -49,6 +49,7 @@ dependencies:
   google_sign_in: ^6.2.1
   flutter_facebook_auth: ^6.1.1
   sign_in_with_apple: ^6.0.0
+  rxdart: ^0.27.7
 
   
 dev_dependencies:

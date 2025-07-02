@@ -1,8 +1,9 @@
-import 'package:get/get.dart';
+import 'package:get/get.dart' hide Rx;
 import '../models/session.dart';
 import '../models/user.dart' as app_user;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:rxdart/rxdart.dart';
 
 class SessionController extends GetxController {
   var sessions = <Session>[].obs;
@@ -315,5 +316,62 @@ class SessionController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  /// Stream of sessions where the user is host or participant (live updates)
+  Stream<List<Session>> get userSessionsStream {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Stream.value([]);
+    }
+    final uid = user.uid;
+    final sessionsRef = FirebaseFirestore.instance.collection('sessions');
+    // Stream for sessions where user is a participant
+    final participantStream = sessionsRef.where('participantIds', arrayContains: uid).snapshots();
+    // Stream for sessions where user is the host
+    final hostStream = sessionsRef.where('hostId', isEqualTo: uid).snapshots();
+    return Rx.combineLatest2<QuerySnapshot, QuerySnapshot, List<Session>>(
+      participantStream,
+      hostStream,
+      (participantSnap, hostSnap) {
+        final allDocs = <String, QueryDocumentSnapshot>{};
+        for (var doc in participantSnap.docs) {
+          allDocs[doc.id] = doc;
+        }
+        for (var doc in hostSnap.docs) {
+          allDocs[doc.id] = doc;
+        }
+        final sessionsList = allDocs.values.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          // Dummy users for now
+          final dummyUsers = [
+            app_user.User(id: '1', name: 'User1', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
+            app_user.User(id: '2', name: 'User2', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
+            app_user.User(id: '3', name: 'User3', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
+          ];
+          DateTime createdAt = DateTime.now();
+          DateTime updatedAt = DateTime.now();
+          if (data['createdAt'] != null) {
+            createdAt = (data['createdAt'] as Timestamp).toDate();
+          }
+          if (data['updatedAt'] != null) {
+            updatedAt = (data['updatedAt'] as Timestamp).toDate();
+          }
+          return Session(
+            id: doc.id,
+            name: data['name'] ?? 'Untitled Session',
+            dateTime: updatedAt,
+            createdDate: createdAt,
+            users: dummyUsers,
+            recordingsCount: 0,
+          );
+        }).toList();
+        // Sort by createdAt (descending or ascending)
+        sessionsList.sort((a, b) => isDescendingOrder.value
+            ? b.createdDate.compareTo(a.createdDate)
+            : a.createdDate.compareTo(b.createdDate));
+        return sessionsList;
+      },
+    );
   }
 } 

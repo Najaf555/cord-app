@@ -1,10 +1,12 @@
+import 'package:Cord/views/save.recording.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'paused_recording.dart';
 import '../controllers/navigation_controller.dart';
 
 class NewRecordingScreen extends StatelessWidget {
-  const NewRecordingScreen({super.key});
+  final bool showSaveScreenAtEnd;
+  const NewRecordingScreen({super.key, this.showSaveScreenAtEnd = false});
 
   @override
   Widget build(BuildContext context) {
@@ -95,11 +97,25 @@ class NewRecordingScreen extends StatelessWidget {
           width: 64,
           child: FloatingActionButton(
             onPressed: () {
+              Navigator.of(context).pop(); // Dismiss NewRecordingScreen
               showModalBottomSheet(
                 context: context,
                 isScrollControlled: true,
                 backgroundColor: Colors.transparent,
-                builder: (context) => const PausedRecording(),
+                builder: (context) => PausedRecording(
+                  showSaveScreenAtEnd: showSaveScreenAtEnd,
+                  onNext: () {
+                    Navigator.of(context).pop(); // Close PausedRecording
+                    if (showSaveScreenAtEnd) {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (context) => const SaveRecordingScreen(),
+                      );
+                    }
+                  },
+                ),
               );
             },
             elevation: 0,

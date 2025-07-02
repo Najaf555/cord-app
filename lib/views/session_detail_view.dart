@@ -531,8 +531,8 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                                   onPressed: () {},
                                                                       ),
                                                                     if (isPending)
-                                                                      Row(
-                                                                  children: [
+                                                            Row(
+                                                              children: [
                                                                     Text(
                                                                       'Pending',
                                                                       style: TextStyle(
@@ -650,11 +650,11 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                     GestureDetector(
                                       onTap: controller.toggleSortOrder,
                                       child: Obx(() => Icon(
-                                        Icons.swap_vert,
+                                      Icons.swap_vert,
                                         color: controller.isDescendingOrder.value
                                             ? const Color(0xFF2F80ED)
                                             : const Color(0xFF222222),
-                                        size: 20,
+                                      size: 20,
                                       )),
                                     ),
                                   ],

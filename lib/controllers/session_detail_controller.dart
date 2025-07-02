@@ -18,7 +18,7 @@ class SessionDetailController extends GetxController {
   void onInit() {
     super.onInit();
     participants.assignAll(session.users);
-    loadMockRecordings();
+    // loadMockRecordings();
   }
 
   void loadMockRecordings() {

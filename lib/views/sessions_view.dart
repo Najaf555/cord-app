@@ -11,6 +11,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'session_detail_view.dart';
 import '../controllers/session_detail_controller.dart';
 import 'save.recording.dart';
+import '../models/session.dart';
 
 
 class SessionsView extends StatefulWidget {
@@ -380,216 +381,203 @@ class _SessionsViewState extends State<SessionsView> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Obx(() {
-                    if (controller.isLoading.value) {
+                  StreamBuilder<List<Session>>(
+                    stream: controller.userSessionsStream,
+                    builder: (context, snapshot) {
+                      // if (snapshot.connectionState == ConnectionState.waiting) {
+                      //   return const Expanded(
+                      //     child: Center(
+                      //       child: CircularProgressIndicator(),
+                      //     ),
+                      //   );
+                      // }
+                      final sessions = snapshot.data ?? [];
                       return Expanded(
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFF9800)),
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'Loading sessions...',
-                                style: TextStyle(
-                                  color: Color(0xFF959595),
-                                  fontSize: 16,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  '${sessions.length} sessions',
+                                  style: const TextStyle(
+                                    color: Color(0xFF959595),
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    
-                    final sessions = controller.filteredSessions;
-                    return Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                '${sessions.length} sessions',
-                                style: const TextStyle(
-                                  color: Color(0xFF959595),
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w400,
+                                Obx(() => Text(
+                                  ' (${controller.isAuthenticated.value ? '' : 'dummy'})',
+                                  style: TextStyle(
+                                    color: controller.isAuthenticated.value ? Colors.green : Colors.red,
+                                    fontSize: 10,
+                                  ),
+                                )),
+                                const Spacer(),
+                                GestureDetector(
+                                  onTap: () {
+                                    controller.toggleSortOrder();
+                                  },
+                                  child: Tooltip(
+                                    message: controller.isDescendingOrder.value
+                                      ? 'Newest first (click to change to oldest first)'
+                                      : 'Oldest first (click to change to newest first)',
+                                    child: Obx(() => Icon(
+                                      Icons.swap_vert,
+                                      color: controller.isDescendingOrder.value
+                                        ? const Color(0xFF2F80ED)
+                                        : const Color(0xFF000000),
+                                      size: 20,
+                                    )),
+                                  ),
                                 ),
-                              ),
-                              Obx(() => Text(
-                                ' (${controller.isAuthenticated.value ? '' : 'dummy'})',
-                                style: TextStyle(
-                                  color: controller.isAuthenticated.value ? Colors.green : Colors.red,
-                                  fontSize: 10,
-                                ),
-                              )),
-                              const Spacer(),
-                              GestureDetector(
-                                onTap: () {
-                                  controller.toggleSortOrder();
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Expanded(
+                              child: RefreshIndicator(
+                                onRefresh: () async {
+                                  await controller.refreshSessions();
                                 },
-                                child: Tooltip(
-                                  message: controller.isDescendingOrder.value 
-                                    ? 'Newest first (click to change to oldest first)' 
-                                    : 'Oldest first (click to change to newest first)',
-                                  child: Obx(() => Icon(
-                                    Icons.swap_vert,
-                                    color: controller.isDescendingOrder.value 
-                                      ? const Color(0xFF2F80ED) 
-                                      : const Color(0xFF000000),
-                                    size: 20,
-                                  )),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Expanded(
-                            child: RefreshIndicator(
-                              onRefresh: () async {
-                                await controller.refreshSessions();
-                              },
-                              color: Color(0xFFFF9800),
-                              child: sessions.isEmpty
-                                  ? Center(
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.folder_open,
-                                            size: 64,
-                                            color: Color(0xFFBDBDBD),
-                                          ),
-                                          SizedBox(height: 16),
-                                          Text(
-                                            'No sessions yet',
-                                            style: TextStyle(
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w600,
-                                              color: Color(0xFF959595),
-                                            ),
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            'Create your first session to get started',
-                                            style: TextStyle(
-                                              fontSize: 14,
+                                color: Color(0xFFFF9800),
+                                child: sessions.isEmpty
+                                    ? Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.folder_open,
+                                              size: 64,
                                               color: Color(0xFFBDBDBD),
                                             ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : ListView.separated(
-                                      itemCount: sessions.length,
-                                      separatorBuilder:
-                                          (_, __) => const Divider(
-                                            height: 1,
-                                            thickness: 1,
-                                            color: Color(0xFFF0F0F0),
-                                          ),
-                                      itemBuilder: (context, index) {
-                                        final session = sessions[index];
-                                        return InkWell(
-                                          onTap: () {
-                                            Get.put(SessionDetailController(session: session));
-                                            Get.to(() => SessionDetailView());
-                                          },
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 8.0,
+                                            SizedBox(height: 16),
+                                            Text(
+                                              'No sessions yet',
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF959595),
+                                              ),
                                             ),
-                                            child: Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment.start,
-                                                    children: [
-                                                      Text(
-                                                        session.name,
-                                                        style: const TextStyle(
-                                                          fontWeight: FontWeight.w700,
-                                                          fontSize: 17,
-                                                          color: Color(0xFF222222),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              'Create your first session to get started',
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                color: Color(0xFFBDBDBD),
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    : ListView.separated(
+                                        itemCount: sessions.length,
+                                        separatorBuilder:
+                                            (_, __) => const Divider(
+                                              height: 1,
+                                              thickness: 1,
+                                              color: Color(0xFFF0F0F0),
+                                            ),
+                                        itemBuilder: (context, index) {
+                                          final session = sessions[index];
+                                          return InkWell(
+                                            onTap: () {
+                                              Get.put(SessionDetailController(session: session));
+                                              Get.to(() => SessionDetailView());
+                                            },
+                                            borderRadius: BorderRadius.circular(8),
+                                            child: Padding(
+                                              padding: const EdgeInsets.symmetric(
+                                                vertical: 8.0,
+                                              ),
+                                              child: Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          session.name,
+                                                          style: const TextStyle(
+                                                            fontWeight: FontWeight.w700,
+                                                            fontSize: 17,
+                                                            color: Color(0xFF222222),
+                                                          ),
                                                         ),
+                                                        const SizedBox(height: 2),
+                                                        Text(
+                                                          '${session.dateTime.day.toString().padLeft(2, '0')}/'
+                                                          '${session.dateTime.month.toString().padLeft(2, '0')}/'
+                                                          '${session.dateTime.year.toString().substring(2)} '
+                                                          '${session.dateTime.hour.toString().padLeft(2, '0')}:${session.dateTime.minute.toString().padLeft(2, '0')}',
+                                                          style: const TextStyle(
+                                                            fontSize: 13,
+                                                            color: Color(0xFF828282),
+                                                            fontWeight: FontWeight.w400,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.end,
+                                                    children: [
+                                                      Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children:
+                                                            session.users
+                                                                .map(
+                                                                  (user) => Padding(
+                                                                    padding:
+                                                                        const EdgeInsets.symmetric(
+                                                                          horizontal: 2.0,
+                                                                        ),
+                                                                    child: CircleAvatar(
+                                                                      radius: 18,
+                                                                      backgroundImage:
+                                                                          NetworkImage(
+                                                                            (user)
+                                                                                .avatarUrl,
+                                                                          ),
+
+                                                                      backgroundColor:
+                                                                          Colors.white,
+                                                                    ),
+                                                                  ),
+                                                                )
+                                                                .toList(),
                                                       ),
-                                                      const SizedBox(height: 2),
+                                                      const SizedBox(height: 4),
                                                       Text(
-                                                        '${session.dateTime.day.toString().padLeft(2, '0')}/'
-                                                        '${session.dateTime.month.toString().padLeft(2, '0')}/'
-                                                        '${session.dateTime.year.toString().substring(2)} '
-                                                        '${session.dateTime.hour.toString().padLeft(2, '0')}:${session.dateTime.minute.toString().padLeft(2, '0')}',
+                                                        '${session.recordingsCount} recordings',
                                                         style: const TextStyle(
-                                                          fontSize: 13,
-                                                          color: Color(0xFF828282),
+                                                          color: Color(0xFFBDBDBD),
+                                                          fontSize: 12,
                                                           fontWeight: FontWeight.w400,
                                                         ),
                                                       ),
                                                     ],
                                                   ),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Column(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.end,
-                                                  children: [
-                                                    Row(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      children:
-                                                          session.users
-                                                              .map(
-                                                                (user) => Padding(
-                                                                  padding:
-                                                                      const EdgeInsets.symmetric(
-                                                                        horizontal: 2.0,
-                                                                      ),
-                                                                  child: CircleAvatar(
-                                                                    radius: 18,
-                                                                    backgroundImage:
-                                                                        NetworkImage(
-                                                                          (user)
-                                                                              .avatarUrl,
-                                                                        ),
-
-                                                                    backgroundColor:
-                                                                        Colors.white,
-                                                                  ),
-                                                                ),
-                                                              )
-                                                              .toList(),
-                                                    ),
-                                                    const SizedBox(height: 4),
-                                                    Text(
-                                                      '${session.recordingsCount} recordings',
-                                                      style: const TextStyle(
-                                                        color: Color(0xFFBDBDBD),
-                                                        fontSize: 12,
-                                                        fontWeight: FontWeight.w400,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                          );
+                                        },
+                                      ),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -675,7 +663,13 @@ class _SessionsViewState extends State<SessionsView> {
                 stream: getAllUserNotificationsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    );
                   }
                   if (snapshot.hasError) {
                     return const Center(child: Text('Error loading invitations'));

@@ -28,12 +28,12 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
         topRight: Radius.circular(24.0),
       ),
       child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 16),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
               Center(
                 child: Container(
                   width: 40,
@@ -45,38 +45,38 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                 ),
               ),
               SizedBox(height: 8),
-              Center(
-                child: Column(
-                  children: const [
-                    Text(
-                      'New Session',
+            Center(
+              child: Column(
+                children: const [
+                  Text(
+                    'New Session',
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(height: 4),
+                  ),
+                  SizedBox(height: 4),
                     Row(
   mainAxisAlignment: MainAxisAlignment.center,
   crossAxisAlignment: CrossAxisAlignment.center,
   children: const [
-    Text(
-      'New Recording',
+                  Text(
+                    'New Recording',
       style: TextStyle(fontSize: 15, color: Colors.black54),
     ),
     SizedBox(width: 6),
     Icon(Icons.edit, size: 16, color: Colors.black54),
   ],
-),
-                    SizedBox(height: 4),
-                    Text(
-                      '00:06.67',
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '00:06.67',
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              ListTile(
+            ),
+            const SizedBox(height: 24),
+            ListTile(
                 title: const Text('Save to a new session', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                trailing: const Icon(Icons.chevron_right),
+              trailing: const Icon(Icons.chevron_right),
                 onTap: () async {
                   await showDialog(
                     context: context,
@@ -184,8 +184,8 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                     },
                   );
                 },
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
               Center(
                 child: Container(
                   width: 320,
@@ -194,28 +194,28 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                   margin: const EdgeInsets.only(top: 8, bottom: 8),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 child: const Text(
                   'Add to existing session', 
                   style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-              Padding(
+            ),
+            Padding(
     padding: const EdgeInsets.symmetric(horizontal: 15),
-    child: TextField(
+              child: TextField(
       cursorColor: Colors.purple,
       cursorWidth: 2.0,
       cursorHeight: 16.0,
-      decoration: InputDecoration(
-        hintText: 'search...',
+                decoration: InputDecoration(
+                  hintText: 'search...',
         hintStyle: TextStyle(color: Color(0xFF828282), fontSize: 14),
         filled: true,
         fillColor: Colors.white,
         contentPadding: EdgeInsets.symmetric(vertical: 5, horizontal: 10), // smaller height
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Color(0xFFE0E0E0)),
-        ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: Color(0xFFE0E0E0)),
@@ -231,26 +231,26 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
         suffixIconConstraints: BoxConstraints(
           minWidth: 32,
           minHeight: 32,
-        ),
-        isDense: true,
-      ),
+                  ),
+                  isDense: true,
+                ),
       style: TextStyle(fontSize: 16),
       onChanged: (value) {
         setState(() {
           _searchQuery = value.trim().toLowerCase();
         });
       },
-    ),
-  ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
                   stream: _userSessionsStream(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                       return const Center(child: Text('No sessions found.'));
                     }
                     final sessions = snapshot.data!.docs;
@@ -270,15 +270,15 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                           color: Colors.grey[300],
                         ),
                       ),
-                      itemBuilder: (context, index) {
+                    itemBuilder: (context, index) {
                         final data = filteredSessions[index].data() as Map<String, dynamic>;
                         final sessionName = data['name'] ?? 'Unnamed Session';
                         final createdAt = data['createdAt'] is Timestamp
                             ? (data['createdAt'] as Timestamp).toDate()
                             : null;
                         final sessionId = filteredSessions[index].id;
-                        return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           leading: const Icon(Icons.folder, color: Colors.blue),
                           title: Text(sessionName, style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: createdAt != null
@@ -329,15 +329,15 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                               );
                             }
                           },
-                        );
-                      },
-                    );
-                  },
-                ),
+                      );
+                    },
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
         bottomNavigationBar: GetBuilder<NavigationController>(
           builder: (navController) => Stack(
             children: [
@@ -378,36 +378,36 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                     splashColor: Colors.transparent,
                   ),
                   child: BottomNavigationBar(
-                    backgroundColor: Colors.white,
-                    elevation: 0,
-                    type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        elevation: 0,
+        type: BottomNavigationBarType.fixed,
                     selectedItemColor: Color(0xFF222222),
                     unselectedItemColor: Color(0xFFBDBDBD),
                     selectedLabelStyle: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                    ),
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w500,
+          fontSize: 12,
+        ),
                     unselectedLabelStyle: TextStyle(
-                      fontFamily: 'Inter',
-                      fontWeight: FontWeight.w400,
-                      fontSize: 12,
-                    ),
+          fontFamily: 'Inter',
+          fontWeight: FontWeight.w400,
+          fontSize: 12,
+        ),
                     currentIndex: navController.selectedIndex.value,
-                    onTap: (index) {
+        onTap: (index) {
                       navController.changeTab(index);
                       Navigator.of(context).pop(); // Close the bottom sheet
-                    },
-                    items: const [
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.folder),
-                        label: 'Sessions',
-                      ),
-                      BottomNavigationBarItem(
-                        icon: Icon(Icons.settings),
-                        label: 'Settings',
-                      ),
-                    ],
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.folder),
+            label: 'Sessions',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
+        ],
                   ),
                 ),
               ),

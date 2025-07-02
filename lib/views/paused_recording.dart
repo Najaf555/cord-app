@@ -11,7 +11,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/widgets.dart';
 
 class PausedRecording extends StatefulWidget {
-  const PausedRecording({super.key});
+  final VoidCallback? onNext;
+  final bool showSaveScreenAtEnd;
+  const PausedRecording({super.key, this.onNext, this.showSaveScreenAtEnd = false});
 
   @override
   State<PausedRecording> createState() => _PausedRecordingState();
@@ -294,10 +296,23 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                       ),
                     ),
                     TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(
+                      onPressed: () {
+                        if (widget.showSaveScreenAtEnd) {
+                          if (widget.onNext != null) {
+                            widget.onNext!();
+                          }
+                        } else {
+                          // Close only the two bottom sheets (paused_recording and new_recording)
+                          int pops = 0;
+                          Navigator.of(context, rootNavigator: true).popUntil((route) {
+                            pops++;
+                            return pops == 2;
+                          });
+                        }
+                      },
+                      child: Text(
+                        widget.showSaveScreenAtEnd ? 'Next' : 'Done',
+                        style: const TextStyle(
                           color: Colors.blue,
                           fontSize: 16,
                         ),

@@ -50,7 +50,7 @@ class MainNavigation extends StatelessWidget {
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (context) => SizedBox.expand(child: SaveRecordingScreen()),
+                      builder: (context) => SizedBox.expand(child: NewRecordingScreen(showSaveScreenAtEnd: true)),
                     );
                   },
                   elevation: 0,
