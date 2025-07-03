@@ -391,9 +391,16 @@ class _SessionsViewState extends State<SessionsView> {
                       //     ),
                       //   );
                       // }
-                      final sessions = snapshot.data ?? [];
+                      final allSessions = snapshot.data ?? [];
                       return Expanded(
-                        child: Column(
+                        child: Obx(() {
+                          // Apply search filter to the live sessions
+                          final sessions = controller.searchQuery.value.isEmpty
+                              ? allSessions
+                              : allSessions
+                                  .where((s) => s.name.toLowerCase().contains(controller.searchQuery.value.toLowerCase()))
+                                  .toList();
+                          return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
@@ -574,7 +581,8 @@ class _SessionsViewState extends State<SessionsView> {
                               ),
                             ),
                           ],
-                        ),
+                        );
+                        }),
                       );
                     },
                   ),

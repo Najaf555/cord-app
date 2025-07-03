@@ -222,14 +222,6 @@ class SessionController extends GetxController {
   // Toggle sort order (newest first vs oldest first)
   void toggleSortOrder() {
     isDescendingOrder.value = !isDescendingOrder.value;
-    // Re-sort the current sessions list
-    final currentSessions = List<Session>.from(sessions);
-    if (isDescendingOrder.value) {
-      currentSessions.sort((a, b) => b.createdDate.compareTo(a.createdDate));
-    } else {
-      currentSessions.sort((a, b) => a.createdDate.compareTo(b.createdDate));
-    }
-    sessions.value = currentSessions;
     print('Sort order changed to: ${isDescendingOrder.value ? "newest first" : "oldest first"}');
   }
 
@@ -330,10 +322,14 @@ class SessionController extends GetxController {
     final participantStream = sessionsRef.where('participantIds', arrayContains: uid).snapshots();
     // Stream for sessions where user is the host
     final hostStream = sessionsRef.where('hostId', isEqualTo: uid).snapshots();
-    return Rx.combineLatest2<QuerySnapshot, QuerySnapshot, List<Session>>(
+    // Convert isDescendingOrder observable to stream
+    final sortOrderStream = isDescendingOrder.stream;
+    
+    return Rx.combineLatest3<QuerySnapshot, QuerySnapshot, bool, List<Session>>(
       participantStream,
       hostStream,
-      (participantSnap, hostSnap) {
+      sortOrderStream,
+      (participantSnap, hostSnap, isDescending) {
         final allDocs = <String, QueryDocumentSnapshot>{};
         for (var doc in participantSnap.docs) {
           allDocs[doc.id] = doc;
@@ -367,7 +363,7 @@ class SessionController extends GetxController {
           );
         }).toList();
         // Sort by createdAt (descending or ascending)
-        sessionsList.sort((a, b) => isDescendingOrder.value
+        sessionsList.sort((a, b) => isDescending
             ? b.createdDate.compareTo(a.createdDate)
             : a.createdDate.compareTo(b.createdDate));
         return sessionsList;

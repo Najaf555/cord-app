@@ -1,12 +1,136 @@
+import 'dart:async';
+
 import 'package:Cord/views/save.recording.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'paused_recording.dart';
 import '../controllers/navigation_controller.dart';
 
-class NewRecordingScreen extends StatelessWidget {
+class NewRecordingScreen extends StatefulWidget {
   final bool showSaveScreenAtEnd;
   const NewRecordingScreen({super.key, this.showSaveScreenAtEnd = false});
+
+  @override
+  State<NewRecordingScreen> createState() => _NewRecordingScreenState();
+}
+
+class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  bool _isRecording = false;
+  Timer? _timer;
+  double _elapsedSeconds = 0.0;
+  bool _isPaused = false;
+  bool _isPlayingBack = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..addListener(() {
+        setState(() {});
+      });
+    // Start recording automatically
+    _startRecording();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  void _startRecording() {
+    setState(() {
+      _isRecording = true;
+    });
+    _controller.repeat();
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      setState(() {
+        _elapsedSeconds += 0.03;
+      });
+    });
+  }
+
+  void _stopRecording() {
+    setState(() {
+      _isRecording = false;
+    });
+    _controller.stop();
+    _timer?.cancel();
+  }
+
+  void _pauseRecording() {
+    setState(() {
+      _isPaused = true;
+      _isRecording = false;
+    });
+    _controller.stop();
+    _timer?.cancel();
+  }
+
+  void _resumeRecording() {
+    setState(() {
+      _isPaused = false;
+      _isRecording = true;
+    });
+    _controller.repeat();
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      setState(() {
+        _elapsedSeconds += 0.03;
+      });
+    });
+  }
+
+  void _playback() {
+    setState(() {
+      _isPlayingBack = !_isPlayingBack;
+    });
+    // Placeholder: show a SnackBar for playback
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isPlayingBack ? 'Playing back recording...' : 'Playback stopped.'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  String _formatElapsed(double seconds) {
+    final int min = seconds ~/ 60;
+    final int sec = seconds.toInt() % 60;
+    final int ms = ((seconds - seconds.floor()) * 100).toInt();
+    return '${min.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}.${ms.toString().padLeft(2, '0')}' ;
+  }
+
+  Widget _buildControlButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+    required Color iconColor,
+    required Color textColor,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(icon, size: 48),
+          color: iconColor,
+          onPressed: onPressed,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: textColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,40 +216,26 @@ class NewRecordingScreen extends StatelessWidget {
             ),
           ],
         ),
-        floatingActionButton: SizedBox(
-          height: 64,
-          width: 64,
-          child: FloatingActionButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Dismiss NewRecordingScreen
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => PausedRecording(
-                  showSaveScreenAtEnd: showSaveScreenAtEnd,
-                  onNext: () {
-                    Navigator.of(context).pop(); // Close PausedRecording
-                    if (showSaveScreenAtEnd) {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (context) => const SaveRecordingScreen(),
-                      );
-                    }
-                  },
-                ),
-              );
-            },
-            elevation: 0,
-            backgroundColor: Colors.white,
-            shape: const CircleBorder(),
-            child: Image.asset(
-              'assets/images/centerButton.png',
-              width: 64,
-              height: 64,
-              fit: BoxFit.contain,
+        floatingActionButton: Visibility(
+          visible: !_isPaused,
+          child: SizedBox(
+            height: 64,
+            width: 64,
+            child: FloatingActionButton(
+              onPressed: () {
+                if (_isRecording) {
+                  _pauseRecording();
+                }
+              },
+              elevation: 0,
+              backgroundColor: Colors.white,
+              shape: const CircleBorder(),
+              child: Image.asset(
+                'assets/images/linemdpause.png',
+                width: 64,
+                height: 64,
+                fit: BoxFit.contain,
+              ),
             ),
           ),
         ),
@@ -177,11 +287,26 @@ class NewRecordingScreen extends StatelessWidget {
                     ),
                     TextButton(
                       onPressed: () {
-                        Navigator.of(context).pop();
+                        if (widget.showSaveScreenAtEnd) {
+                          Navigator.of(context).pop(); // Dismiss NewRecordingScreen
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => const SaveRecordingScreen(),
+                          );
+                        } else {
+                          // Pop two routes (close both new_recording and previous sheet)
+                          int pops = 0;
+                          Navigator.of(context, rootNavigator: true).popUntil((route) {
+                            pops++;
+                            return pops == 2;
+                          });
+                        }
                       },
-                      child: const Text(
-                        'Done',
-                        style: TextStyle(
+                      child: Text(
+                        widget.showSaveScreenAtEnd ? 'Next' : 'Done',
+                        style: const TextStyle(
                           color: Colors.blue,
                           fontWeight: FontWeight.bold,
                         ),
@@ -192,11 +317,11 @@ class NewRecordingScreen extends StatelessWidget {
               ),
               // Timer
               const SizedBox(height: 12),
-              const Text(
-                '00:06.67',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              Text(
+                _formatElapsed(_elapsedSeconds),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
               ),
-              // Waveform and blue arrow
+              // Waveform and blue arrow (animated, matches paused_recording)
               const SizedBox(height: 12),
               Stack(
                 alignment: Alignment.bottomCenter,
@@ -206,19 +331,24 @@ class NewRecordingScreen extends StatelessWidget {
                     width: double.infinity,
                     color: const Color(0xFFF5F5F5),
                     child: Center(
-                      child: SizedBox(
+                      child: Container(
                         width: 180,
                         height: 60,
-                        child: CustomPaint(painter: _WaveformPainter()),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.blue, width: 1.5),
+                        ),
+                        child: CustomPaint(
+                          painter: _WaveformPainter(phase: _isRecording ? _controller.value : 0.0),
+                        ),
                       ),
                     ),
                   ),
-                  Positioned(
-                    bottom: -10,
+                  const Positioned(
+                    bottom: -8,
                     child: Icon(
                       Icons.arrow_drop_down,
                       color: Colors.blue,
-                      size: 40,
+                      size: 30,
                     ),
                   ),
                 ],
@@ -319,8 +449,31 @@ class NewRecordingScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              // Fill remaining space
-              const Expanded(child: SizedBox()),
+              // Add Stop/Continue buttons at the bottom, above the nav bar
+              const Spacer(),
+              if (_isPaused)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildControlButton(
+                        icon: Icons.play_arrow,
+                        label: 'Play back',
+                        onPressed: _playback,
+                        iconColor: Colors.black,
+                        textColor: Colors.black,
+                      ),
+                      _buildControlButton(
+                        icon: Icons.fiber_manual_record_outlined,
+                        label: 'Continue',
+                        onPressed: _resumeRecording,
+                        iconColor: Colors.red,
+                        textColor: Colors.black,
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
@@ -329,27 +482,41 @@ class NewRecordingScreen extends StatelessWidget {
   }
 }
 
-// Simple waveform painter for demo purposes
+// Animated waveform painter from paused_recording.dart
 class _WaveformPainter extends CustomPainter {
+  final double phase;
+  _WaveformPainter({this.phase = 0.0});
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = Colors.black87
-          ..strokeWidth = 3
-          ..strokeCap = StrokeCap.round;
-    final heights = [10, 30, 50, 30, 10, 30, 50, 30, 10];
-    final barWidth = size.width / (heights.length * 2 - 1);
+    final paint = Paint()
+      ..color = Colors.black87
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round;
+
+    final heights = [
+      2, 2, 3, 2, 2, 3, 2, 5, 8, 12, 18, 25, 30, 33, 30, 25, 18, 12, 8, 5,
+      8, 12, 18, 25, 30, 35, 38, 35, 30, 25, 18, 12, 8, 5, 3,
+    ];
+    final barWidth = size.width / (heights.length * 1.8);
+
+    // Animate the waveform by shifting the bars horizontally based on phase
+    final shift = (phase * heights.length) % heights.length;
     for (int i = 0; i < heights.length; i++) {
-      final x = i * barWidth * 2;
-      final y1 = size.height / 2 - heights[i] / 2;
-      final y2 = size.height / 2 + heights[i] / 2;
-      canvas.drawLine(Offset(x, y1), Offset(x, y2), paint);
+      // Calculate shifted index for animation
+      int shiftedIndex = (i + shift.toInt()) % heights.length;
+      final x = barWidth * (i * 1.8);
+      final barHeight = heights[shiftedIndex].toDouble();
+      canvas.drawLine(
+        Offset(x, size.height / 2 - barHeight / 2),
+        Offset(x, size.height / 2 + barHeight / 2),
+        paint,
+      );
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _WaveformPainter oldDelegate) => oldDelegate.phase != phase;
 }
 
 class _BookmarkChip extends StatelessWidget {
