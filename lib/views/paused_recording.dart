@@ -26,6 +26,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   double _elapsedSeconds = 0.0;
   String _recordingFileName = 'New Recording';
   final TextEditingController _fileNameController = TextEditingController();
+  bool _showCenterButton = true;
 
   @override
   void initState() {
@@ -433,29 +434,64 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
               // Play back and Continue buttons
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildControlButton(
-                      icon: _isPlaying ? Icons.stop : Icons.play_arrow,
-                      label: _isPlaying ? 'Stop' : 'Play back',
-                      onPressed: _isPlaying ? _onStopPlayback : _onPlayPressed,
-                      iconColor: Colors.black,
-                      textColor: Colors.black,
-                    ),
-                    _buildControlButton(
-                      icon: Icons.fiber_manual_record_outlined,
-                      label: 'Continue',
-                      onPressed: _onContinuePressed,
-                      iconColor: Colors.red,
-                      textColor: Colors.black,
-                    ),
-                  ],
+                child: Visibility(
+                  visible: !_showCenterButton,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildControlButton(
+                        icon: _isPlaying ? Icons.stop : Icons.play_arrow,
+                        label: _isPlaying ? 'Stop' : 'Play back',
+                        onPressed: _isPlaying ? _onStopPlayback : _onPlayPressed,
+                        iconColor: Colors.black,
+                        textColor: Colors.black,
+                      ),
+                      _buildControlButton(
+                        icon: Icons.fiber_manual_record_outlined,
+                        label: 'Continue',
+                        onPressed: _onContinuePressed,
+                        iconColor: Colors.red,
+                        textColor: Colors.black,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
+        floatingActionButton: Visibility(
+          visible: _showCenterButton,
+          child: SizedBox(
+            height: 64,
+            width: 64,
+            child: FloatingActionButton(
+              onPressed: () {
+                setState(() {
+                  _showCenterButton = false;
+                  _isPlaying = true;
+                });
+                _controller.repeat();
+                _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+                  if (!_isPlaying) return;
+                  setState(() {
+                    _elapsedSeconds += 0.03;
+                  });
+                });
+              },
+              elevation: 0,
+              backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+              shape: const CircleBorder(),
+              child: Image.asset(
+                'assets/images/linemdpause.png',
+                width: 64,
+                height: 64,
+                fit: BoxFit.contain,
+              ),
+            ),
+          ),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         bottomNavigationBar: Stack(
           children: [
             // Top border line
@@ -487,7 +523,8 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
             BottomAppBar(
               color: Colors.white,
               elevation: 0,
-              notchMargin: 0,
+              shape: const CircularNotchedRectangle(),
+              notchMargin: 6,
               child: Theme(
                 data: Theme.of(context).copyWith(
                   splashFactory: NoSplash.splashFactory,
