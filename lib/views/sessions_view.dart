@@ -21,7 +21,7 @@ class SessionsView extends StatefulWidget {
   State<SessionsView> createState() => _SessionsViewState();
 }
 
-class _SessionsViewState extends State<SessionsView> {
+class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver {
   final SessionController controller = Get.put(SessionController());
   final NavigationController navigationController = Get.put(
     NavigationController(),
@@ -52,7 +52,21 @@ class _SessionsViewState extends State<SessionsView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _fetchPendingInvites();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      controller.refreshSessions();
+    }
   }
 
   Future<void> _fetchPendingInvites() async {

@@ -91,14 +91,14 @@ class _SessionDetailViewState extends State<SessionDetailView>
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            const Text(
-                              'New Session',
-                              style: TextStyle(
+                            Obx(() => Text(
+                              controller.sessionName.value,
+                              style: const TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.w900,
                                 color: Color(0xFF222222),
                               ),
-                            ),
+                            )),
                             const SizedBox(width: 4),
                             IconButton(
                               icon: const Icon(
@@ -107,6 +107,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                 size: 20,
                               ),
                               onPressed: () {
+                                final nameController = TextEditingController(text: controller.sessionName.value);
                                 showDialog(
                                   context: context,
                                   builder: (BuildContext context) {
@@ -115,118 +116,108 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.zero,
                                       ),
-                                      child: LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          final maxHeight = MediaQuery.of(context).size.height * 0.8;
-                                          final maxWidth = MediaQuery.of(context).size.width * 0.95;
-                                          return ConstrainedBox(
-                                            constraints: BoxConstraints(
-                                              maxHeight: maxHeight,
-                                              maxWidth: maxWidth,
-                                            ),
-                                            child: SingleChildScrollView(
-                                              padding: EdgeInsets.only(
-                                                left: 20,
-                                                right: 20,
-                                                top: 20,
-                                                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(24.0),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          children: [
+                                            const Text(
+                                              'New Session',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.black,
                                               ),
-                                              child: StatefulBuilder(
-                                                builder: (context, setState) {
-                                                  // Fetch data when dialog opens
-                                                  WidgetsBinding.instance.addPostFrameCallback((_) async {
-                                                    if (_previouslyInvitedUsers.isEmpty && !_isLoadingInvitedUsers.value) {
-                                                      await _fetchPreviouslyInvitedUsers();
-                                                      if (context.mounted) {
-                                                        setState(() {});
-                                                      }
-                                                    }
-                                                  });
-
-                                                  return Column(
-                                                mainAxisSize: MainAxisSize.min,
-                                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                                children: [
-                                                  const Text(
-                                                    'Edit Session Name',
-                                                    style: TextStyle(
-                                                      fontSize: 20,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: Colors.black,
+                                            ),
+                                            const SizedBox(height: 8),
+                                            TextField(
+                                              controller: nameController,
+                                              decoration: InputDecoration(
+                                                labelText: 'New Session',
+                                                labelStyle: TextStyle(
+                                                  color: Colors.grey[600],
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                hintText: 'New Session',
+                                                hintStyle: TextStyle(
+                                                  color: Colors.grey[400],
+                                                  fontSize: 16,
+                                                ),
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.zero,
+                                                  borderSide: BorderSide(
+                                                    color: Colors.grey[400]!,
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                enabledBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.zero,
+                                                  borderSide: BorderSide(
+                                                    color: Colors.grey[400]!,
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                focusedBorder: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.zero,
+                                                  borderSide: BorderSide(
+                                                    color: Colors.grey[600]!,
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                                contentPadding: const EdgeInsets.symmetric(
+                                                  horizontal: 14,
+                                                  vertical: 14,
+                                                ),
+                                                filled: true,
+                                                fillColor: Colors.white,
+                                              ),
+                                              style: const TextStyle(fontSize: 16),
+                                            ),
+                                            const SizedBox(height: 20),
+                                            Center(
+                                              child: GestureDetector(
+                                                onTap: () async {
+                                                  final newName = nameController.text.trim();
+                                                  if (newName.isNotEmpty && newName != controller.sessionName.value) {
+                                                    await controller.updateSessionName(newName);
+                                                  }
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: Container(
+                                                  width: 100,
+                                                  height: 36,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius: BorderRadius.zero,
+                                                    gradient: const LinearGradient(
+                                                      colors: [Color(0xFFFF9800), Color(0xFFE91E63)],
+                                                      begin: Alignment.centerLeft,
+                                                      end: Alignment.centerRight,
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 20),
-                                                  TextField(
-                                                    decoration: InputDecoration(
-                                                      hintText: 'Session Name',
-                                                      hintStyle: TextStyle(
-                                                        color: Colors.grey[400],
-                                                        fontSize: 14,
-                                                      ),
-                                                      border: OutlineInputBorder(
-                                                            borderRadius: BorderRadius.circular(0),
-                                                        borderSide: BorderSide(
-                                                          color: Colors.grey[300]!,
-                                                          width: 1,
-                                                        ),
-                                                      ),
-                                                          enabledBorder: OutlineInputBorder(
-                                                            borderRadius: BorderRadius.circular(0),
-                                                            borderSide: BorderSide(
-                                                              color: Colors.grey[300]!,
-                                                              width: 1,
-                                                            ),
-                                                          ),
-                                                          focusedBorder: OutlineInputBorder(
-                                                            borderRadius: BorderRadius.circular(0),
-                                                            borderSide: const BorderSide(
-                                                              color: Colors.black,
-                                                                  width: 1,
-                                                                ),
-                                                          ),
-                                                          contentPadding: const EdgeInsets.symmetric(
-                                                            horizontal: 14,
-                                                            vertical: 14,
-                                                          ),
-                                                      filled: true,
-                                                      fillColor: Colors.white,
+                                                  child: Container(
+                                                    margin: const EdgeInsets.all(2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius: BorderRadius.zero,
                                                     ),
-                                                  ),
-                                                  const SizedBox(height: 20),
-                                                  SizedBox(
-                                                    width: double.infinity,
-                                                    height: 48,
-                                                    child: ElevatedButton(
-                                                      onPressed: () {
-                                                        Navigator.pop(context);
-                                                      },
-                                                      style: ElevatedButton.styleFrom(
-                                                            backgroundColor: Colors.white,
-                                                            foregroundColor: Colors.black,
-                                                        shape: RoundedRectangleBorder(
-                                                              borderRadius: BorderRadius.circular(0),
-                                                          side: const BorderSide(
-                                                                color: Color(0xFFFF6B6B),
-                                                            width: 1.5,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      child: const Text(
+                                                    child: const Center(
+                                                      child: Text(
                                                         'Save',
                                                         style: TextStyle(
-                                                          fontSize: 16,
-                                                              fontWeight: FontWeight.w500,
+                                                          fontSize: 15,
+                                                          fontWeight: FontWeight.w400,
+                                                          color: Colors.black,
                                                         ),
                                                       ),
                                                     ),
                                                   ),
-                                                ],
-                                                  );
-                                                },
+                                                ),
                                               ),
                                             ),
-                                          );
-                                        },
+                                          ],
+                                        ),
                                       ),
                                     );
                                   },
@@ -678,17 +669,40 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                           children: [
                                             SlidableAction(
                                               onPressed: (context) {
-                                                // Move action
+                                                // Move action (implement as needed)
                                               },
-                                              backgroundColor:
-                                                  Colors.blueGrey[50]!,
+                                              backgroundColor: Colors.blueGrey[50]!,
                                               foregroundColor: Colors.blueGrey,
                                               icon: Icons.drive_file_move,
                                               label: 'Move',
                                             ),
                                             SlidableAction(
-                                              onPressed: (context) {
-                                                // Delete action
+                                              onPressed: (context) async {
+                                                final confirm = await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) => AlertDialog(
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                                                    backgroundColor: Colors.white,
+                                                    title: const Text('Delete Recording'),
+                                                    content: const Text('Are you sure you want to delete this recording?'),
+                                                    actions: [
+                                                      TextButton(
+                                                        onPressed: () => Navigator.of(context).pop(false),
+                                                        child: const Text('Cancel'),
+                                                      ),
+                                                      TextButton(
+                                                        onPressed: () => Navigator.of(context).pop(true),
+                                                        child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                                if (confirm == true) {
+                                                  await controller.deleteRecording(recording.id);
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('Recording deleted'), backgroundColor: Colors.red),
+                                                  );
+                                                }
                                               },
                                               backgroundColor: Colors.red[50]!,
                                               foregroundColor: Colors.red,
@@ -699,9 +713,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                         ),
                                         child: InkWell(
                                           onTap: () {},
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
+                                          borderRadius: BorderRadius.circular(8),
                                           child: Padding(
                                             padding: const EdgeInsets.symmetric(
                                               vertical: 8.0,

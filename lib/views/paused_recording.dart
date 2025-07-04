@@ -46,70 +46,9 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
     super.dispose();
   }
 
-  void _onPlayPressed() async {
-    // If recording has started (i.e., timer > 0), show dialog
-    if (_elapsedSeconds > 0) {
-      final result = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.zero,
-          ),
-          title: const Text('Do you want to save recording?'),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                final user = FirebaseAuth.instance.currentUser;
-                const sessionId = '6xfhQsVPQkTGCeFDfcIt'; // Hardcoded session ID
-                final recordingsRef = FirebaseFirestore.instance
-                    .collection('sessions')
-                    .doc(sessionId)
-                    .collection('recordings');
-                final docRef = await recordingsRef.add({
-                  'recordingId': '', // will be updated below
-                  'userId': user?.uid ?? '',
-                  'name': _recordingFileName,
-                  'fileName': 'audio123.m4a',
-                  'duration': _formatElapsed(_elapsedSeconds),
-                  'createdAt': FieldValue.serverTimestamp(),
-                });
-                await recordingsRef.doc(docRef.id).update({
-                  'recordingId': docRef.id,
-                });
-                Navigator.of(context).pop(true); // Yes
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Recording saved successfully'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-              child: const Text('Yes'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(false); // No
-              },
-              child: const Text('No'),
-            ),
-          ],
-        ),
-      );
-      if (result == true) {
-        // TODO: Add save logic here if needed
-        return;
-      }
-      // If No, continue to start playback
-    }
+  void _onPlayPressed() {
     setState(() {
-      _isPlaying = true;
-    });
-    _controller.repeat();
-    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
-      setState(() {
-        _elapsedSeconds += 0.03;
-      });
+      _elapsedSeconds = 0.0; // Reset timer to 00:00.00 only
     });
   }
 
@@ -299,9 +238,11 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                     TextButton(
                       onPressed: () {
                         if (widget.showSaveScreenAtEnd) {
-                          if (widget.onNext != null) {
-                            widget.onNext!();
-                          }
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => SaveRecordingScreen(timerValue: _formatElapsed(_elapsedSeconds)),
+                            ),
+                          );
                         } else {
                           // Close only the two bottom sheets (paused_recording and new_recording)
                           int pops = 0;

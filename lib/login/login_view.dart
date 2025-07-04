@@ -23,6 +23,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController passwordController = TextEditingController();
   bool isPasswordHidden = true;
   final SocialLoginService _socialLoginService = SocialLoginService();
+  bool isLoading = false;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _saveFcmToken(String uid) async {
     try {
@@ -58,7 +66,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _login() async {
-    if (_formKey.currentState!.validate()) {
+    print('Sign-in button tapped');
+    final valid = _formKey.currentState!.validate();
+    print('Form valid: ' + valid.toString());
+    if (valid) {
+      setState(() => isLoading = true);
       try {
         await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: emailController.text.trim(),
@@ -69,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.green,
           colorText: Colors.white,
         );
-        await Future.delayed(Duration(seconds: 1)); // Give user time to see the message
+        await Future.delayed(Duration(seconds: 1));
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
           await _saveFcmToken(user.uid);
@@ -82,6 +94,8 @@ class _LoginScreenState extends State<LoginScreen> {
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
+      } finally {
+        setState(() => isLoading = false);
       }
     }
   }
@@ -96,6 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Form(
               key: _formKey,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -162,10 +177,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       fillColor: Colors.white,
                     ),
                     validator: (value) {
-                      if (value == null || !value.contains('@')) {
+                      print('Email validator called with: ' + (value ?? 'null'));
+                      if (value == null || value.isEmpty) {
+                        return 'Enter your email';
+                      }
+                      if (!value.contains('@')) {
                         return 'Enter a valid email';
                       }
                       return null;
+                    },
+                    onChanged: (_) {
+                      setState(() {});
                     },
                   ),
                   const SizedBox(height: 16),
@@ -209,51 +231,59 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.length < 6) {
+                      if (value == null || value.isEmpty) {
+                        return 'Enter your password';
+                      }
+                      if (value.length < 6) {
                         return 'Password must be at least 6 characters';
                       }
                       return null;
+                    },
+                    onChanged: (_) {
+                      setState(() {});
                     },
                   ),
                   const SizedBox(height: 24),
 
                   // Sign In button
                   Center(
-                    child: Container(
-                      width: 160,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.zero,
-                        gradient: const LinearGradient(
-                          colors: [Colors.orange, Colors.pink],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                      ),
-                      child: Container(
-                        margin: const EdgeInsets.all(1.2),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _login,
-                            child: const Center(
-                              child: Text(
-                                'Sign In',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.normal,
-                                  fontSize: 16,
+                    child: isLoading
+                        ? const CircularProgressIndicator()
+                        : Container(
+                            width: 160,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.zero,
+                              gradient: const LinearGradient(
+                                colors: [Colors.orange, Colors.pink],
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                              ),
+                            ),
+                            child: Container(
+                              margin: const EdgeInsets.all(1.2),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.zero,
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: isLoading ? null : _login,
+                                  child: const Center(
+                                    child: Text(
+                                      'Sign In',
+                                      style: TextStyle(
+                                        color: Colors.black,
+                                        fontWeight: FontWeight.normal,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                    ),
                   ),
 
                   const SizedBox(height: 24),

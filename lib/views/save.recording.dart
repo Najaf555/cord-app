@@ -9,7 +9,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/session_detail_controller.dart';
 
 class SaveRecordingScreen extends StatefulWidget {
-  const SaveRecordingScreen({super.key});
+  final String? timerValue;
+  const SaveRecordingScreen({super.key, this.timerValue});
 
   @override
   State<SaveRecordingScreen> createState() => _SaveRecordingScreenState();
@@ -18,6 +19,7 @@ class SaveRecordingScreen extends StatefulWidget {
 class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
   String _searchQuery = '';
   final TextEditingController _newSessionNameController = TextEditingController();
+  String _recordingName = 'New Recording';
 
   @override
   Widget build(BuildContext context) {
@@ -47,29 +49,106 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
               SizedBox(height: 8),
             Center(
               child: Column(
-                children: const [
-                  Text(
+                children: [
+                  const Text(
                     'New Session',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 4),
-                    Row(
-  mainAxisAlignment: MainAxisAlignment.center,
-  crossAxisAlignment: CrossAxisAlignment.center,
-  children: const [
-                  Text(
-                    'New Recording',
-      style: TextStyle(fontSize: 15, color: Colors.black54),
-    ),
-    SizedBox(width: 6),
-    Icon(Icons.edit, size: 16, color: Colors.black54),
-  ],
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        _recordingName,
+                        style: const TextStyle(fontSize: 15, color: Colors.black54),
+                      ),
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: () async {
+                          final controller = TextEditingController(text: _recordingName);
+                          final result = await showDialog<String>(
+                            context: context,
+                            builder: (context) => Dialog(
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                              child: Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    TextField(
+                                      controller: controller,
+                                      decoration: const InputDecoration(
+                                        labelText: 'Recording Name',
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.zero),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                    GestureDetector(
+                                      onTap: () {
+                                        Navigator.of(context).pop(controller.text.trim());
+                                      },
+                                      child: Container(
+                                        width: 120,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.zero,
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFFFF9800), Color(0xFFE91E63)],
+                                            begin: Alignment.centerLeft,
+                                            end: Alignment.centerRight,
+                                          ),
+                                        ),
+                                        child: Container(
+                                          margin: const EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.zero,
+                                          ),
+                                          child: const Center(
+                                            child: Text(
+                                              'Save',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w400,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                          if (result != null && result.isNotEmpty) {
+                            setState(() {
+                              _recordingName = result;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Recording name updated successfully'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        },
+                        child: const Icon(Icons.edit, size: 16, color: Colors.black54),
+                      ),
+                    ],
                   ),
-                  SizedBox(height: 4),
-                  Text(
-                    '00:06.67',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
+                  if (widget.timerValue != null && widget.timerValue!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4.0),
+                      child: Text(
+                        widget.timerValue!,
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  const SizedBox(height: 4),
                 ],
               ),
             ),
@@ -297,7 +376,7 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                               final docRef = await recordingsRef.add({
                                 'recordingId': '', // will be updated below
                                 'userId': user.uid,
-                                'name': 'New Recording', // Placeholder, replace with actual name if available
+                                'name': _recordingName,
                                 'duration': '00:06.67', // Placeholder, replace with actual duration if available
                                 'fileUrl': '', // Placeholder, replace with actual file URL if available
                                 'createdAt': FieldValue.serverTimestamp(),

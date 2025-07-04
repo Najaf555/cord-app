@@ -13,11 +13,13 @@ class SessionDetailController extends GetxController {
   var participants = <User>[].obs;
   var recordings = <Recording>[].obs;
   var isDescendingOrder = true.obs;
+  var sessionName = ''.obs;
 
   @override
   void onInit() {
     super.onInit();
     participants.assignAll(session.users);
+    sessionName.value = session.name;
     // loadMockRecordings();
   }
 
@@ -83,5 +85,23 @@ class SessionDetailController extends GetxController {
         duration: data['duration']?.toString(),
       );
     }).toList();
+  }
+
+  Future<void> deleteRecording(String recordingId) async {
+    final sessionId = session.id;
+    final recordingsRef = FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(sessionId)
+        .collection('recordings');
+    await recordingsRef.doc(recordingId).delete();
+    recordings.removeWhere((rec) => rec.id == recordingId);
+    update();
+  }
+
+  Future<void> updateSessionName(String newName) async {
+    sessionName.value = newName;
+    final sessionRef = FirebaseFirestore.instance.collection('sessions').doc(session.id);
+    await sessionRef.update({'name': newName});
+    update();
   }
 } 
