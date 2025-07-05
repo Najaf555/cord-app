@@ -86,7 +86,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     ),
                   ),
                     SizedBox(height: screenHeightPct(context, 0.025)),
-                    Container(
+                    SizedBox(
                       width: screenWidthPct(context, 0.8),
                       child: TextField(
                   controller: _emailController,
@@ -118,7 +118,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Container(
+                SizedBox(
                   width: screenWidthPct(context, 0.8),
                   child: TextField(
                   controller: _passwordController,
@@ -158,7 +158,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Container(
+                SizedBox(
                   width: screenWidthPct(context, 0.8),
                   child: TextField(
                   controller: _confirmPasswordController,

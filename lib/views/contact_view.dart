@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../controllers/navigation_controller.dart';
-import '../utils/responsive.dart';
 
 class ContactUsScreen extends StatelessWidget {
   const ContactUsScreen({super.key});

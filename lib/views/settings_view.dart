@@ -5,8 +5,6 @@ import 'user_profile_view.dart'; // ✅ ➊ User-profile screen
 import 'change_password_view.dart'; // ✅ ➋ Change-password screen
 import '../views/contact_view.dart'; // ✅ ➌ Corrected Contact screen import
 import 'faqs_view.dart'; // ✅ ➍ FAQs screen import added
-import 'sessions_view.dart';
-import 'new_recording.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';

@@ -30,8 +30,8 @@ class _SessionDetailViewState extends State<SessionDetailView>
       Get.find<SessionDetailController>();
   late TabController _tabController;
   final TextEditingController inviteEmailController = TextEditingController();
-  var _previouslyInvitedUsers = <Map<String, dynamic>>[].obs;
-  var _isLoadingInvitedUsers = false.obs;
+  final _previouslyInvitedUsers = <Map<String, dynamic>>[].obs;
+  final _isLoadingInvitedUsers = false.obs;
   bool _isInvitingUser = false; // Loading state for invite user functionality
   String? inviteError;
   String currentUserEmail = '';
@@ -1043,7 +1043,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
     _isLoadingInvitedUsers.value = true;
     
     try {
-      if (controller.session.id == null || controller.session.id.isEmpty) {
+      if (controller.session.id.isEmpty) {
         throw Exception('Invalid session ID');
       }
 

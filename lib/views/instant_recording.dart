@@ -4,6 +4,8 @@ import '../controllers/navigation_controller.dart';
 import 'paused_recording.dart';
 
 class InstantRecording extends StatefulWidget {
+  const InstantRecording({super.key});
+
   @override
   _InstantRecordingState createState() => _InstantRecordingState();
 }

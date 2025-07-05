@@ -2,13 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
 import 'main_navigation.dart';
-import '../utils/responsive.dart';
-import 'dart:math';
 import 'dart:async';
 import 'save.recording.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/widgets.dart';
 
 class PausedRecording extends StatefulWidget {
   final VoidCallback? onNext;
@@ -48,7 +43,17 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
 
   void _onPlayPressed() {
     setState(() {
-      _elapsedSeconds = 0.0; // Reset timer to 00:00.00 only
+      _elapsedSeconds = 0.0; // Reset timer to 00:00.00
+      _isPlaying = true;
+      _showCenterButton = false;
+    });
+    _controller.repeat();
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      if (!_isPlaying) return;
+      setState(() {
+        _elapsedSeconds += 0.03;
+      });
     });
   }
 

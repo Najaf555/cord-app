@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../utils/constants.dart';
 
 class AppConstants {
   static const double paddingSmall = 8.0;

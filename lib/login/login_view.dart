@@ -68,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void _login() async {
     print('Sign-in button tapped');
     final valid = _formKey.currentState!.validate();
-    print('Form valid: ' + valid.toString());
+    print('Form valid: $valid');
     if (valid) {
       setState(() => isLoading = true);
       try {
@@ -177,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       fillColor: Colors.white,
                     ),
                     validator: (value) {
-                      print('Email validator called with: ' + (value ?? 'null'));
+                      print('Email validator called with: ${value ?? 'null'}');
                       if (value == null || value.isEmpty) {
                         return 'Enter your email';
                       }

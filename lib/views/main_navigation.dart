@@ -6,7 +6,6 @@ import 'sessions_view.dart';
 import 'settings_view.dart';
 import '../controllers/session_detail_controller.dart';
 import '../views/new_recording.dart';
-import '../views/save.recording.dart';
 
 class MainNavigation extends StatelessWidget {
   MainNavigation({super.key});

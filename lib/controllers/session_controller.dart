@@ -314,60 +314,105 @@ class SessionController extends GetxController {
   Stream<List<Session>> get userSessionsStream {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
+      print('No authenticated user for userSessionsStream');
       return Stream.value([]);
     }
+    
+    print('Setting up userSessionsStream for user: ${user.uid}');
     final uid = user.uid;
     final sessionsRef = FirebaseFirestore.instance.collection('sessions');
-    // Stream for sessions where user is a participant
-    final participantStream = sessionsRef.where('participantIds', arrayContains: uid).snapshots();
-    // Stream for sessions where user is the host
-    final hostStream = sessionsRef.where('hostId', isEqualTo: uid).snapshots();
-    // Convert isDescendingOrder observable to stream
-    final sortOrderStream = isDescendingOrder.stream;
     
-    return Rx.combineLatest3<QuerySnapshot, QuerySnapshot, bool, List<Session>>(
-      participantStream,
-      hostStream,
-      sortOrderStream,
-      (participantSnap, hostSnap, isDescending) {
-        final allDocs = <String, QueryDocumentSnapshot>{};
-        for (var doc in participantSnap.docs) {
-          allDocs[doc.id] = doc;
-        }
-        for (var doc in hostSnap.docs) {
-          allDocs[doc.id] = doc;
-        }
-        final sessionsList = allDocs.values.map((doc) {
-          final data = doc.data() as Map<String, dynamic>;
-          // Dummy users for now
-          final dummyUsers = [
-            app_user.User(id: '1', name: 'User1', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
-            app_user.User(id: '2', name: 'User2', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
-            app_user.User(id: '3', name: 'User3', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
-          ];
-          DateTime createdAt = DateTime.now();
-          DateTime updatedAt = DateTime.now();
-          if (data['createdAt'] != null) {
-            createdAt = (data['createdAt'] as Timestamp).toDate();
+    try {
+      // Stream for sessions where user is a participant
+      final participantStream = sessionsRef
+          .where('participantIds', arrayContains: uid)
+          .snapshots()
+          .handleError((error) {
+            print('Error in participant stream: $error');
+            // Return an empty stream on error
+            return;
+          });
+      
+      // Stream for sessions where user is the host
+      final hostStream = sessionsRef
+          .where('hostId', isEqualTo: uid)
+          .snapshots()
+          .handleError((error) {
+            print('Error in host stream: $error');
+            // Return an empty stream on error
+            return;
+          });
+      
+      // Convert isDescendingOrder observable to stream
+      final sortOrderStream = isDescendingOrder.stream;
+      
+      return Rx.combineLatest3<QuerySnapshot, QuerySnapshot, bool, List<Session>>(
+        participantStream,
+        hostStream,
+        sortOrderStream,
+        (participantSnap, hostSnap, isDescending) {
+          print('Processing streams - participant docs: ${participantSnap.docs.length}, host docs: ${hostSnap.docs.length}');
+          
+          final allDocs = <String, QueryDocumentSnapshot>{};
+          
+          // Add participant sessions
+          for (var doc in participantSnap.docs) {
+            allDocs[doc.id] = doc;
+            print('Added participant session: ${doc.id}');
           }
-          if (data['updatedAt'] != null) {
-            updatedAt = (data['updatedAt'] as Timestamp).toDate();
+          
+          // Add host sessions
+          for (var doc in hostSnap.docs) {
+            allDocs[doc.id] = doc;
+            print('Added host session: ${doc.id}');
           }
-          return Session(
-            id: doc.id,
-            name: data['name'] ?? 'Untitled Session',
-            dateTime: updatedAt,
-            createdDate: createdAt,
-            users: dummyUsers,
-            recordingsCount: 0,
-          );
-        }).toList();
-        // Sort by createdAt (descending or ascending)
-        sessionsList.sort((a, b) => isDescending
-            ? b.createdDate.compareTo(a.createdDate)
-            : a.createdDate.compareTo(b.createdDate));
-        return sessionsList;
-      },
-    );
+          
+          final sessionsList = allDocs.values.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            print('Processing session document: ${doc.id} with data: $data');
+            
+            // Dummy users for now
+            final dummyUsers = [
+              app_user.User(id: '1', name: 'User1', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
+              app_user.User(id: '2', name: 'User2', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
+              app_user.User(id: '3', name: 'User3', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
+            ];
+            
+            DateTime createdAt = DateTime.now();
+            DateTime updatedAt = DateTime.now();
+            
+            if (data['createdAt'] != null) {
+              createdAt = (data['createdAt'] as Timestamp).toDate();
+            }
+            if (data['updatedAt'] != null) {
+              updatedAt = (data['updatedAt'] as Timestamp).toDate();
+            }
+            
+            return Session(
+              id: doc.id,
+              name: data['name'] ?? 'Untitled Session',
+              dateTime: updatedAt,
+              createdDate: createdAt,
+              users: dummyUsers,
+              recordingsCount: 0,
+            );
+          }).toList();
+          
+          // Sort by createdAt (descending or ascending)
+          sessionsList.sort((a, b) => isDescending
+              ? b.createdDate.compareTo(a.createdDate)
+              : a.createdDate.compareTo(b.createdDate));
+          
+          print('Returning ${sessionsList.length} sessions from stream');
+          return sessionsList;
+        },
+      ).handleError((error) {
+        print('Error in userSessionsStream: $error');
+        return <Session>[];
+      });
+    } catch (e) {
+      print('Exception in userSessionsStream setup: $e');
+      return Stream.value(<Session>[]);
+    }
   }
 } 

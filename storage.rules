@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow public read access to profile images
+    match /profile_images/{userId}_{timestamp}.jpg {
+      allow read: if true; // Public read access - anyone can view the image
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId.split('_')[0]
+                   && request.resource.size < 5 * 1024 * 1024 // 5MB limit
+                   && request.resource.contentType.matches('image/.*');
+    }
+    
+    // Default rule - deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+} 

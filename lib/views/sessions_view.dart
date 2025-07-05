@@ -2,15 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_controller.dart';
 import '../controllers/navigation_controller.dart';
-import '../utils/date_util.dart';
-import '../utils/validators.dart';
-import '../utils/responsive.dart';
-import '../views/new_recording.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'session_detail_view.dart';
 import '../controllers/session_detail_controller.dart';
-import 'save.recording.dart';
 import '../models/session.dart';
 
 
@@ -54,6 +49,22 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _fetchPendingInvites();
+    
+    // Listen to authentication state changes for auto-refresh
+    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+      if (user != null) {
+        // User logged in, refresh sessions
+        controller.refreshSessions();
+        _fetchPendingInvites();
+        _fetchUserInvitations();
+      }
+    });
+    
+    // Initial refresh if user is already authenticated
+    if (FirebaseAuth.instance.currentUser != null) {
+      controller.refreshSessions();
+      _fetchUserInvitations();
+    }
   }
 
   @override
@@ -65,7 +76,10 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      // Refresh sessions when app becomes active
       controller.refreshSessions();
+      _fetchPendingInvites();
+      _fetchUserInvitations();
     }
   }
 
@@ -398,14 +412,18 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
                   StreamBuilder<List<Session>>(
                     stream: controller.userSessionsStream,
                     builder: (context, snapshot) {
-                      // if (snapshot.connectionState == ConnectionState.waiting) {
-                      //   return const Expanded(
-                      //     child: Center(
-                      //       child: CircularProgressIndicator(),
-                      //     ),
-                      //   );
-                      // }
-                      final allSessions = snapshot.data ?? [];
+                      // Use stream data if available, otherwise fall back to controller sessions
+                      List<Session> allSessions;
+                      if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+                        allSessions = snapshot.data!;
+                      } else if (snapshot.hasError) {
+                        print('Stream error: ${snapshot.error}');
+                        allSessions = controller.sessions;
+                      } else {
+                        // If stream is waiting or has no data, use controller sessions
+                        allSessions = controller.sessions;
+                      }
+                      
                       return Expanded(
                         child: Obx(() {
                           // Apply search filter to the live sessions

@@ -3,8 +3,11 @@ import 'dart:async';
 import 'package:Cord/views/save.recording.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'paused_recording.dart';
 import '../controllers/navigation_controller.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 
 class NewRecordingScreen extends StatefulWidget {
   final bool showSaveScreenAtEnd;
@@ -21,6 +24,12 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   double _elapsedSeconds = 0.0;
   bool _isPaused = false;
   bool _isPlayingBack = false;
+  
+  // Audio recording variables
+  final FlutterSoundRecorder _audioRecorder = FlutterSoundRecorder();
+  bool _isAudioRecording = false;
+  String? _recordingPath;
+  bool _hasPermission = false;
 
   @override
   void initState() {
@@ -33,12 +42,16 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
       });
     // Start recording automatically
     _startRecording();
+    
+    // Request microphone permission and start audio recording
+    _requestMicrophonePermission();
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _timer?.cancel();
+    _audioRecorder.closeRecorder();
     super.dispose();
   }
 
@@ -86,15 +99,145 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
 
   void _playback() {
     setState(() {
-      _isPlayingBack = !_isPlayingBack;
+      _elapsedSeconds = 0.0; // Reset timer to 00:00.00
     });
-    // Placeholder: show a SnackBar for playback
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isPlayingBack ? 'Playing back recording...' : 'Playback stopped.'),
-        duration: const Duration(seconds: 1),
-      ),
-    );
+  }
+
+  Future<void> _requestMicrophonePermission() async {
+    final status = await Permission.microphone.request();
+    setState(() {
+      _hasPermission = status.isGranted;
+    });
+    
+    if (_hasPermission) {
+      await _startAudioRecording();
+    } else {
+      Get.snackbar(
+        'Permission Required',
+        'Microphone permission is required to record audio.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _startAudioRecording() async {
+    try {
+      // Check if we have permission to record
+      final status = await Permission.microphone.status;
+      if (status.isGranted) {
+        final directory = await getApplicationDocumentsDirectory();
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        _recordingPath = '${directory.path}/recording_$timestamp.m4a';
+        
+        await _audioRecorder.openRecorder();
+        await _audioRecorder.startRecorder(
+          toFile: _recordingPath!,
+          codec: Codec.aacMP4,
+        );
+        
+        setState(() {
+          _isAudioRecording = true;
+        });
+        
+        print('Audio recording started at: $_recordingPath');
+      } else {
+        Get.snackbar(
+          'Permission Required',
+          'Microphone permission is required to record audio.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      print('Error starting audio recording: $e');
+      Get.snackbar(
+        'Recording Error',
+        'Failed to start audio recording: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _stopAudioRecording() async {
+    try {
+      if (_isAudioRecording) {
+        final path = await _audioRecorder.stopRecorder();
+        await _audioRecorder.closeRecorder();
+        setState(() {
+          _isAudioRecording = false;
+        });
+        
+        if (path != null) {
+          _recordingPath = path;
+          print('Audio recording stopped. File saved at: $_recordingPath');
+        }
+      }
+    } catch (e) {
+      print('Error stopping audio recording: $e');
+    }
+  }
+
+  Future<void> _saveRecordingToDownloads() async {
+    if (_recordingPath == null || !File(_recordingPath!).existsSync()) {
+      Get.snackbar(
+        'No Recording',
+        'No recording file found to save.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    try {
+      // Get the downloads directory
+      Directory? downloadsDir;
+      if (Platform.isAndroid) {
+        downloadsDir = Directory('/storage/emulated/0/Download');
+        if (!downloadsDir.existsSync()) {
+          downloadsDir = Directory('/storage/emulated/0/Downloads');
+        }
+      } else {
+        downloadsDir = await getApplicationDocumentsDirectory();
+      }
+
+      if (downloadsDir == null || !downloadsDir.existsSync()) {
+        throw Exception('Downloads directory not found');
+      }
+
+      // Create filename with timestamp
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'Cord_Recording_$timestamp.m4a';
+      final destinationPath = '${downloadsDir.path}/$fileName';
+
+      // Copy the recording file to downloads
+      await File(_recordingPath!).copy(destinationPath);
+
+      Get.snackbar(
+        'Recording Saved Successfully',
+        'Recording saved to Downloads folder as $fileName',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+
+      print('Recording saved to: $destinationPath');
+    } catch (e) {
+      print('Error saving recording: $e');
+      Get.snackbar(
+        'Save Error',
+        'Failed to save recording: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   String _formatElapsed(double seconds) {
@@ -286,7 +429,11 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                       ],
                     ),
                     TextButton(
-                      onPressed: () {
+                      onPressed: () async {
+                        // Stop audio recording and save to downloads
+                        await _stopAudioRecording();
+                        await _saveRecordingToDownloads();
+                        
                         if (widget.showSaveScreenAtEnd) {
                           Navigator.of(context).pop(); // Dismiss NewRecordingScreen
                           showModalBottomSheet(
@@ -317,9 +464,34 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
               ),
               // Timer
               const SizedBox(height: 12),
-              Text(
-                _formatElapsed(_elapsedSeconds),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _formatElapsed(_elapsedSeconds),
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                  ),
+                  if (_isAudioRecording) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Text(
+                      'REC',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ],
               ),
               // Waveform and blue arrow (animated, matches paused_recording)
               const SizedBox(height: 12),
