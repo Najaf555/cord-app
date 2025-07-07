@@ -1,4 +1,3 @@
-import 'package:Cord/models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Recording model representing an audio recording document in Firestore

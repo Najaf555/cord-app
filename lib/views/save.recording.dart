@@ -57,10 +57,10 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
         // Sanitize and ensure .m4a extension
         fileName = _recordingName.trim();
         if (!fileName.toLowerCase().endsWith('.m4a')) {
-          fileName = fileName + '.m4a';
+          fileName = '$fileName.m4a';
         }
       } else {
-        fileName = 'recording_${timestamp}.m4a';
+        fileName = 'recording_$timestamp.m4a';
       }
       final blobName = 'recordings/${user.uid}/$fileName';
       final file = File(widget.recordingFilePath!);
@@ -235,7 +235,7 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                                 if (_recordingDocId != null && _sessionIdForDoc != null) {
                                   String newFileName = result;
                                   if (!newFileName.toLowerCase().endsWith('.m4a')) {
-                                    newFileName = newFileName + '.m4a';
+                                    newFileName = '$newFileName.m4a';
                                   }
                                   await FirebaseFirestore.instance
                                     .collection('sessions')

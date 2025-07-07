@@ -124,6 +124,7 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
           'participantIds': FieldValue.arrayUnion([currentUser.uid])
         });
         print('Successfully added user to session');
+        controller.loadSessionsFromFirestore();
         Get.snackbar('Invitation Accepted', 'You have been added to the session!', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green, colorText: Colors.white);
       } else {
         Get.snackbar('Invitation Rejected', 'You have rejected the invitation.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);

@@ -46,7 +46,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   Timer? _timer;
   double _elapsedSeconds = 0.0;
   bool _isPaused = false;
-  bool _isPlayingBack = false;
+  final bool _isPlayingBack = false;
   
   // Audio recording variables
   final FlutterSoundRecorder _audioRecorder = FlutterSoundRecorder();
@@ -179,7 +179,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         
         print('Audio recording started at: $_recordingPath');
         print('Generated file name: $fileName');
-        print('File name format: recording_${timestamp}.m4a');
+        print('File name format: recording_$timestamp.m4a');
       } else {
         Get.snackbar(
           'Permission Required',
@@ -244,7 +244,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         downloadsDir = await getApplicationDocumentsDirectory();
       }
 
-      if (downloadsDir == null || !downloadsDir.existsSync()) {
+      if (!downloadsDir.existsSync()) {
         throw Exception('Downloads directory not found');
       }
 

@@ -36,7 +36,7 @@ class SessionController extends GetxController {
     } else {
       print('No user authenticated initially');
       // Load mock data initially
-      loadMockSessions();
+      // loadMockSessions();
     }
   }
 
@@ -48,7 +48,7 @@ class SessionController extends GetxController {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) {
         print('No authenticated user found - falling back to mock data');
-        loadMockSessions();
+        // loadMockSessions();
         return;
       }
 
@@ -69,42 +69,64 @@ class SessionController extends GetxController {
         print('  - current user UID: ${currentUser.uid}');
         print('  - hostId matches current user: ${data['hostId'] == currentUser.uid}');
       }
-
-      // Now try to fetch sessions for the current user
-      // Temporarily fetch ALL sessions to debug
-      final sessionsSnapshot = await FirebaseFirestore.instance
+      final hostSessions = await FirebaseFirestore.instance
           .collection('sessions')
-          // .where('hostId', isEqualTo: currentUser.uid) // Temporarily commented out to see all sessions
-          // .orderBy('createdAt', descending: true) // Temporarily commented out until index is created
+          .where('hostId', isEqualTo: currentUser.uid)
           .get();
 
-      print('Found ${sessionsSnapshot.docs.length} sessions for current user');
+      final participantSessions = await FirebaseFirestore.instance
+          .collection('sessions')
+          .where('participantIds', arrayContains: currentUser.uid)
+          .get();
+
+      var sessionsSnapshot = {
+        for (var doc in [...hostSessions.docs, ...participantSessions.docs]) doc.id: doc
+      }.values.toList();
+
+      // Now try to fetch sessions for the current user
+      // final sessionsSnapshot = await FirebaseFirestore.instance
+      //     .collection('sessions')
+      //     .where('hostId', isEqualTo: currentUser.uid) // Temporarily commented out to see all sessions
+      //     // .orderBy('createdAt', descending: true) // Temporarily commented out until index is created
+      //     .get();
+
+      print('Found ${sessionsSnapshot.length} sessions for current user');
 
       final List<Session> sessionsList = [];
 
-      for (var doc in sessionsSnapshot.docs) {
+      for (var doc in sessionsSnapshot) {
         final data = doc.data();
         print('Processing session document: ${doc.id}');
         print('Session data: $data');
         
-        // Create dummy users for now (as requested)
-        final dummyUsers = [
-          app_user.User(
-            id: '1', 
-            name: 'User1', 
-            avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'
-          ),
-          app_user.User(
-            id: '2', 
-            name: 'User2', 
-            avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'
-          ),
-          app_user.User(
-            id: '3', 
-            name: 'User3', 
-            avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'
-          ),
-        ];
+        // Fetch real users from participantIds and hostId
+        List<String> participantIds = [];
+        if (data['participantIds'] != null && data['participantIds'] is List) {
+          participantIds = List<String>.from(data['participantIds']);
+        }
+        // Add hostId if not already in participantIds
+        String? hostId = data['hostId'];
+        if (hostId != null && !participantIds.contains(hostId)) {
+          participantIds.insert(0, hostId); // Optionally, add host at the start
+        }
+        List<app_user.User> realUsers = [];
+        if (participantIds.isNotEmpty) {
+          // Fetch all user docs in parallel
+          final userDocs = await Future.wait(participantIds.map((uid) async {
+            final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+            return userDoc.exists ? userDoc : null;
+          }));
+          for (var userDoc in userDocs) {
+            if (userDoc != null) {
+              final userData = userDoc.data() as Map<String, dynamic>;
+              realUsers.add(app_user.User(
+                id: userDoc.id,
+                name: "${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}",
+                avatarUrl: userData['imageUrl'] ?? '',
+              ));
+            }
+          }
+        }
 
         // Parse timestamps
         DateTime createdAt = DateTime.now();
@@ -123,7 +145,7 @@ class SessionController extends GetxController {
           name: data['name'] ?? 'Untitled Session',
           dateTime: updatedAt, // Using updatedAt as the session date
           createdDate: createdAt,
-          users: dummyUsers, // Using dummy users for now
+          users: realUsers, // Use real users
           recordingsCount: 0, // Using 0 as dummy recording count for now
         );
 
@@ -133,7 +155,7 @@ class SessionController extends GetxController {
 
       if (sessionsList.isEmpty) {
         print('No sessions found for current user - falling back to mock data');
-        loadMockSessions();
+        // loadMockSessions();
         return;
       }
 
@@ -151,7 +173,7 @@ class SessionController extends GetxController {
       print('Error loading sessions from Firestore: $e');
       print('Stack trace: ${StackTrace.current}');
       // Fallback to mock data if Firestore fails
-      loadMockSessions();
+      // loadMockSessions();
     } finally {
       isLoading.value = false;
     }
@@ -226,123 +248,102 @@ class SessionController extends GetxController {
   }
 
   // Temporary method to load all sessions (for testing)
-  Future<void> loadAllSessionsFromFirestore() async {
-    try {
-      isLoading.value = true;
-      
-      print('Loading ALL sessions from Firestore (for testing)');
-
-      // Fetch all sessions from Firestore
-      final sessionsSnapshot = await FirebaseFirestore.instance
-          .collection('sessions')
-          .orderBy('createdAt', descending: true)
-          .get();
-
-      print('Found ${sessionsSnapshot.docs.length} total sessions in Firestore');
-
-      final List<Session> sessionsList = [];
-
-      for (var doc in sessionsSnapshot.docs) {
-        final data = doc.data();
-        print('Processing session document: ${doc.id}');
-        print('Session data: $data');
-        
-        // Create dummy users for now (as requested)
-        final dummyUsers = [
-          app_user.User(
-            id: '1', 
-            name: 'User1', 
-            avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'
-          ),
-          app_user.User(
-            id: '2', 
-            name: 'User2', 
-            avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'
-          ),
-          app_user.User(
-            id: '3', 
-            name: 'User3', 
-            avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'
-          ),
-        ];
-
-        // Parse timestamps
-        DateTime createdAt = DateTime.now();
-        DateTime updatedAt = DateTime.now();
-        
-        if (data['createdAt'] != null) {
-          createdAt = (data['createdAt'] as Timestamp).toDate();
-        }
-        if (data['updatedAt'] != null) {
-          updatedAt = (data['updatedAt'] as Timestamp).toDate();
-        }
-
-        // Create session object
-        final session = Session(
-          id: doc.id,
-          name: data['name'] ?? 'Untitled Session',
-          dateTime: updatedAt, // Using updatedAt as the session date
-          createdDate: createdAt,
-          users: dummyUsers, // Using dummy users for now
-          recordingsCount: 0, // Using 0 as dummy recording count for now
-        );
-
-        sessionsList.add(session);
-        print('Added session: ${session.name}');
-      }
-
-      if (sessionsList.isEmpty) {
-        print('No sessions found in Firestore - falling back to mock data');
-        loadMockSessions();
-        return;
-      }
-
-      sessions.value = sessionsList;
-      print('Successfully loaded ${sessionsList.length} sessions from Firestore');
-      
-    } catch (e) {
-      print('Error loading all sessions from Firestore: $e');
-      print('Stack trace: ${StackTrace.current}');
-      // Fallback to mock data if Firestore fails
-      loadMockSessions();
-    } finally {
-      isLoading.value = false;
-    }
-  }
+  // Future<void> loadAllSessionsFromFirestore() async {
+  //   try {
+  //     isLoading.value = true;
+  //
+  //     print('Loading ALL sessions from Firestore (for testing)');
+  //
+  //     // Fetch all sessions from Firestore
+  //     final sessionsSnapshot = await FirebaseFirestore.instance
+  //         .collection('sessions')
+  //         .orderBy('createdAt', descending: true)
+  //         .get();
+  //
+  //     print('Found ${sessionsSnapshot.docs.length} total sessions in Firestore');
+  //
+  //     final List<Session> sessionsList = [];
+  //
+  //     for (var doc in sessionsSnapshot.docs) {
+  //       final data = doc.data();
+  //       print('Processing session document: ${doc.id}');
+  //       print('Session data: $data');
+  //
+  //       // Create dummy users for now (as requested)
+  //       final dummyUsers = [
+  //         app_user.User(
+  //           id: '1',
+  //           name: 'User1',
+  //           avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'
+  //         ),
+  //         app_user.User(
+  //           id: '2',
+  //           name: 'User2',
+  //           avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'
+  //         ),
+  //         app_user.User(
+  //           id: '3',
+  //           name: 'User3',
+  //           avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'
+  //         ),
+  //       ];
+  //
+  //       // Parse timestamps
+  //       DateTime createdAt = DateTime.now();
+  //       DateTime updatedAt = DateTime.now();
+  //
+  //       if (data['createdAt'] != null) {
+  //         createdAt = (data['createdAt'] as Timestamp).toDate();
+  //       }
+  //       if (data['updatedAt'] != null) {
+  //         updatedAt = (data['updatedAt'] as Timestamp).toDate();
+  //       }
+  //
+  //       // Create session object
+  //       final session = Session(
+  //         id: doc.id,
+  //         name: data['name'] ?? 'Untitled Session',
+  //         dateTime: updatedAt, // Using updatedAt as the session date
+  //         createdDate: createdAt,
+  //         users: dummyUsers, // Using dummy users for now
+  //         recordingsCount: 0, // Using 0 as dummy recording count for now
+  //       );
+  //
+  //       sessionsList.add(session);
+  //       print('Added session: ${session.name}');
+  //     }
+  //
+  //     if (sessionsList.isEmpty) {
+  //       print('No sessions found in Firestore - falling back to mock data');
+  //       // loadMockSessions();
+  //       return;
+  //     }
+  //
+  //     sessions.value = sessionsList;
+  //     print('Successfully loaded ${sessionsList.length} sessions from Firestore');
+  //
+  //   } catch (e) {
+  //     print('Error loading all sessions from Firestore: $e');
+  //     print('Stack trace: ${StackTrace.current}');
+  //     // Fallback to mock data if Firestore fails
+  //     // loadMockSessions();
+  //   } finally {
+  //     isLoading.value = false;
+  //   }
+  // }
 
   /// Stream of sessions where the user is host or participant (live updates)
   Stream<List<Session>> get userSessionsStream {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      print('No authenticated user for userSessionsStream');
       return Stream.value([]);
     }
-    
-    print('Setting up userSessionsStream for user: ${user.uid}');
     final uid = user.uid;
     final sessionsRef = FirebaseFirestore.instance.collection('sessions');
-    
-    try {
     // Stream for sessions where user is a participant
-      final participantStream = sessionsRef
-          .where('participantIds', arrayContains: uid)
-          .snapshots()
-          .handleError((error) {
-            print('Error in participant stream: $error');
-            // Return an empty stream on error
-            return;
-          });
-      
+    final participantStream = sessionsRef.where('participantIds', arrayContains: uid).snapshots();
     // Stream for sessions where user is the host
-      final hostStream = sessionsRef
-          .where('hostId', isEqualTo: uid)
-          .snapshots()
-          .handleError((error) {
-            print('Error in host stream: $error');
-            // Return an empty stream on error
-            return;
-          });
-      
+    final hostStream = sessionsRef.where('hostId', isEqualTo: uid).snapshots();
     // Convert isDescendingOrder observable to stream
     final sortOrderStream = isDescendingOrder.stream;
     
@@ -351,68 +352,61 @@ class SessionController extends GetxController {
       hostStream,
       sortOrderStream,
       (participantSnap, hostSnap, isDescending) {
-          print('Processing streams - participant docs: ${participantSnap.docs.length}, host docs: ${hostSnap.docs.length}');
-          
         final allDocs = <String, QueryDocumentSnapshot>{};
-          
-          // Add participant sessions
         for (var doc in participantSnap.docs) {
           allDocs[doc.id] = doc;
-            print('Added participant session: ${doc.id}');
         }
-          
-          // Add host sessions
         for (var doc in hostSnap.docs) {
           allDocs[doc.id] = doc;
-            print('Added host session: ${doc.id}');
         }
-          
         final sessionsList = allDocs.values.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
-            print('Processing session document: ${doc.id} with data: $data');
-            
-          // Dummy users for now
-          final dummyUsers = [
-            app_user.User(id: '1', name: 'User1', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
-            app_user.User(id: '2', name: 'User2', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
-            app_user.User(id: '3', name: 'User3', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
-          ];
-            
+          // Fetch real users from participantIds
+          List<String> participantIds = [];
+          if (data['participantIds'] != null && data['participantIds'] is List) {
+            participantIds = List<String>.from(data['participantIds']);
+          }
+          List<app_user.User> realUsers = [];
+          if (participantIds.isNotEmpty) {
+            // Fetch all user docs in parallel
+            final userDocs = Future.wait(participantIds.map((uid) async {
+              final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+              return userDoc.exists ? userDoc : null;
+            }));
+            // for (var userDoc in userDocs) {
+            //   if (userDoc != null) {
+            //     final userData = userDoc.data() as Map<String, dynamic>;
+            //     realUsers.add(app_user.User(
+            //       id: userDoc.id,
+            //       name: userData['name'] ?? '',
+            //       avatarUrl: userData['avatarUrl'] ?? '',
+            //     ));
+            //   }
+            // }
+          }
           DateTime createdAt = DateTime.now();
           DateTime updatedAt = DateTime.now();
-            
           if (data['createdAt'] != null) {
             createdAt = (data['createdAt'] as Timestamp).toDate();
           }
           if (data['updatedAt'] != null) {
             updatedAt = (data['updatedAt'] as Timestamp).toDate();
           }
-            
           return Session(
             id: doc.id,
             name: data['name'] ?? 'Untitled Session',
             dateTime: updatedAt,
             createdDate: createdAt,
-            users: dummyUsers,
+            users: realUsers,
             recordingsCount: 0,
           );
         }).toList();
-          
         // Sort by createdAt (descending or ascending)
         sessionsList.sort((a, b) => isDescending
             ? b.createdDate.compareTo(a.createdDate)
             : a.createdDate.compareTo(b.createdDate));
-          
-          print('Returning ${sessionsList.length} sessions from stream');
         return sessionsList;
       },
-      ).handleError((error) {
-        print('Error in userSessionsStream: $error');
-        return <Session>[];
-      });
-    } catch (e) {
-      print('Exception in userSessionsStream setup: $e');
-      return Stream.value(<Session>[]);
-    }
+    );
   }
 } 

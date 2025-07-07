@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../views/main_navigation.dart';
 import '../login/signup.dart'; // <-- Make sure this path is correct
-import '../utils/validators.dart';
-import '../utils/constants.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
