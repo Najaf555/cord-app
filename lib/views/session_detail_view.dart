@@ -663,7 +663,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                     itemBuilder: (context, index) {
                                       final recording = recordings[index];
                                       return Slidable(
-                                        key: ValueKey(recording.id ?? index),
+                                        key: ValueKey(recording.recordingId),
                                         endActionPane: ActionPane(
                                           motion: const DrawerMotion(),
                                           children: [
@@ -698,7 +698,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                   ),
                                                 );
                                                 if (confirm == true) {
-                                                  await controller.deleteRecording(recording.id);
+                                                  await controller.deleteRecording(recording.recordingId);
                                                   ScaffoldMessenger.of(context).showSnackBar(
                                                     const SnackBar(content: Text('Recording deleted'), backgroundColor: Colors.red),
                                                   );
@@ -731,8 +731,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                     children: [
                                                       Row(
                                                         children: [
-                                                          if (recording
-                                                                  .status ==
+                                                          if (recording.name ==
                                                               'New Recording')
                                                             Padding(
                                                               padding:
@@ -749,9 +748,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                                     ),
                                                               ),
                                                             ),
-                                                          if (recording
-                                                                  .status ==
-                                                              'Recording...')
+                                                          if (recording.duration == '00:00.00')
                                                             Padding(
                                                               padding:
                                                                   const EdgeInsets.only(
@@ -768,7 +765,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                               ),
                                                             ),
                                                           Text(
-                                                            recording.name,
+                                                            recording.name ?? recording.fileName,
                                                             style:
                                                                 const TextStyle(
                                                                   fontWeight:
@@ -784,7 +781,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                       ),
                                                       const SizedBox(height: 2),
                                                       Text(
-                                                        '${recording.dateTime.day.toString().padLeft(2, '0')}/${recording.dateTime.month.toString().padLeft(2, '0')}/${recording.dateTime.year.toString().substring(2)} ${recording.dateTime.hour.toString().padLeft(2, '0')}:${recording.dateTime.minute.toString().padLeft(2, '0')}',
+                                                        '${recording.createdAt.day.toString().padLeft(2, '0')}/${recording.createdAt.month.toString().padLeft(2, '0')}/${recording.createdAt.year.toString().substring(2)} ${recording.createdAt.hour.toString().padLeft(2, '0')}:${recording.createdAt.minute.toString().padLeft(2, '0')}',
                                                         style: const TextStyle(
                                                           fontSize: 13,
                                                           color: Color(
@@ -805,100 +802,39 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                   crossAxisAlignment:
                                                       CrossAxisAlignment.end,
                                                   children: [
-                                                    if (recording.user != null)
-                                                      CircleAvatar(
-                                                        radius: 16,
-                                                        backgroundImage:
-                                                            NetworkImage(
-                                                              recording
-                                                                  .user!
-                                                                  .avatarUrl,
-                                                            ),
-                                                        backgroundColor:
-                                                            Colors.white,
-                                                        child: Container(
-                                                          decoration: BoxDecoration(
-                                                            shape:
-                                                                BoxShape.circle,
-                                                            border: Border.all(
-                                                              color:
-                                                                  (recording.user!.name ==
-                                                                          'Mark')
-                                                                      ? const Color(
-                                                                        0xFF2F80ED,
-                                                                      )
-                                                                      : (recording
-                                                                              .user!
-                                                                              .name ==
-                                                                          'John')
-                                                                      ? const Color(
-                                                                        0xFFEB5757,
-                                                                      )
-                                                                      : (recording
-                                                                              .user!
-                                                                              .name ==
-                                                                          'Steve')
-                                                                      ? const Color(
-                                                                        0xFF27AE60,
-                                                                      )
-                                                                      : Colors
-                                                                          .transparent,
-                                                              width: 1.5,
-                                                            ),
-                                                          ),
-                                                        ),
+                                                    // User avatar placeholder - can be enhanced to fetch user info from userId
+                                                    CircleAvatar(
+                                                      radius: 16,
+                                                      backgroundColor: Colors.grey[200],
+                                                      child: Icon(
+                                                        Icons.person,
+                                                        size: 20,
+                                                        color: Colors.grey[600],
                                                       ),
+                                                    ),
                                                     const SizedBox(height: 4),
                                                     Row(
                                                       mainAxisSize:
                                                           MainAxisSize.min,
                                                       children: [
-                                                        if (recording.status ==
-                                                            'Recording...')
-                                                          Image.asset(
-                                                            'assets/images/recordingIcon.png',
-                                                            width: 14,
-                                                            height: 14,
-                                                            color: const Color(
-                                                              0xFFEB5757,
-                                                            ),
+                                                        // Show completed recording icon
+                                                        Image.asset(
+                                                          'assets/images/recordingIcon.png',
+                                                          width: 14,
+                                                          height: 14,
+                                                          color: const Color(
+                                                            0xFFBDBDBD,
                                                           ),
-                                                        if (recording.status ==
-                                                            'Recording...')
-                                                          const SizedBox(
-                                                            width: 4,
-                                                          ),
-                                                        if (recording.status ==
-                                                            'completed')
-                                                          Image.asset(
-                                                            'assets/images/recordingIcon.png',
-                                                            width: 14,
-                                                            height: 14,
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 4,
+                                                        ),
+                                                        Text(
+                                                          recording.duration,
+                                                          style: TextStyle(
                                                             color: const Color(
                                                               0xFFBDBDBD,
                                                             ),
-                                                          ),
-                                                        if (recording.status ==
-                                                            'completed')
-                                                          const SizedBox(
-                                                            width: 4,
-                                                          ),
-                                                        Text(
-                                                          recording.status ==
-                                                                  'Recording...'
-                                                              ? 'Recording...'
-                                                              : recording
-                                                                  .duration!,
-                                                          style: TextStyle(
-                                                            color:
-                                                                recording.status ==
-                                                                        'Recording...'
-                                                                    ? const Color(
-                                                                      0xFFEB5757,
-                                                                    )
-                                                                    : const Color(
-                                                                      0xFFBDBDBD,
-                                                                    ),
                                                             fontSize: 12,
                                                             fontWeight:
                                                                 FontWeight.w400,

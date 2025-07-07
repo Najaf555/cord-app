@@ -26,27 +26,31 @@ class SessionDetailController extends GetxController {
   void loadMockRecordings() {
     recordings.value = [
       Recording(
-        id: 'rec1',
+        recordingId: 'rec1',
+        userId: session.users.first.id,
+        fileUrl: 'https://example.com/recording1.m4a',
+        duration: '00:00.00',
+        createdAt: DateTime(2024, 12, 30, 13, 50),
+        fileName: 'recording_1735567800000.m4a',
         name: 'New Recording',
-        dateTime: DateTime(2024, 12, 30, 13, 50),
-        user: session.users.first,
-        status: 'Recording...',
       ),
       Recording(
-        id: 'rec2',
+        recordingId: 'rec2',
+        userId: session.users[1].id,
+        fileUrl: 'https://example.com/recording2.m4a',
+        duration: '02:49.00',
+        createdAt: DateTime(2024, 12, 30, 13, 50),
+        fileName: 'recording_1735567800001.m4a',
         name: 'Random melody',
-        dateTime: DateTime(2024, 12, 30, 13, 50),
-        user: session.users[1],
-        status: 'completed',
-        duration: '02:49',
       ),
       Recording(
-        id: 'rec3',
+        recordingId: 'rec3',
+        userId: session.users[2].id,
+        fileUrl: 'https://example.com/recording3.m4a',
+        duration: '02:15.00',
+        createdAt: DateTime(2024, 12, 30, 13, 50),
+        fileName: 'recording_1735567800002.m4a',
         name: 'Lyrics To Chorus',
-        dateTime: DateTime(2024, 12, 30, 13, 50),
-        user: session.users[2],
-        status: 'completed',
-        duration: '02:15',
       ),
     ];
   }
@@ -58,8 +62,8 @@ class SessionDetailController extends GetxController {
   List<Recording> get sortedRecordings {
     final sorted = List<Recording>.from(recordings);
     sorted.sort((a, b) => isDescendingOrder.value
-        ? b.dateTime.compareTo(a.dateTime)
-        : a.dateTime.compareTo(b.dateTime));
+        ? b.createdAt.compareTo(a.createdAt)
+        : a.createdAt.compareTo(b.createdAt));
     return sorted;
   }
 
@@ -76,14 +80,7 @@ class SessionDetailController extends GetxController {
     final snapshot = await recordingsRef.orderBy('createdAt', descending: true).get();
     recordings.value = snapshot.docs.map((doc) {
       final data = doc.data();
-      return Recording(
-        id: doc.id,
-        name: data['name'] ?? 'New Recording',
-        dateTime: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-        user: null, // You can enhance this to fetch user info if needed
-        status: data['status'] ?? '',
-        duration: data['duration']?.toString(),
-      );
+      return Recording.fromFirestore(data, doc.id);
     }).toList();
   }
 
@@ -94,7 +91,7 @@ class SessionDetailController extends GetxController {
         .doc(sessionId)
         .collection('recordings');
     await recordingsRef.doc(recordingId).delete();
-    recordings.removeWhere((rec) => rec.id == recordingId);
+    recordings.removeWhere((rec) => rec.recordingId == recordingId);
     update();
   }
 

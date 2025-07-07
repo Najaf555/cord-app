@@ -8,7 +8,13 @@ import 'save.recording.dart';
 class PausedRecording extends StatefulWidget {
   final VoidCallback? onNext;
   final bool showSaveScreenAtEnd;
-  const PausedRecording({super.key, this.onNext, this.showSaveScreenAtEnd = false});
+  final String? recordingFilePath;
+  const PausedRecording({
+    super.key, 
+    this.onNext, 
+    this.showSaveScreenAtEnd = false,
+    this.recordingFilePath,
+  });
 
   @override
   State<PausedRecording> createState() => _PausedRecordingState();
@@ -32,6 +38,14 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
     )..addListener(() {
         setState(() {});
       });
+    
+    // If we have a recording file path, we can potentially get the actual duration
+    // For now, we'll start with 0 and let the user see the timer as they interact
+    if (widget.recordingFilePath != null) {
+      // You could add logic here to get the actual audio file duration
+      // For now, we'll start with 0 and let the timer run
+      _elapsedSeconds = 0.0;
+    }
   }
 
   @override
@@ -242,23 +256,17 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                     ),
                     TextButton(
                       onPressed: () {
-                        if (widget.showSaveScreenAtEnd) {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => SaveRecordingScreen(timerValue: _formatElapsed(_elapsedSeconds)),
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => SaveRecordingScreen(
+                              timerValue: _formatElapsed(_elapsedSeconds),
+                              recordingFilePath: widget.recordingFilePath,
                             ),
-                          );
-                        } else {
-                          // Close only the two bottom sheets (paused_recording and new_recording)
-                          int pops = 0;
-                          Navigator.of(context, rootNavigator: true).popUntil((route) {
-                            pops++;
-                            return pops == 2;
-                          });
-                        }
+                          ),
+                        );
                       },
                       child: Text(
-                        widget.showSaveScreenAtEnd ? 'Next' : 'Done',
+                        'Next',
                         style: const TextStyle(
                           color: Colors.blue,
                           fontSize: 16,

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:Cord/views/save.recording.dart';
+import 'package:Cord/views/paused_recording.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
@@ -8,6 +9,28 @@ import 'package:flutter_sound/flutter_sound.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/azure_storage_service.dart';
+
+/*
+ * Recording Document Structure:
+ * - userId: String (Firebase Auth UID)
+ * - fileUrl: String (Azure Blob Storage HTTPS URL)
+ * - duration: String (formatted as MM:SS.ms)
+ * - createdAt: Timestamp (server timestamp)
+ * - recordingId: String (Firestore document ID)
+ * - fileName: String (e.g., "recording_1234567890.m4a")
+ * 
+ * File naming convention: recording_[timestamp].m4a
+ * 
+ * ✅ IMPLEMENTED FEATURES:
+ * - Automatic filename generation (no user input required)
+ * - Complete document structure with all required fields
+ * - Azure Blob Storage upload with public HTTPS URL
+ * - Firestore document creation under sessions/6xfhQsVPQkTGCeFDfcIt/recordings
+ * - Document verification and logging
+ */
 
 class NewRecordingScreen extends StatefulWidget {
   final bool showSaveScreenAtEnd;
@@ -30,6 +53,8 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   bool _isAudioRecording = false;
   String? _recordingPath;
   bool _hasPermission = false;
+  // Add a new state variable to track if we are in the paused controls state
+  bool _showPausedControls = false;
 
   @override
   void initState() {
@@ -79,16 +104,20 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     setState(() {
       _isPaused = true;
       _isRecording = false;
+      _showPausedControls = true;
     });
     _controller.stop();
     _timer?.cancel();
+    _audioRecorder.pauseRecorder();
   }
 
-  void _resumeRecording() {
+  void _resumeRecording() async {
     setState(() {
       _isPaused = false;
       _isRecording = true;
+      _showPausedControls = false;
     });
+    await _audioRecorder.resumeRecorder();
     _controller.repeat();
     _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
       setState(() {
@@ -129,7 +158,14 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
       if (status.isGranted) {
         final directory = await getApplicationDocumentsDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        _recordingPath = '${directory.path}/recording_$timestamp.m4a';
+        // Generate automatic file name with format: recording_1234567890.m4a
+        final fileName = 'recording_$timestamp.m4a';
+        _recordingPath = '${directory.path}/$fileName';
+        
+        print('Generated recording file:');
+        print('- File name: $fileName');
+        print('- Full path: $_recordingPath');
+        print('- Timestamp: $timestamp');
         
         await _audioRecorder.openRecorder();
         await _audioRecorder.startRecorder(
@@ -142,6 +178,8 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         });
         
         print('Audio recording started at: $_recordingPath');
+        print('Generated file name: $fileName');
+        print('File name format: recording_${timestamp}.m4a');
       } else {
         Get.snackbar(
           'Permission Required',
@@ -210,17 +248,16 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         throw Exception('Downloads directory not found');
       }
 
-      // Create filename with timestamp
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'Cord_Recording_$timestamp.m4a';
-      final destinationPath = '${downloadsDir.path}/$fileName';
+      // Extract the original file name from the recording path
+      final originalFileName = _recordingPath!.split('/').last;
+      final destinationPath = '${downloadsDir.path}/$originalFileName';
 
       // Copy the recording file to downloads
       await File(_recordingPath!).copy(destinationPath);
 
       Get.snackbar(
         'Recording Saved Successfully',
-        'Recording saved to Downloads folder as $fileName',
+        'Recording saved to Downloads folder as $originalFileName',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -359,29 +396,31 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
             ),
           ],
         ),
-        floatingActionButton: Visibility(
-          visible: !_isPaused,
-          child: SizedBox(
-            height: 64,
-            width: 64,
-            child: FloatingActionButton(
-              onPressed: () {
-                if (_isRecording) {
-                  _pauseRecording();
-                }
-              },
-              elevation: 0,
-              backgroundColor: Colors.white,
-              shape: const CircleBorder(),
-              child: Image.asset(
-                'assets/images/linemdpause.png',
-                width: 64,
-                height: 64,
-                fit: BoxFit.contain,
-              ),
-            ),
-          ),
-        ),
+        floatingActionButton: !_showPausedControls
+            ? Visibility(
+                visible: !_isPaused,
+                child: SizedBox(
+                  height: 64,
+                  width: 64,
+                  child: FloatingActionButton(
+                    onPressed: () {
+                      if (_isRecording) {
+                        _pauseRecording();
+                      }
+                    },
+                    elevation: 0,
+                    backgroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                    child: Image.asset(
+                      'assets/images/linemdpause.png',
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              )
+            : null,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         body: SafeArea(
           child: Column(
@@ -426,29 +465,119 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                           'New Recording',
                           style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
+                        SizedBox(height: 12),
                       ],
                     ),
                     TextButton(
                       onPressed: () async {
-                        // Stop audio recording and save to downloads
                         await _stopAudioRecording();
-                        await _saveRecordingToDownloads();
-                        
-                        if (widget.showSaveScreenAtEnd) {
-                          Navigator.of(context).pop(); // Dismiss NewRecordingScreen
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            builder: (context) => const SaveRecordingScreen(),
+                        if (_recordingPath == null || !File(_recordingPath!).existsSync()) {
+                          Get.snackbar(
+                            'No Recording',
+                            'No recording file found to save.',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.orange,
+                            colorText: Colors.white,
                           );
-                        } else {
-                          // Pop two routes (close both new_recording and previous sheet)
-                          int pops = 0;
-                          Navigator.of(context, rootNavigator: true).popUntil((route) {
-                            pops++;
-                            return pops == 2;
+                          return;
+                        }
+                        try {
+                          // 1. Upload to Azure
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user == null) throw Exception('User not logged in');
+                          
+                          // Extract file name from the recording path
+                          final fileName = _recordingPath!.split('/').last;
+                          final blobName = 'recordings/${user.uid}/$fileName';
+                          final file = File(_recordingPath!);
+                          final fileUrl = await AzureStorageService.uploadFile(file, blobName);
+                          
+                          // 2. Save to Firestore with complete document structure
+                          final recordingsRef = FirebaseFirestore.instance
+                            .collection('sessions')
+                            .doc('6xfhQsVPQkTGCeFDfcIt')
+                            .collection('recordings');
+                          
+                          // Create document with all required fields
+                          final docRef = await recordingsRef.add({
+                            'userId': user.uid,
+                            'fileUrl': fileUrl,
+                            'duration': _formatElapsed(_elapsedSeconds),
+                            'createdAt': FieldValue.serverTimestamp(),
+                            'fileName': fileName,
                           });
+                          
+                          // Update with the actual recordingId
+                          await recordingsRef.doc(docRef.id).update({
+                            'recordingId': docRef.id,
+                          });
+                          
+                          // Verify document structure
+                          final savedDoc = await recordingsRef.doc(docRef.id).get();
+                          if (savedDoc.exists) {
+                            final data = savedDoc.data()!;
+                            print('✅ Document verification successful:');
+                            print('  - userId: ${data['userId']}');
+                            print('  - fileUrl: ${data['fileUrl']}');
+                            print('  - duration: ${data['duration']}');
+                            print('  - createdAt: ${data['createdAt']}');
+                            print('  - recordingId: ${data['recordingId']}');
+                            print('  - fileName: ${data['fileName']}');
+                            
+                            // Verify all required fields are present
+                            final requiredFields = ['userId', 'fileUrl', 'duration', 'createdAt', 'recordingId', 'fileName'];
+                            final missingFields = requiredFields.where((field) => data[field] == null || data[field] == '').toList();
+                            
+                            if (missingFields.isEmpty) {
+                              print('✅ All required fields are present in the document');
+                            } else {
+                              print('❌ Missing fields: $missingFields');
+                            }
+                          }
+                          
+                          print('🎵 Recording document created successfully:');
+                          print('  - userId: ${user.uid}');
+                          print('  - fileUrl: $fileUrl');
+                          print('  - duration: ${_formatElapsed(_elapsedSeconds)}');
+                          print('  - createdAt: ${DateTime.now()}');
+                          print('  - recordingId: ${docRef.id}');
+                          print('  - fileName: $fileName');
+                          
+                          Get.snackbar(
+                            'Success',
+                            'Recording uploaded and saved!',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.green,
+                            colorText: Colors.white,
+                          );
+                          
+                          if (widget.showSaveScreenAtEnd) {
+                            Navigator.of(context).pop();
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (context) => SaveRecordingScreen(
+                                recordingFilePath: _recordingPath,
+                                timerValue: _formatElapsed(_elapsedSeconds),
+                              ),
+                            );
+                          } else {
+                            int pops = 0;
+                            Navigator.of(context, rootNavigator: true).popUntil((route) {
+                              pops++;
+                              return pops == 2;
+                            });
+                          }
+                        } catch (e) {
+                          print('Error uploading or saving recording: $e');
+                          Get.snackbar(
+                            'Error',
+                            'Failed to upload/save recording: $e',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red,
+                            colorText: Colors.white,
+                          );
                         }
                       },
                       child: Text(
@@ -623,7 +752,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
               ),
               // Add Stop/Continue buttons at the bottom, above the nav bar
               const Spacer(),
-              if (_isPaused)
+              if (_showPausedControls)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
                   child: Row(
@@ -651,6 +780,59 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         ),
       ),
     );
+  }
+
+  Future<void> _doneAndSaveRecording() async {
+    await _stopAudioRecording();
+    if (_recordingPath == null || !File(_recordingPath!).existsSync()) {
+      Get.snackbar(
+        'No Recording',
+        'No recording file found to save.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not logged in');
+      final fileName = _recordingPath!.split('/').last;
+      final blobName = 'recordings/${user.uid}/$fileName';
+      final file = File(_recordingPath!);
+      final fileUrl = await AzureStorageService.uploadFile(file, blobName);
+      final recordingsRef = FirebaseFirestore.instance
+        .collection('sessions')
+        .doc('6xfhQsVPQkTGCeFDfcIt')
+        .collection('recordings');
+      final docRef = await recordingsRef.add({
+        'userId': user.uid,
+        'fileUrl': fileUrl,
+        'duration': _formatElapsed(_elapsedSeconds),
+        'createdAt': FieldValue.serverTimestamp(),
+        'fileName': fileName,
+      });
+      await recordingsRef.doc(docRef.id).update({
+        'recordingId': docRef.id,
+      });
+      Get.snackbar(
+        'Success',
+        'Recording uploaded and saved!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+      Navigator.of(context).pop(); // Close the recording screen
+    } catch (e) {
+      print('Error uploading or saving recording: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to upload/save recording: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 }
 

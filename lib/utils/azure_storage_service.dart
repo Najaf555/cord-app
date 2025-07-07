@@ -104,6 +104,14 @@ class AzureStorageService {
         return 'image/gif';
       case '.webp':
         return 'image/webp';
+      case '.m4a':
+        return 'audio/mp4';
+      case '.mp3':
+        return 'audio/mpeg';
+      case '.wav':
+        return 'audio/wav';
+      case '.aac':
+        return 'audio/aac';
       default:
         return 'application/octet-stream';
     }

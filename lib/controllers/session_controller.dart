@@ -323,7 +323,7 @@ class SessionController extends GetxController {
     final sessionsRef = FirebaseFirestore.instance.collection('sessions');
     
     try {
-      // Stream for sessions where user is a participant
+    // Stream for sessions where user is a participant
       final participantStream = sessionsRef
           .where('participantIds', arrayContains: uid)
           .snapshots()
@@ -333,7 +333,7 @@ class SessionController extends GetxController {
             return;
           });
       
-      // Stream for sessions where user is the host
+    // Stream for sessions where user is the host
       final hostStream = sessionsRef
           .where('hostId', isEqualTo: uid)
           .snapshots()
@@ -343,69 +343,69 @@ class SessionController extends GetxController {
             return;
           });
       
-      // Convert isDescendingOrder observable to stream
-      final sortOrderStream = isDescendingOrder.stream;
-      
-      return Rx.combineLatest3<QuerySnapshot, QuerySnapshot, bool, List<Session>>(
-        participantStream,
-        hostStream,
-        sortOrderStream,
-        (participantSnap, hostSnap, isDescending) {
+    // Convert isDescendingOrder observable to stream
+    final sortOrderStream = isDescendingOrder.stream;
+    
+    return Rx.combineLatest3<QuerySnapshot, QuerySnapshot, bool, List<Session>>(
+      participantStream,
+      hostStream,
+      sortOrderStream,
+      (participantSnap, hostSnap, isDescending) {
           print('Processing streams - participant docs: ${participantSnap.docs.length}, host docs: ${hostSnap.docs.length}');
           
-          final allDocs = <String, QueryDocumentSnapshot>{};
+        final allDocs = <String, QueryDocumentSnapshot>{};
           
           // Add participant sessions
-          for (var doc in participantSnap.docs) {
-            allDocs[doc.id] = doc;
+        for (var doc in participantSnap.docs) {
+          allDocs[doc.id] = doc;
             print('Added participant session: ${doc.id}');
-          }
+        }
           
           // Add host sessions
-          for (var doc in hostSnap.docs) {
-            allDocs[doc.id] = doc;
+        for (var doc in hostSnap.docs) {
+          allDocs[doc.id] = doc;
             print('Added host session: ${doc.id}');
-          }
+        }
           
-          final sessionsList = allDocs.values.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
+        final sessionsList = allDocs.values.map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
             print('Processing session document: ${doc.id} with data: $data');
             
-            // Dummy users for now
-            final dummyUsers = [
-              app_user.User(id: '1', name: 'User1', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
-              app_user.User(id: '2', name: 'User2', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
-              app_user.User(id: '3', name: 'User3', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
-            ];
+          // Dummy users for now
+          final dummyUsers = [
+            app_user.User(id: '1', name: 'User1', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
+            app_user.User(id: '2', name: 'User2', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
+            app_user.User(id: '3', name: 'User3', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
+          ];
             
-            DateTime createdAt = DateTime.now();
-            DateTime updatedAt = DateTime.now();
+          DateTime createdAt = DateTime.now();
+          DateTime updatedAt = DateTime.now();
             
-            if (data['createdAt'] != null) {
-              createdAt = (data['createdAt'] as Timestamp).toDate();
-            }
-            if (data['updatedAt'] != null) {
-              updatedAt = (data['updatedAt'] as Timestamp).toDate();
-            }
+          if (data['createdAt'] != null) {
+            createdAt = (data['createdAt'] as Timestamp).toDate();
+          }
+          if (data['updatedAt'] != null) {
+            updatedAt = (data['updatedAt'] as Timestamp).toDate();
+          }
             
-            return Session(
-              id: doc.id,
-              name: data['name'] ?? 'Untitled Session',
-              dateTime: updatedAt,
-              createdDate: createdAt,
-              users: dummyUsers,
-              recordingsCount: 0,
-            );
-          }).toList();
+          return Session(
+            id: doc.id,
+            name: data['name'] ?? 'Untitled Session',
+            dateTime: updatedAt,
+            createdDate: createdAt,
+            users: dummyUsers,
+            recordingsCount: 0,
+          );
+        }).toList();
           
-          // Sort by createdAt (descending or ascending)
-          sessionsList.sort((a, b) => isDescending
-              ? b.createdDate.compareTo(a.createdDate)
-              : a.createdDate.compareTo(b.createdDate));
+        // Sort by createdAt (descending or ascending)
+        sessionsList.sort((a, b) => isDescending
+            ? b.createdDate.compareTo(a.createdDate)
+            : a.createdDate.compareTo(b.createdDate));
           
           print('Returning ${sessionsList.length} sessions from stream');
-          return sessionsList;
-        },
+        return sessionsList;
+      },
       ).handleError((error) {
         print('Error in userSessionsStream: $error');
         return <Session>[];
