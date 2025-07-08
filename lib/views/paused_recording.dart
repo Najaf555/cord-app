@@ -8,6 +8,8 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:just_audio/just_audio.dart' as just_audio;
+import 'package:audioplayers/audioplayers.dart' as ap;
 
 class PausedRecording extends StatefulWidget {
   final VoidCallback? onNext;
@@ -37,13 +39,17 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   bool _isRequestingPermission = true;
   bool _hasPermission = false;
 
-  // Audio player
-  final FlutterSoundPlayer _audioPlayer = FlutterSoundPlayer();
+  // just_audio player for playback
+  final just_audio.AudioPlayer _audioPlayer = just_audio.AudioPlayer();
   bool _isAudioPlaying = false;
-  // Audio recorder
+  // flutter_sound for recording only
   final FlutterSoundRecorder _audioRecorder = FlutterSoundRecorder();
   bool _isAudioRecording = false;
   String? _recordingPath;
+
+  // just_audio player for playback (if needed elsewhere)
+  // audioplayers for test
+  final ap.AudioPlayer _testAudioPlayer = ap.AudioPlayer();
 
   @override
   void initState() {
@@ -51,9 +57,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
-    )..addListener(() {
-        setState(() {});
-      });
+    ); // Do NOT start animation here
     
     // If we have a recording file path, we can potentially get the actual duration
     // For now, we'll start with 0 and let the user see the timer as they interact
@@ -63,20 +67,30 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
       _elapsedSeconds = 0.0;
     }
 
-    _audioPlayer.openPlayer();
+   _audioRecorder.openRecorder();
+_requestMicrophonePermissionAndStart();
     _audioRecorder.openRecorder();
     _requestMicrophonePermissionAndStart();
   }
 
   Future<void> _requestMicrophonePermissionAndStart() async {
+    // Stop and reset everything BEFORE showing permission dialog
+    _controller.stop();
+    _controller.value = 0.0;
+    _timer?.cancel();
+    _elapsedSeconds = 0.0;
     setState(() { _isRequestingPermission = true; });
+
     final status = await Permission.microphone.request();
+
     if (status.isGranted) {
       setState(() { _hasPermission = true; });
       await _startAudioRecording();
-      _startTimer(); // Timer starts immediately after permission and recording start
+      _controller.repeat();
+      _startTimer();
     } else {
       setState(() { _hasPermission = false; });
+      // Already stopped and reset above
       Get.snackbar(
         'Permission Required',
         'Microphone permission is required to record audio.',
@@ -88,12 +102,38 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
     setState(() { _isRequestingPermission = false; });
   }
 
+  Future<String> _getRecordingSavePath() async {
+    final directory = await getApplicationDocumentsDirectory(); // App directory, safe for all platforms
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final fileName = 'paused_recording_$timestamp.m4a';
+    return '${directory.path}/$fileName';
+  }
+
+  Future<void> _pauseRecordingAndSave() async {
+    if (_isAudioRecording) {
+      await _audioRecorder.stopRecorder();
+      setState(() {
+        _isAudioRecording = false;
+      });
+      // Show a small message when the temp file is saved
+      if (_recordingPath != null) {
+        Get.snackbar(
+          'Recording Saved',
+          'Temporary recording file saved.',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 2),
+        );
+      }
+    }
+  }
+
+  // Update _startAudioRecording to use the app directory
   Future<void> _startAudioRecording() async {
     try {
-      final directory = await getTemporaryDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'paused_recording_$timestamp.m4a';
-      _recordingPath = '${directory.path}/$fileName'; // Save temp recording file path
+      final filePath = await _getRecordingSavePath();
+      _recordingPath = filePath; // Save temp recording file path
       await _audioRecorder.startRecorder(
         toFile: _recordingPath!,
         codec: Codec.aacMP4,
@@ -131,7 +171,6 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
       _isPlaying = true;
       _showCenterButton = false;
     });
-    _controller.repeat();
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
       if (!_isPlaying) return;
@@ -145,18 +184,28 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   void dispose() {
     _controller.dispose();
     _timer?.cancel();
-    _audioPlayer.closePlayer();
+    _audioPlayer.dispose(); // just_audio cleanup
     _audioRecorder.closeRecorder();
     super.dispose();
   }
 
+  // Pause logic: stop and save recording
+  Future<void> _onPausePressed() async {
+    await _pauseRecordingAndSave(); // This will stop and ensure _recordingPath is set
+    setState(() {
+      _isPlaying = false;
+      _isAudioRecording = false;
+      // Do NOT reset _elapsedSeconds
+    });
+  }
+
+  // Play Back logic: play from saved temp file, do NOT reset timer
   Future<void> _onPlayPressed() async {
-    // Stop recording if still running
     if (_isAudioRecording) {
-      await _stopAudioRecording();
+      await _pauseRecordingAndSave();
     }
-    // Always use _recordingPath for playback
-    if (_recordingPath == null || !File(_recordingPath!).existsSync()) {
+    final tempPath = _recordingPath;
+    if (tempPath == null || !File(tempPath).existsSync()) {
       Get.snackbar('No Recording', 'No recording file found to play.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
       return;
     }
@@ -165,18 +214,24 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
       _isPlaying = true;
       _showCenterButton = false;
     });
-    await _audioPlayer.startPlayer(
-      fromURI: _recordingPath, // Play from saved temp file
-      codec: Codec.aacMP4,
-      whenFinished: () {
+    try {
+      await _testAudioPlayer.play(ap.DeviceFileSource(tempPath));
+      _testAudioPlayer.onPlayerComplete.listen((event) {
         setState(() {
           _isAudioPlaying = false;
           _isPlaying = false;
         });
-      },
-    );
+      });
+    } catch (e) {
+      setState(() {
+        _isAudioPlaying = false;
+        _isPlaying = false;
+      });
+      Get.snackbar('Playback Error', 'Failed to play audio: $e', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red, colorText: Colors.white);
+    }
   }
 
+  // Continue logic: resume timer from stopped state
   void _onContinuePressed() {
     if (!_isPlaying) {
       setState(() {
@@ -192,7 +247,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   }
 
   Future<void> _onStopPlayback() async {
-    await _audioPlayer.stopPlayer();
+    await _testAudioPlayer.stop();
     setState(() {
       _isAudioPlaying = false;
       _isPlaying = false;
@@ -211,6 +266,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
     final NavigationController navController = Get.find<NavigationController>();
 
     if (_isRequestingPermission) {
+      // Timer and waveform are not built, and are at zero
       return const Scaffold(
         backgroundColor: Colors.white,
         body: Center(
@@ -228,6 +284,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
       );
     }
 
+    // Only here, after permission is granted, build timer and waveform
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
       child: Scaffold(
@@ -519,9 +576,9 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                         child: _buildControlButton(
                           icon: _isAudioPlaying ? Icons.stop : Icons.play_arrow,
                           label: _isAudioPlaying ? 'Stop' : 'Play back',
-                          onPressed: null,
-                          iconColor: Colors.grey,
-                          textColor: Colors.grey,
+                          onPressed: _isAudioPlaying ? _onStopPlayback : _onPlayPressed,
+                          iconColor: _isAudioPlaying ? Colors.red : Colors.blue,
+                          textColor: _isAudioPlaying ? Colors.red : Colors.blue,
                         ),
                       ),
                       _buildControlButton(
@@ -539,24 +596,12 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
           ),
         ),
         floatingActionButton: Visibility(
-          visible: _showCenterButton,
+          visible: !_showCenterButton,
           child: SizedBox(
             height: 64,
             width: 64,
             child: FloatingActionButton(
-              onPressed: () {
-                setState(() {
-                  _showCenterButton = false;
-                  _isPlaying = true;
-                });
-                _controller.repeat();
-                _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
-                  if (!_isPlaying) return;
-                  setState(() {
-                    _elapsedSeconds += 0.03;
-                  });
-                });
-              },
+              onPressed: _onPausePressed,
               elevation: 0,
               backgroundColor: const Color.fromARGB(255, 255, 255, 255),
               shape: const CircleBorder(),
