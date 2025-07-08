@@ -4,6 +4,10 @@ import '../controllers/navigation_controller.dart';
 import 'main_navigation.dart';
 import 'dart:async';
 import 'save.recording.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_sound/flutter_sound.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class PausedRecording extends StatefulWidget {
   final VoidCallback? onNext;
@@ -29,6 +33,18 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   final TextEditingController _fileNameController = TextEditingController();
   bool _showCenterButton = true;
 
+  // Loading indicator for permission
+  bool _isRequestingPermission = true;
+  bool _hasPermission = false;
+
+  // Audio player
+  final FlutterSoundPlayer _audioPlayer = FlutterSoundPlayer();
+  bool _isAudioPlaying = false;
+  // Audio recorder
+  final FlutterSoundRecorder _audioRecorder = FlutterSoundRecorder();
+  bool _isAudioRecording = false;
+  String? _recordingPath;
+
   @override
   void initState() {
     super.initState();
@@ -46,18 +62,72 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
       // For now, we'll start with 0 and let the timer run
       _elapsedSeconds = 0.0;
     }
+
+    _audioPlayer.openPlayer();
+    _audioRecorder.openRecorder();
+    _requestMicrophonePermissionAndStart();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    _timer?.cancel();
-    super.dispose();
+  Future<void> _requestMicrophonePermissionAndStart() async {
+    setState(() { _isRequestingPermission = true; });
+    final status = await Permission.microphone.request();
+    if (status.isGranted) {
+      setState(() { _hasPermission = true; });
+      await _startAudioRecording();
+      _startTimer(); // Timer starts immediately after permission and recording start
+    } else {
+      setState(() { _hasPermission = false; });
+      Get.snackbar(
+        'Permission Required',
+        'Microphone permission is required to record audio.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+    setState(() { _isRequestingPermission = false; });
   }
 
-  void _onPlayPressed() {
+  Future<void> _startAudioRecording() async {
+    try {
+      final directory = await getTemporaryDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final fileName = 'paused_recording_$timestamp.m4a';
+      _recordingPath = '${directory.path}/$fileName'; // Save temp recording file path
+      await _audioRecorder.startRecorder(
+        toFile: _recordingPath!,
+        codec: Codec.aacMP4,
+      );
+      setState(() {
+        _isAudioRecording = true;
+      });
+    } catch (e) {
+      print('Error starting audio recording: $e');
+      Get.snackbar(
+        'Recording Error',
+        'Failed to start audio recording: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> _stopAudioRecording() async {
+    try {
+      if (_isAudioRecording) {
+        await _audioRecorder.stopRecorder();
+        setState(() {
+          _isAudioRecording = false;
+        });
+      }
+    } catch (e) {
+      print('Error stopping audio recording: $e');
+    }
+  }
+
+  void _startTimer() {
     setState(() {
-      _elapsedSeconds = 0.0; // Reset timer to 00:00.00
       _isPlaying = true;
       _showCenterButton = false;
     });
@@ -71,12 +141,40 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
     });
   }
 
-  void _onStopPlayback() {
-    setState(() {
-      _isPlaying = false;
-    });
-    _controller.stop();
+  @override
+  void dispose() {
+    _controller.dispose();
     _timer?.cancel();
+    _audioPlayer.closePlayer();
+    _audioRecorder.closeRecorder();
+    super.dispose();
+  }
+
+  Future<void> _onPlayPressed() async {
+    // Stop recording if still running
+    if (_isAudioRecording) {
+      await _stopAudioRecording();
+    }
+    // Always use _recordingPath for playback
+    if (_recordingPath == null || !File(_recordingPath!).existsSync()) {
+      Get.snackbar('No Recording', 'No recording file found to play.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
+      return;
+    }
+    setState(() {
+      _isAudioPlaying = true;
+      _isPlaying = true;
+      _showCenterButton = false;
+    });
+    await _audioPlayer.startPlayer(
+      fromURI: _recordingPath, // Play from saved temp file
+      codec: Codec.aacMP4,
+      whenFinished: () {
+        setState(() {
+          _isAudioPlaying = false;
+          _isPlaying = false;
+        });
+      },
+    );
   }
 
   void _onContinuePressed() {
@@ -93,6 +191,14 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
     }
   }
 
+  Future<void> _onStopPlayback() async {
+    await _audioPlayer.stopPlayer();
+    setState(() {
+      _isAudioPlaying = false;
+      _isPlaying = false;
+    });
+  }
+
   String _formatElapsed(double seconds) {
     final int min = seconds ~/ 60;
     final int sec = seconds.toInt() % 60;
@@ -103,6 +209,24 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   @override
   Widget build(BuildContext context) {
     final NavigationController navController = Get.find<NavigationController>();
+
+    if (_isRequestingPermission) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (!_hasPermission) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Text('Microphone permission is required to record.'),
+        ),
+      );
+    }
 
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
@@ -154,99 +278,95 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                                   color: Colors.black54,
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              GestureDetector(
-                                onTap: () async {
-                                  _fileNameController.text = _recordingFileName;
-                                  final result = await showDialog<String>(
-                                    context: context,
-                                    builder: (context) => Dialog(
-                                      backgroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(0),
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(24.0),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                                          children: [
-                                            TextField(
-                                              controller: _fileNameController,
-                                              textAlign: TextAlign.center,
-                                              style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 15,
+                              const SizedBox(width: 8),
+                              Tooltip(
+                                message: 'Edit file name',
+                                child: GestureDetector(
+                                  onTap: () async {
+                                     print('🟢 Edit icon tapped'); // ✅ Debug print
+                                    _fileNameController.text = _recordingFileName;
+                                    String? errorText;
+                                    final result = await showDialog<String>(
+                                      context: context,
+                                      barrierDismissible: false, // User must tap Save or Cancel
+                                      builder: (context) {
+                                        return StatefulBuilder(
+                                          builder: (context, setState) {
+                                            return AlertDialog(
+                                              backgroundColor: Colors.white, // Pure white background
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.zero, // Sharp corners
                                               ),
-                                              decoration: InputDecoration(
-                                                border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
-                                                ),
-                                                enabledBorder: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
-                                                ),
-                                                focusedBorder: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  borderSide: const BorderSide(color: Color(0xFFBDBDBD)),
-                                                ),
-                                                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                                              ),
-                                              autofocus: true,
-                                            ),
-                                            const SizedBox(height: 32),
-                                            Center(
-                                              child: GestureDetector(
-                                                onTap: () {
-                                                  Navigator.of(context).pop(_fileNameController.text.trim());
-                                                },
-                                                child: Container(
-                                                  width: 120,
-                                                  height: 40,
-                                                  decoration: BoxDecoration(
-                                                    borderRadius: BorderRadius.circular(4),
-                                                    gradient: const LinearGradient(
-                                                      colors: [Color(0xFFFF9800), Color(0xFFE91E63)],
-                                                      begin: Alignment.centerLeft,
-                                                      end: Alignment.centerRight,
-                                                    ),
+                                              insetPadding: EdgeInsets.zero, // Remove default dialog padding
+                                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Minimal padding
+                                              titlePadding: EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 0),
+                                              actionsPadding: EdgeInsets.only(left: 0, right: 0, bottom: 16, top: 8),
+                                              title: const Text('Recording Name', style: TextStyle(fontSize: 16)),
+                                              content: TextField(
+                                                controller: _fileNameController,
+                                                decoration: InputDecoration(
+                                                  border: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.zero, // Sharp corners
                                                   ),
-                                                  child: Container(
-                                                    margin: const EdgeInsets.all(2),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white,
-                                                      borderRadius: BorderRadius.circular(4),
-                                                    ),
-                                                    child: const Center(
-                                                      child: Text(
-                                                        'Save',
-                                                        style: TextStyle(
-                                                          fontSize: 16,
-                                                          fontWeight: FontWeight.w500,
-                                                          color: Colors.black,
-                                                        ),
+                                                  enabledBorder: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.zero,
+                                                    borderSide: BorderSide(color: Colors.grey),
+                                                  ),
+                                                  focusedBorder: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.zero,
+                                                    borderSide: BorderSide(color: Colors.black),
+                                                  ),
+                                                  errorText: errorText,
+                                                  fillColor: Colors.white,
+                                                  filled: true,
+                                                ),
+                                                style: const TextStyle(fontSize: 22),
+                                                autofocus: true,
+                                              ),
+                                              actions: [
+                                                Center(
+                                                  child: OutlinedButton(
+                                                    style: OutlinedButton.styleFrom(
+                                                      backgroundColor: Colors.white,
+                                                      foregroundColor: Colors.black,
+                                                      side: const BorderSide(
+                                                        width: 2,
+                                                        color: Color(0xFFFF9800), // Orange border (can use gradient if needed)
                                                       ),
+                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                                                      textStyle: const TextStyle(fontSize: 20),
                                                     ),
+                                                    onPressed: () {
+                                                      final trimmed = _fileNameController.text.trim();
+                                                      if (trimmed.isEmpty) {
+                                                        setState(() {
+                                                          errorText = 'File name cannot be empty';
+                                                        });
+                                                      } else {
+                                                        Navigator.of(context).pop(trimmed);
+                                                      }
+                                                    },
+                                                    child: const Text('Save'),
                                                   ),
                                                 ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                  if (result != null && result.isNotEmpty) {
-                                    setState(() {
-                                      _recordingFileName = result;
-                                    });
-                                  }
-                                },
-                                child: const Icon(
-                                  Icons.edit,
-                                  size: 16,
-                                  color: Colors.black54,
+                                              ],
+                                            );
+                                          },
+                                        );
+                                      },
+                                    );
+                                    if (result != null && result.isNotEmpty) {
+                                      setState(() {
+                                        _recordingFileName = result;
+                                      });
+                                    }
+                                  },
+                                  child: const Icon(
+                                    Icons.edit,
+                                    size: 18, // Larger size for better visibility
+                                    color: Color.fromARGB(255, 253, 162, 27),
+                                  ),
                                 ),
                               ),
                             ],
@@ -260,7 +380,8 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                           MaterialPageRoute(
                             builder: (context) => SaveRecordingScreen(
                               timerValue: _formatElapsed(_elapsedSeconds),
-                              recordingFilePath: widget.recordingFilePath,
+                              recordingFilePath: widget.recordingFilePath ?? _recordingPath,
+                              recordingFileName: _recordingFileName,
                             ),
                           ),
                         );
@@ -393,12 +514,15 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildControlButton(
-                        icon: _isPlaying ? Icons.stop : Icons.play_arrow,
-                        label: _isPlaying ? 'Stop' : 'Play back',
-                        onPressed: _isPlaying ? _onStopPlayback : _onPlayPressed,
-                        iconColor: Colors.black,
-                        textColor: Colors.black,
+                      IgnorePointer(
+                        ignoring: true,
+                        child: _buildControlButton(
+                          icon: _isAudioPlaying ? Icons.stop : Icons.play_arrow,
+                          label: _isAudioPlaying ? 'Stop' : 'Play back',
+                          onPressed: null,
+                          iconColor: Colors.grey,
+                          textColor: Colors.grey,
+                        ),
                       ),
                       _buildControlButton(
                         icon: Icons.fiber_manual_record_outlined,
@@ -530,7 +654,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   Widget _buildControlButton({
     required IconData icon,
     required String label,
-    required VoidCallback onPressed,
+    required VoidCallback? onPressed,
     required Color iconColor,
     required Color textColor,
   }) {

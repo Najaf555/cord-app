@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:Cord/views/save.recording.dart';
-import 'package:Cord/views/paused_recording.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
@@ -55,6 +54,10 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   bool _hasPermission = false;
   // Add a new state variable to track if we are in the paused controls state
   bool _showPausedControls = false;
+
+  // Session title variable for editing
+  String _sessionTitle = 'Free Falling v2';
+  String _recordingFileName = 'New Recording';
 
   @override
   void initState() {
@@ -450,22 +453,67 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                       children: [
                         Row(
                           children: [
-                            const Text(
-                              'Free Falling v2',
-                              style: TextStyle(
+                            Text(
+                              _sessionTitle, // Use a variable for the session title
+                              style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const SizedBox(width: 6),
-                            Icon(Icons.edit, size: 18, color: Colors.black54),
                           ],
                         ),
-                        const Text(
-                          'New Recording',
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _recordingFileName,
+                              style: const TextStyle(fontSize: 14, color: Colors.black54),
+                            ),
+                            const SizedBox(width: 6),
+                            GestureDetector(
+                              onTap: () async {
+                                final controller = TextEditingController(text: _recordingFileName);
+                                final result = await showDialog<String>(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      title: const Text('Edit Recording Name'),
+                                      content: TextField(
+                                        controller: controller,
+                                        decoration: const InputDecoration(
+                                          labelText: 'Recording Name',
+                                          border: OutlineInputBorder(),
+                                        ),
+                                        autofocus: true,
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () {
+                                            final newName = controller.text.trim();
+                                            if (newName.isNotEmpty) {
+                                              Navigator.of(context).pop(newName);
+                                            }
+                                          },
+                                          child: const Text('Save'),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                                if (result != null && result.isNotEmpty) {
+                                  setState(() {
+                                    _recordingFileName = result;
+                                  });
+                                }
+                              },
+                              child: Icon(Icons.edit, size: 18, color: Colors.black54),
+                            ),
+                          ],
                         ),
-                        SizedBox(height: 12),
                       ],
                     ),
                     TextButton(

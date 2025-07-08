@@ -12,7 +12,7 @@
     <application
         android:label="Cord"
         android:name="${applicationName}"
-        android:icon="@mipmap/sessionate_logo">
+        android:icon="@mipmap/ic_launcher">
         
         <!-- Google Sign-In Configuration -->
         <meta-data

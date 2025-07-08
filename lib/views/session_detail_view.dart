@@ -1188,11 +1188,10 @@ class _LyricsTabImageExact extends StatelessWidget {
 class _SelectableLyricsLine extends StatelessWidget {
   final String text;
   final bool play;
-  final bool removePadding;
+   final bool removePadding = false;
   const _SelectableLyricsLine({
     required this.text,
     this.play = false,
-    this.removePadding = false,
   });
   @override
   Widget build(BuildContext context) {

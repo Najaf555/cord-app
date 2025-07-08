@@ -10,10 +10,12 @@ import 'dart:io';
 class SaveRecordingScreen extends StatefulWidget {
   final String? timerValue;
   final String? recordingFilePath;
+  final String? recordingFileName;
   const SaveRecordingScreen({
     super.key, 
     this.timerValue,
     this.recordingFilePath,
+    this.recordingFileName,
   });
 
   @override
@@ -27,6 +29,14 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
   bool _isUploading = false;
   String? _recordingDocId; // Store Firestore doc ID after save
   String? _sessionIdForDoc; // Store sessionId for update
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.recordingFileName != null && widget.recordingFileName!.isNotEmpty) {
+      _recordingName = widget.recordingFileName!;
+    }
+  }
 
   // Function to upload recording to Azure and save to Firestore
   Future<void> _saveRecordingToSession(String sessionId) async {
@@ -135,34 +145,34 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
       body: Stack(
         children: [
           SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 16),
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  SizedBox(height: 8),
-                Center(
-                  child: Column(
+                ),
+              ),
+              SizedBox(height: 8),
+            Center(
+              child: Column(
                     children: [
                       const Text(
-                        'New Session',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
+                    'New Session',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  ),
                       const SizedBox(height: 4),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                    Row(
+  mainAxisAlignment: MainAxisAlignment.center,
+  crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
+                  Text(
                             _recordingName,
                             style: const TextStyle(fontSize: 15, color: Colors.black54),
                           ),
@@ -265,77 +275,77 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                           ),
                         ),
                       const SizedBox(height: 4),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ListTile(
-                    title: const Text('Save to a new session', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                  trailing: const Icon(Icons.chevron_right),
-                    onTap: () async {
-                      await showDialog(
-                        context: context,
-                        builder: (context) {
-                          return Dialog(
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.zero,
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(24.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            ListTile(
+                title: const Text('Save to a new session', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              trailing: const Icon(Icons.chevron_right),
+                onTap: () async {
+                  await showDialog(
+                    context: context,
+                    builder: (context) {
+                      return Dialog(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Text(
+                                'Create Session',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.left,
+                              ),
+                              const SizedBox(height: 24),
+                              TextField(
+                                controller: _newSessionNameController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Session Name',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.zero,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  const Text(
-                                    'Create Session',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.left,
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: const Text('Cancel'),
                                   ),
-                                  const SizedBox(height: 24),
-                                  TextField(
-                                    controller: _newSessionNameController,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Session Name',
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.zero,
+                                  const SizedBox(width: 16),
+                                  DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFFFF9800), Color(0xFFE91E63)],
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
                                       ),
+                                      borderRadius: BorderRadius.zero,
                                     ),
-                                  ),
-                                  const SizedBox(height: 32),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      TextButton(
-                                        onPressed: () => Navigator.of(context).pop(),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      DecoratedBox(
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [Color(0xFFFF9800), Color(0xFFE91E63)],
-                                            begin: Alignment.centerLeft,
-                                            end: Alignment.centerRight,
-                                          ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(1.5),
+                                      child: Container(
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
                                           borderRadius: BorderRadius.zero,
                                         ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(1.5),
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.zero,
-                                            ),
-                                            child: TextButton(
+                                        child: TextButton(
                                               onPressed: _isUploading ? null : () async {
-                                                final sessionName = _newSessionNameController.text.trim();
-                                                if (sessionName.isEmpty) return;
-                                                final user = FirebaseAuth.instance.currentUser;
-                                                if (user == null) return;
+                                            final sessionName = _newSessionNameController.text.trim();
+                                            if (sessionName.isEmpty) return;
+                                            final user = FirebaseAuth.instance.currentUser;
+                                            if (user == null) return;
 
                                                 // Check if we have a recording file to upload
                                                 if (widget.recordingFilePath == null || !File(widget.recordingFilePath!).existsSync()) {
@@ -354,26 +364,26 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
 
                                                 try {
                                                   // 1. Create new session
-                                                  final sessionsRef = FirebaseFirestore.instance.collection('sessions');
-                                                  final newDocRef = sessionsRef.doc();
-                                                  final sessionId = 'SESSION_${newDocRef.id.substring(0, 6).toUpperCase()}';
-                                                  await newDocRef.set({
-                                                    'sessionId': sessionId,
-                                                    'name': sessionName,
-                                                    'hostId': user.uid,
-                                                    'createdAt': DateTime.now(),
-                                                    'serverCreatedAt': FieldValue.serverTimestamp(),
-                                                    'updatedAt': FieldValue.serverTimestamp(),
-                                                  });
+                                            final sessionsRef = FirebaseFirestore.instance.collection('sessions');
+                                            final newDocRef = sessionsRef.doc();
+                                            final sessionId = 'SESSION_${newDocRef.id.substring(0, 6).toUpperCase()}';
+                                            await newDocRef.set({
+                                              'sessionId': sessionId,
+                                              'name': sessionName,
+                                              'hostId': user.uid,
+                                              'createdAt': DateTime.now(),
+                                              'serverCreatedAt': FieldValue.serverTimestamp(),
+                                              'updatedAt': FieldValue.serverTimestamp(),
+                                            });
 
                                                   // 2. Upload file to Azure and save to the new session
                                                   await _saveRecordingToSession(newDocRef.id);
                                                   
-                                                  _newSessionNameController.clear();
-                                                  Navigator.of(context).pop();
-                                                  setState(() {
-                                                    _searchQuery = '';
-                                                  });
+                                            _newSessionNameController.clear();
+                                            Navigator.of(context).pop();
+                                            setState(() {
+                                              _searchQuery = '';
+                                            });
                                                 } catch (e) {
                                                   setState(() {
                                                     _isUploading = false;
@@ -385,15 +395,15 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                                                     ),
                                                   );
                                                 }
-                                              },
-                                              style: TextButton.styleFrom(
-                                                backgroundColor: Colors.white,
-                                                foregroundColor: Colors.black,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.zero,
-                                                ),
-                                                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
-                                              ),
+                                          },
+                                          style: TextButton.styleFrom(
+                                            backgroundColor: Colors.white,
+                                            foregroundColor: Colors.black,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.zero,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                                          ),
                                               child: _isUploading
                                                   ? const SizedBox(
                                                       width: 16,
@@ -401,122 +411,122 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                                                       child: CircularProgressIndicator(strokeWidth: 2),
                                                     )
                                                   : const Text(
-                                                      'Create',
-                                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                                    ),
-                                            ),
+                                            'Create',
+                                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          );
-                        },
+                            ],
+                          ),
+                        ),
                       );
                     },
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                ),
-                  Center(
-                    child: Container(
-                      width: 320,
-                      height: 1,
-                      color: Colors.grey[300],
-                      margin: const EdgeInsets.only(top: 8, bottom: 8),
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    child: const Text(
-                      'Add to existing session', 
-                      style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
-                Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: TextField(
-          cursorColor: Colors.purple,
-          cursorWidth: 2.0,
-          cursorHeight: 16.0,
-                    decoration: InputDecoration(
-                      hintText: 'search...',
-            hintStyle: TextStyle(color: Color(0xFF828282), fontSize: 14),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: EdgeInsets.symmetric(vertical: 5, horizontal: 10), // smaller height
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Color(0xFFE0E0E0)),
-                      ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                  );
+                },
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+              Center(
+                child: Container(
+                  width: 320,
+                  height: 1,
+                  color: Colors.grey[300],
+                  margin: const EdgeInsets.only(top: 8, bottom: 8),
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: const Text(
+                  'Add to existing session', 
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: TextField(
+      cursorColor: Colors.purple,
+      cursorWidth: 2.0,
+      cursorHeight: 16.0,
+                decoration: InputDecoration(
+                  hintText: 'search...',
+        hintStyle: TextStyle(color: Color(0xFF828282), fontSize: 14),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: EdgeInsets.symmetric(vertical: 5, horizontal: 10), // smaller height
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                  ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(color: Color(0xFFE91E63)),
-            ),
-            suffixIcon: Padding(
-              padding: EdgeInsets.only(right: 8), // push icon to the edge
-              child: Icon(Icons.search, color: Color(0xFF222222), size: 20),
-            ),
-            suffixIconConstraints: BoxConstraints(
-              minWidth: 32,
-              minHeight: 32,
-                      ),
-                      isDense: true,
-                    ),
-          style: TextStyle(fontSize: 16),
-          onChanged: (value) {
-            setState(() {
-              _searchQuery = value.trim().toLowerCase();
-            });
-          },
+        ),
+        suffixIcon: Padding(
+          padding: EdgeInsets.only(right: 8), // push icon to the edge
+          child: Icon(Icons.search, color: Color(0xFF222222), size: 20),
+        ),
+        suffixIconConstraints: BoxConstraints(
+          minWidth: 32,
+          minHeight: 32,
                   ),
+                  isDense: true,
                 ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: StreamBuilder<QuerySnapshot>(
-                      stream: _userSessionsStream(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                          return const Center(child: Text('No sessions found.'));
-                        }
-                        final sessions = snapshot.data!.docs;
-                        final filteredSessions = _searchQuery.isEmpty
-                            ? sessions
-                            : sessions.where((doc) {
-                                final data = doc.data() as Map<String, dynamic>;
-                                final sessionName = (data['name'] ?? '').toString().toLowerCase();
-                                return sessionName.contains(_searchQuery);
-                              }).toList();
-                        return ListView.separated(
-                          itemCount: filteredSessions.length,
-                          separatorBuilder: (context, index) => Center(
-                            child: Container(
-                              width: 320,
-                              height: 1,
-                              color: Colors.grey[300],
-                            ),
-                          ),
-                        itemBuilder: (context, index) {
-                            final data = filteredSessions[index].data() as Map<String, dynamic>;
-                            final sessionName = data['name'] ?? 'Unnamed Session';
-                            final createdAt = data['createdAt'] is Timestamp
-                                ? (data['createdAt'] as Timestamp).toDate()
-                                : null;
-                            final sessionId = filteredSessions[index].id;
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                              leading: const Icon(Icons.folder, color: Colors.blue),
-                              title: Text(sessionName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                              subtitle: createdAt != null
-                                  ? Text('Created: ${createdAt.toString().substring(0, 16)}', style: const TextStyle(fontSize: 12, color: Colors.black38))
-                                  : null,
+      style: TextStyle(fontSize: 16),
+      onChanged: (value) {
+        setState(() {
+          _searchQuery = value.trim().toLowerCase();
+        });
+      },
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: StreamBuilder<QuerySnapshot>(
+                  stream: _userSessionsStream(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return const Center(child: Text('No sessions found.'));
+                    }
+                    final sessions = snapshot.data!.docs;
+                    final filteredSessions = _searchQuery.isEmpty
+                        ? sessions
+                        : sessions.where((doc) {
+                            final data = doc.data() as Map<String, dynamic>;
+                            final sessionName = (data['name'] ?? '').toString().toLowerCase();
+                            return sessionName.contains(_searchQuery);
+                          }).toList();
+                    return ListView.separated(
+                      itemCount: filteredSessions.length,
+                      separatorBuilder: (context, index) => Center(
+                        child: Container(
+                          width: 320,
+                          height: 1,
+                          color: Colors.grey[300],
+                        ),
+                      ),
+                    itemBuilder: (context, index) {
+                        final data = filteredSessions[index].data() as Map<String, dynamic>;
+                        final sessionName = data['name'] ?? 'Unnamed Session';
+                        final createdAt = data['createdAt'] is Timestamp
+                            ? (data['createdAt'] as Timestamp).toDate()
+                            : null;
+                        final sessionId = filteredSessions[index].id;
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          leading: const Icon(Icons.folder, color: Colors.blue),
+                          title: Text(sessionName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                          subtitle: createdAt != null
+                              ? Text('Created: ${createdAt.toString().substring(0, 16)}', style: const TextStyle(fontSize: 12, color: Colors.black38))
+                              : null,
                               trailing: _isUploading 
                                   ? const SizedBox(
                                       width: 20,
@@ -526,15 +536,15 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                                   : const Icon(Icons.chevron_right, color: Colors.black38),
                               onTap: _isUploading ? null : () async {
                                 await _saveRecordingToSession(sessionId);
-                              },
-                          );
-                        },
+                          },
                       );
                     },
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
+          ],
+        ),
           ),
           // Loading overlay
           if (_isUploading)
