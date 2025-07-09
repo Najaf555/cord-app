@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/azure_storage_service.dart';
+import 'package:just_audio/just_audio.dart' as ja;
 
 /*
  * Recording Document Structure:
@@ -54,10 +55,17 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   bool _hasPermission = false;
   // Add a new state variable to track if we are in the paused controls state
   bool _showPausedControls = false;
+  String? _playbackSnapshotPath;
+  List<String> _segmentPaths = [];
+  int _segmentIndex = 0;
+  String? _currentSegmentPath;
 
   // Session title variable for editing
   String _sessionTitle = 'Free Falling v2';
   String _recordingFileName = 'New Recording';
+
+  final ja.AudioPlayer _audioPlayer = ja.AudioPlayer();
+  bool _isAudioPlaying = false;
 
   @override
   void initState() {
@@ -68,11 +76,10 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     )..addListener(() {
         setState(() {});
       });
-    // Start recording automatically
+    _segmentPaths = [];
+    _segmentIndex = 0;
+    _startNewSegment();
     _startRecording();
-    
-    // Request microphone permission and start audio recording
-    _requestMicrophonePermission();
   }
 
   @override
@@ -80,9 +87,87 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     _controller.dispose();
     _timer?.cancel();
     _audioRecorder.closeRecorder();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
+  // Start a new segment (called on start and resume)
+  Future<void> _startNewSegment() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final segmentPath = '${directory.path}/segment_${_segmentIndex++}.m4a';
+      _currentSegmentPath = segmentPath;
+      await _audioRecorder.openRecorder();
+      await _audioRecorder.startRecorder(
+        toFile: segmentPath,
+        codec: Codec.aacMP4,
+      );
+      setState(() {
+        _isAudioRecording = true;
+      });
+      print('Started new segment: $segmentPath');
+    } catch (e) {
+      print('Error starting new segment: $e');
+      Get.snackbar(
+        'Recording Error',
+        'Failed to start new segment: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // Stop the current segment (called on pause and final stop)
+  Future<void> _stopCurrentSegment() async {
+    try {
+      if (_isAudioRecording) {
+        final path = await _audioRecorder.stopRecorder();
+        await _audioRecorder.closeRecorder();
+        setState(() {
+          _isAudioRecording = false;
+        });
+        if (path != null) {
+          _currentSegmentPath = path;
+          _segmentPaths.add(path);
+          print('Stopped segment: $path');
+        }
+      }
+    } catch (e) {
+      print('Error stopping segment: $e');
+    }
+  }
+
+  // On pause, stop the current segment
+  void _pauseRecording() async {
+    setState(() {
+      _isPaused = true;
+      _isRecording = false;
+      _showPausedControls = true;
+    });
+    _controller.stop();
+    _timer?.cancel();
+    await _stopCurrentSegment();
+  }
+
+  // On resume, start a new segment
+  void _resumeRecording() async {
+    setState(() {
+      _isPaused = false;
+      _isRecording = true;
+      _showPausedControls = false;
+    });
+    await _startNewSegment();
+    _controller.repeat();
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      setState(() {
+        _elapsedSeconds += 0.03;
+      });
+    });
+  }
+
+  // On start, start the first segment
   void _startRecording() {
     setState(() {
       _isRecording = true;
@@ -95,44 +180,66 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     });
   }
 
-  void _stopRecording() {
-    setState(() {
-      _isRecording = false;
-    });
-    _controller.stop();
-    _timer?.cancel();
+  // On final stop, stop the current segment
+  Future<void> _stopAudioRecording() async {
+    await _stopCurrentSegment();
   }
 
-  void _pauseRecording() {
-    setState(() {
-      _isPaused = true;
-      _isRecording = false;
-      _showPausedControls = true;
-    });
-    _controller.stop();
-    _timer?.cancel();
-    _audioRecorder.pauseRecorder();
-  }
-
-  void _resumeRecording() async {
-    setState(() {
-      _isPaused = false;
-      _isRecording = true;
-      _showPausedControls = false;
-    });
-    await _audioRecorder.resumeRecorder();
-    _controller.repeat();
-    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+  // Playback: play all segments in order
+  void _playback() async {
+    if (_segmentPaths.isEmpty) {
+      Get.snackbar(
+        'No Recording',
+        'No recording segments found to play.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    final sources = <ja.AudioSource>[];
+    for (final path in _segmentPaths) {
+      if (File(path).existsSync()) {
+        final file = File(path);
+        final fileSize = await file.length();
+        if (fileSize > 44) {
+          sources.add(ja.AudioSource.uri(Uri.file(path)));
+        }
+      }
+    }
+    if (sources.isEmpty) {
+      Get.snackbar(
+        'Empty Recording',
+        'No playable segments found.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    try {
+      await _audioPlayer.setAudioSource(ja.ConcatenatingAudioSource(children: sources));
+      await _audioPlayer.play();
       setState(() {
-        _elapsedSeconds += 0.03;
+        _isAudioPlaying = true;
       });
-    });
-  }
-
-  void _playback() {
-    setState(() {
-      _elapsedSeconds = 0.0; // Reset timer to 00:00.00
-    });
+      _audioPlayer.playerStateStream.listen((state) {
+        if (state.processingState == ja.ProcessingState.completed) {
+          setState(() {
+            _isAudioPlaying = false;
+          });
+        }
+      });
+    } catch (e) {
+      print('Playback error: $e');
+      Get.snackbar(
+        'Playback Error',
+        'Failed to play recording: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   Future<void> _requestMicrophonePermission() async {
@@ -154,32 +261,27 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     }
   }
 
+  // Refactor: Only start recording and create the file when paused (not at start)
   Future<void> _startAudioRecording() async {
     try {
-      // Check if we have permission to record
       final status = await Permission.microphone.status;
       if (status.isGranted) {
         final directory = await getApplicationDocumentsDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
-        // Generate automatic file name with format: recording_1234567890.m4a
         final fileName = 'recording_$timestamp.m4a';
         _recordingPath = '${directory.path}/$fileName';
-        
         print('Generated recording file:');
         print('- File name: $fileName');
         print('- Full path: $_recordingPath');
         print('- Timestamp: $timestamp');
-        
         await _audioRecorder.openRecorder();
         await _audioRecorder.startRecorder(
           toFile: _recordingPath!,
           codec: Codec.aacMP4,
         );
-        
         setState(() {
           _isAudioRecording = true;
         });
-        
         print('Audio recording started at: $_recordingPath');
         print('Generated file name: $fileName');
         print('File name format: recording_$timestamp.m4a');
@@ -201,25 +303,6 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
-    }
-  }
-
-  Future<void> _stopAudioRecording() async {
-    try {
-      if (_isAudioRecording) {
-        final path = await _audioRecorder.stopRecorder();
-        await _audioRecorder.closeRecorder();
-        setState(() {
-          _isAudioRecording = false;
-        });
-        
-        if (path != null) {
-          _recordingPath = path;
-          print('Audio recording stopped. File saved at: $_recordingPath');
-        }
-      }
-    } catch (e) {
-      print('Error stopping audio recording: $e');
     }
   }
 
