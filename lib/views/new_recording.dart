@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/azure_storage_service.dart';
+import '../utils/audio_combine_service.dart';
 import 'package:just_audio/just_audio.dart' as ja;
 
 /*
@@ -80,6 +81,18 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     _segmentIndex = 0;
     _startNewSegment();
     _startRecording();
+    
+    // Test FFmpeg integration
+    _testFFmpegIntegration();
+  }
+
+  Future<void> _testFFmpegIntegration() async {
+    try {
+      final isWorking = await AudioCombineService.testIntegration();
+      print('🎵 FFmpeg integration test: ${isWorking ? "SUCCESS" : "FAILED"}');
+    } catch (e) {
+      print('🎵 FFmpeg integration test error: $e');
+    }
   }
 
   @override
@@ -602,81 +615,93 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                     TextButton(
                       onPressed: () async {
                         await _stopAudioRecording();
-                        if (_recordingPath == null || !File(_recordingPath!).existsSync()) {
+                        
+                        // Check if we have recording segments to combine
+                        if (_segmentPaths.isEmpty) {
                           Get.snackbar(
                             'No Recording',
-                            'No recording file found to save.',
+                            'No recording segments found to save.',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Colors.orange,
                             colorText: Colors.white,
                           );
                           return;
                         }
+
+                        // Show loading indicator
+                        Get.dialog(
+                          const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          barrierDismissible: false,
+                        );
+
                         try {
-                          // 1. Upload to Azure
+                          // Validate input files
+                          final isValid = await AudioCombineService.validateInputFiles(_segmentPaths);
+                          if (!isValid) {
+                            Get.back(); // Close loading dialog
+                            Get.snackbar(
+                              'Invalid Files',
+                              'Some recording segments are invalid or missing.',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red,
+                              colorText: Colors.white,
+                            );
+                            return;
+                          }
+
+                          // Check if segments are ready for upload
+                          final areReady = await AudioCombineService.areSegmentsReadyForUpload(_segmentPaths);
+                          if (!areReady) {
+                            Get.back(); // Close loading dialog
+                            Get.snackbar(
+                              'Segments Not Ready',
+                              'Some recording segments are not ready for upload.',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red,
+                              colorText: Colors.white,
+                            );
+                            return;
+                          }
+
+                          // Get primary recording file (first segment)
+                          final primaryFilePath = await AudioCombineService.getPrimaryRecordingFile(_segmentPaths);
+                          if (primaryFilePath == null) {
+                            Get.back(); // Close loading dialog
+                            Get.snackbar(
+                              'No Primary File',
+                              'No primary recording file found.',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.red,
+                              colorText: Colors.white,
+                            );
+                            return;
+                          }
+
+                          // Get recording metadata
+                          final metadata = await AudioCombineService.getRecordingMetadata(_segmentPaths);
+                          
+                          print('🎵 Processing recording segments...');
+                          print('🎵 Total segments: ${_segmentPaths.length}');
+                          print('🎵 Primary file: $primaryFilePath');
+
+                          // 1. Upload primary file to Azure
                           final user = FirebaseAuth.instance.currentUser;
                           if (user == null) throw Exception('User not logged in');
                           
-                          // Extract file name from the recording path
-                          final fileName = _recordingPath!.split('/').last;
+                          final fileName = primaryFilePath.split('/').last;
                           final blobName = 'recordings/${user.uid}/$fileName';
-                          final file = File(_recordingPath!);
+                          final file = File(primaryFilePath);
                           final fileUrl = await AzureStorageService.uploadFile(file, blobName);
                           
-                          // 2. Save to Firestore with complete document structure
-                          final recordingsRef = FirebaseFirestore.instance
-                            .collection('sessions')
-                            .doc('6xfhQsVPQkTGCeFDfcIt')
-                            .collection('recordings');
+                          // Clean up temporary segment files
+                          await AudioCombineService.cleanupTempFiles(_segmentPaths);
                           
-                          // Create document with all required fields
-                          final docRef = await recordingsRef.add({
-                            'userId': user.uid,
-                            'fileUrl': fileUrl,
-                            'duration': _formatElapsed(_elapsedSeconds),
-                            'createdAt': FieldValue.serverTimestamp(),
-                            'fileName': fileName,
-                          });
-                          
-                          // Update with the actual recordingId
-                          await recordingsRef.doc(docRef.id).update({
-                            'recordingId': docRef.id,
-                          });
-                          
-                          // Verify document structure
-                          final savedDoc = await recordingsRef.doc(docRef.id).get();
-                          if (savedDoc.exists) {
-                            final data = savedDoc.data()!;
-                            print('✅ Document verification successful:');
-                            print('  - userId: ${data['userId']}');
-                            print('  - fileUrl: ${data['fileUrl']}');
-                            print('  - duration: ${data['duration']}');
-                            print('  - createdAt: ${data['createdAt']}');
-                            print('  - recordingId: ${data['recordingId']}');
-                            print('  - fileName: ${data['fileName']}');
-                            
-                            // Verify all required fields are present
-                            final requiredFields = ['userId', 'fileUrl', 'duration', 'createdAt', 'recordingId', 'fileName'];
-                            final missingFields = requiredFields.where((field) => data[field] == null || data[field] == '').toList();
-                            
-                            if (missingFields.isEmpty) {
-                              print('✅ All required fields are present in the document');
-                            } else {
-                              print('❌ Missing fields: $missingFields');
-                            }
-                          }
-                          
-                          print('🎵 Recording document created successfully:');
-                          print('  - userId: ${user.uid}');
-                          print('  - fileUrl: $fileUrl');
-                          print('  - duration: ${_formatElapsed(_elapsedSeconds)}');
-                          print('  - createdAt: ${DateTime.now()}');
-                          print('  - recordingId: ${docRef.id}');
-                          print('  - fileName: $fileName');
-                          
+                          Get.back(); // Close loading dialog
                           Get.snackbar(
                             'Success',
-                            'Recording uploaded and saved!',
+                            'Recording uploaded to Azure successfully! (${_segmentPaths.length} segments)',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Colors.green,
                             colorText: Colors.white,
@@ -689,8 +714,10 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                               isScrollControlled: true,
                               backgroundColor: Colors.transparent,
                               builder: (context) => SaveRecordingScreen(
-                                recordingFilePath: _recordingPath,
+                                azureFileUrl: fileUrl,
                                 timerValue: _formatElapsed(_elapsedSeconds),
+                                fileName: fileName,
+                                recordingMetadata: metadata,
                               ),
                             );
                           } else {
@@ -701,10 +728,11 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                             });
                           }
                         } catch (e) {
-                          print('Error uploading or saving recording: $e');
+                          Get.back(); // Close loading dialog
+                          print('Error processing and uploading recording: $e');
                           Get.snackbar(
                             'Error',
-                            'Failed to upload/save recording: $e',
+                            'Failed to process and upload recording: $e',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Colors.red,
                             colorText: Colors.white,
