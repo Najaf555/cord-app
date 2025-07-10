@@ -482,33 +482,35 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
                                 color: Color(0xFFFF9800),
                                 child: sessions.isEmpty
                                     ? Center(
-                                        child: Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.folder_open,
-                                              size: 64,
-                                              color: Color(0xFFBDBDBD),
-                                            ),
-                                            SizedBox(height: 16),
-                                            Text(
-                                              'No sessions yet',
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w600,
-                                                color: Color(0xFF959595),
-                                              ),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              'Create your first session to get started',
-                                              style: TextStyle(
-                                                fontSize: 14,
+                                        child: SingleChildScrollView(
+                                          child: Column(
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.folder_open,
+                                                size: 64,
                                                 color: Color(0xFFBDBDBD),
                                               ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
+                                              SizedBox(height: 16),
+                                              Text(
+                                                'No sessions yet',
+                                                style: TextStyle(
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFF959595),
+                                                ),
+                                              ),
+                                              SizedBox(height: 8),
+                                              Text(
+                                                'Create your first session to get started',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Color(0xFFBDBDBD),
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ],
+                                          ),
                                         ),
                                       )
                                     : ListView.separated(
@@ -525,7 +527,7 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
                                             onTap: () {
                                               Get.delete<SessionDetailController>();
                                               Get.put(SessionDetailController(session: session));
-                                              Get.to(() => SessionDetailView());
+                                              Get.to(() => SessionDetailView(session: session));
                                             },
                                             borderRadius: BorderRadius.circular(8),
                                             child: Padding(

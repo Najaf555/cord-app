@@ -15,11 +15,28 @@ class SessionDetailController extends GetxController {
   var isDescendingOrder = true.obs;
   var sessionName = ''.obs;
 
+  // Add stream for real-time recordings updates
+  Stream<List<Recording>> get recordingsStream {
+    final sessionId = session.id;
+    final recordingsRef = FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(sessionId)
+        .collection('recordings');
+    return recordingsRef
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) {
+              final data = doc.data();
+              return Recording.fromFirestore(data, doc.id);
+            }).toList());
+  }
+
   @override
   void onInit() {
     super.onInit();
     participants.assignAll(session.users);
     sessionName.value = session.name;
+    // Remove the one-time loadRecordingsFromFirestore call
     // loadMockRecordings();
   }
 
@@ -71,18 +88,7 @@ class SessionDetailController extends GetxController {
     isDescendingOrder.value = !isDescendingOrder.value;
   }
 
-  Future<void> loadRecordingsFromFirestore() async {
-    final sessionId = session.id;
-    final recordingsRef = FirebaseFirestore.instance
-        .collection('sessions')
-        .doc(sessionId)
-        .collection('recordings');
-    final snapshot = await recordingsRef.orderBy('createdAt', descending: true).get();
-    recordings.value = snapshot.docs.map((doc) {
-      final data = doc.data();
-      return Recording.fromFirestore(data, doc.id);
-    }).toList();
-  }
+  // Remove the old loadRecordingsFromFirestore method since we now use streams
 
   Future<void> deleteRecording(String recordingId) async {
     final sessionId = session.id;
@@ -91,8 +97,9 @@ class SessionDetailController extends GetxController {
         .doc(sessionId)
         .collection('recordings');
     await recordingsRef.doc(recordingId).delete();
-    recordings.removeWhere((rec) => rec.recordingId == recordingId);
-    update();
+    // Remove the manual update since stream will handle it automatically
+    // recordings.removeWhere((rec) => rec.recordingId == recordingId);
+    // update();
   }
 
   Future<void> updateSessionName(String newName) async {

@@ -9,8 +9,79 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
-class SettingsView extends StatelessWidget {
+class SettingsView extends StatefulWidget {
   const SettingsView({super.key});
+
+  @override
+  State<SettingsView> createState() => _SettingsViewState();
+}
+
+class _SettingsViewState extends State<SettingsView> {
+  String userName = 'Loading...';
+  String userEmail = '';
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // First try to get display name from Firebase Auth
+        String name = user.displayName ?? '';
+        String email = user.email ?? '';
+        
+        // If no display name, try to get from Firestore
+        if (name.isEmpty) {
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+          
+          if (userDoc.exists) {
+            final userData = userDoc.data();
+            final firstName = userData?['firstName'] ?? '';
+            final lastName = userData?['lastName'] ?? '';
+            
+            if (firstName.isNotEmpty && lastName.isNotEmpty) {
+              name = '$firstName $lastName';
+            } else if (firstName.isNotEmpty) {
+              name = firstName;
+            } else if (lastName.isNotEmpty) {
+              name = lastName;
+            } else {
+              name = email.split('@')[0]; // Use email prefix as fallback
+            }
+          } else {
+            name = email.split('@')[0]; // Use email prefix as fallback
+          }
+        }
+        
+        setState(() {
+          userName = name;
+          userEmail = email;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          userName = 'Guest User';
+          userEmail = '';
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading user data: $e');
+      setState(() {
+        userName = 'User';
+        userEmail = '';
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,27 +109,45 @@ class SettingsView extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 child: Row(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 30,
-                      backgroundImage: AssetImage('assets/profile.jpg'),
-                    ),
-                    const SizedBox(width: 16),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Welcome,',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                          Text(
-                            'Mark Jones',
-                            style: TextStyle(
+                      backgroundColor: Colors.grey[200],
+                      child: isLoading 
+                        ? const CircularProgressIndicator()
+                        : Text(
+                            userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                            style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.black,
                             ),
                           ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Welcome,',
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                          Text(
+                            isLoading ? 'Loading...' : userName,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black,
+                            ),
+                          ),
+                          if (userEmail.isNotEmpty && !isLoading)
+                            Text(
+                              userEmail,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
                         ],
                       ),
                     ),

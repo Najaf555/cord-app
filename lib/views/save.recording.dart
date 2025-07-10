@@ -102,7 +102,7 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
         'duration': widget.timerValue ?? '00:00.00',
         'createdAt': FieldValue.serverTimestamp(),
         'recordingId': '', // placeholder, will set below
-        'fileName': widget.recordingFileName,
+        'fileName': _recordingName,
       });
       await recordingsRef.doc(docRef.id).update({
         'recordingId': docRef.id,
@@ -118,9 +118,8 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
         final sessionDetailController = Get.isRegistered<SessionDetailController>()
             ? Get.find<SessionDetailController>()
             : null;
-        if (sessionDetailController != null) {
-          await sessionDetailController.loadRecordingsFromFirestore();
-        }
+        // Remove the loadRecordingsFromFirestore call since we now use streams
+        // The stream will automatically update when new recordings are added
       } catch (_) {}
 
       Get.snackbar(

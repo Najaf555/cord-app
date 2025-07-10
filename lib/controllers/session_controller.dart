@@ -122,6 +122,7 @@ class SessionController extends GetxController {
               realUsers.add(app_user.User(
                 id: userDoc.id,
                 name: "${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}",
+                email: userData['email'] ?? '',
                 avatarUrl: userData['imageUrl'] ?? '',
               ));
             }
@@ -181,11 +182,11 @@ class SessionController extends GetxController {
 
   void loadMockSessions() {
     final users = [
-      app_user.User(id: '1', name: 'User1', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
-      app_user.User(id: '2', name: 'User2', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
-      app_user.User(id: '3', name: 'User3', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
-      app_user.User(id: '4', name: 'User4', avatarUrl: 'https://randomuser.me/api/portraits/men/4.jpg'),
-      app_user.User(id: '5', name: 'User5', avatarUrl: 'https://randomuser.me/api/portraits/men/5.jpg'),
+      app_user.User(id: '1', name: 'User1', email: 'user1@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
+      app_user.User(id: '2', name: 'User2', email: 'user2@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
+      app_user.User(id: '3', name: 'User3', email: 'user3@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
+      app_user.User(id: '4', name: 'User4', email: 'user4@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/4.jpg'),
+      app_user.User(id: '5', name: 'User5', email: 'user5@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/5.jpg'),
     ];
     sessions.value = [
       Session(

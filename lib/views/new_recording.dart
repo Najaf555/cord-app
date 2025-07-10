@@ -61,6 +61,10 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   String _sessionTitle = 'Free Falling v2';
   String _recordingFileName = 'New Recording';
 
+  // 1. Add to state:
+  final just_audio.AudioPlayer _audioPlayer = just_audio.AudioPlayer();
+  bool _isAudioPlaying = false;
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +79,16 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     
     // Request microphone permission and start audio recording
     _requestMicrophonePermission();
+
+    // Add a single playerStateStream listener
+    _audioPlayer.playerStateStream.listen((state) {
+      final playing = state.playing && state.processingState == just_audio.ProcessingState.ready;
+      if (mounted) {
+        setState(() {
+          _isAudioPlaying = playing;
+        });
+      }
+    });
   }
 
   @override
@@ -82,13 +96,14 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     _controller.dispose();
     _timer?.cancel();
     _audioRecorder.closeRecorder();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
   void _startRecording() {
-      setState(() {
+    setState(() {
       _isRecording = true;
-      });
+    });
     _controller.repeat();
     _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
       setState(() {
@@ -98,18 +113,18 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   }
 
   void _stopRecording() {
-        setState(() {
+    setState(() {
       _isRecording = false;
-        });
+    });
     _controller.stop();
     _timer?.cancel();
-    }
+  }
 
   Future<void> _pauseRecording() async {
       if (_isAudioRecording) {
         final path = await _audioRecorder.stopRecorder();
         await _audioRecorder.closeRecorder();
-        setState(() {
+    setState(() {
           _isAudioRecording = false;
       _isPaused = true;
       _showPausedControls = true;
@@ -413,166 +428,181 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
             ),
           ],
         ),
-        floatingActionButton: null,
+        floatingActionButton: (_isAudioRecording && !_isPaused)
+            ? SizedBox(
+                  height: 64,
+                  width: 64,
+                  child: FloatingActionButton(
+                  onPressed: _pauseRecording,
+                    elevation: 0,
+                    backgroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                    child: Image.asset(
+                      'assets/images/linemdpause.png',
+                      width: 64,
+                      height: 64,
+                      fit: BoxFit.contain,
+                  ),
+                ),
+              )
+            : null,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         body: SafeArea(
           child: Column(
             children: [
               Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top indicator for closing screen
+              Padding(
+                padding: const EdgeInsets.only(top: 8, bottom: 8),
+                child: Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ),
+              // Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const SizedBox(width: 24), // Placeholder for symmetry
+                    Column(
                       children: [
-                        // Top indicator for closing screen
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8, bottom: 8),
-                          child: Center(
-                            child: Container(
-                              width: 40,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[300],
-                                borderRadius: BorderRadius.circular(2),
+                        Row(
+                          children: [
+                                    Text(
+                                      _sessionTitle, // Use a variable for the session title
+                                      style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ),
-                        ),
-                        // Header
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const SizedBox(width: 24), // Placeholder for symmetry
-                              Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        _sessionTitle, // Use a variable for the session title
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        _recordingFileName,
-                                        style: const TextStyle(fontSize: 14, color: Colors.black54),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      GestureDetector(
-                                        onTap: () async {
-                                          final controller = TextEditingController(text: _recordingFileName);
-                                          final result = await showDialog<String>(
-                                            context: context,
-                                            barrierDismissible: false,
-                                            builder: (context) {
-                                              return Dialog(
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.zero,
-                                                ),
-                                                backgroundColor: Colors.white,
-                                                child: Padding(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
-                                                  child: Column(
-                                                    mainAxisSize: MainAxisSize.min,
-                                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                                    children: [
-                                                      Container(
-                                                        decoration: BoxDecoration(
-                                                          border: Border.all(color: Colors.grey.shade400, width: 2),
-                                                          borderRadius: BorderRadius.zero,
-                                                          color: Colors.white,
-                                                        ),
-                                                        child: TextField(
-                                          controller: controller,
-                                          decoration: const InputDecoration(
-                                                    hintText: 'New Session',
-                                                    border: InputBorder.none,
-                                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                                  ),
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    color: Colors.black54,
-                                                    fontWeight: FontWeight.w500,
-                                          ),
-                                          autofocus: true,
-                                        ),
-                                      ),
-                                          const SizedBox(height: 24),
-                                          GestureDetector(
-                                            onTap: () {
-                                          final newName = controller.text.trim();
-                                          if (newName.isNotEmpty) {
-                                            Navigator.of(context).pop(newName);
-                                          }
-                                        },
-                                            child: Center(
-                                              child: Container(
-                                                width: 120,
-                                                height: 40,
-                                                padding: EdgeInsets.zero,
-                                                child: Stack(
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      _recordingFileName,
+                                      style: const TextStyle(fontSize: 14, color: Colors.black54),
+                                    ),
+                            const SizedBox(width: 6),
+                                    GestureDetector(
+                                      onTap: () async {
+                                        final controller = TextEditingController(text: _recordingFileName);
+                                        final result = await showDialog<String>(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (context) {
+                                            return Dialog(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius: BorderRadius.zero,
+                                              ),
+                                              backgroundColor: Colors.white,
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                                                child: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                                   children: [
-                                                    // Gradient border
                                                     Container(
                                                       decoration: BoxDecoration(
+                                                        border: Border.all(color: Colors.grey.shade400, width: 2),
                                                         borderRadius: BorderRadius.zero,
-                                                        gradient: const LinearGradient(
-                                                          colors: [
-                                                            Color(0xFFFFA726), // orange
-                                                            Color(0xFFE040FB), // pink
-                                                          ],
-                                                          begin: Alignment.centerLeft,
-                                                          end: Alignment.centerRight,
+                                                        color: Colors.white,
+                                                      ),
+                                                      child: TextField(
+                                                        controller: controller,
+                                                        decoration: const InputDecoration(
+                                                          hintText: 'New Session',
+                                                          border: InputBorder.none,
+                                                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                                        ),
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                          color: Colors.black54,
+                                                          fontWeight: FontWeight.w500,
+                                                        ),
+                                                        autofocus: true,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 24),
+                                                    GestureDetector(
+                                                      onTap: () {
+                                                        final newName = controller.text.trim();
+                                                        if (newName.isNotEmpty) {
+                                                          Navigator.of(context).pop(newName);
+                                                        }
+                                                      },
+                                                      child: Center(
+                                                        child: Container(
+                                                          width: 120,
+                                                          height: 40,
+                                                          padding: EdgeInsets.zero,
+                                                          child: Stack(
+                                                            children: [
+                                                              // Gradient border
+                                                              Container(
+                                                                decoration: BoxDecoration(
+                                                                  borderRadius: BorderRadius.zero,
+                                                                  gradient: const LinearGradient(
+                                                                    colors: [
+                                                                      Color(0xFFFFA726), // orange
+                                                                      Color(0xFFE040FB), // pink
+                                                                    ],
+                                                                    begin: Alignment.centerLeft,
+                                                                    end: Alignment.centerRight,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              // Inner white container with margin for border effect
+                                                              Container(
+                                                                margin: const EdgeInsets.all(1.5), // Border thickness
+                                                                decoration: const BoxDecoration(
+                                                                  color: Colors.white,
+                                                                  borderRadius: BorderRadius.zero,
+                                                                ),
+                                                                alignment: Alignment.center,
+                                                                child: const Text(
+                                                                  'Save',
+                                                                  style: TextStyle(
+                                                                    fontSize: 16,
+                                                                    fontWeight: FontWeight.w400,
+                                                                    color: Colors.black,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
-                                                    // Inner white container with margin for border effect
-                                                    Container(
-                                                      margin: const EdgeInsets.all(1.5), // Border thickness
-                                                      decoration: const BoxDecoration(
-                                                        color: Colors.white,
-                                                        borderRadius: BorderRadius.zero,
-                                                      ),
-                                                      alignment: Alignment.center,
-                                                      child: const Text(
-                                                        'Save',
-                                                        style: TextStyle(
-                                                          fontSize: 16,
-                                                          fontWeight: FontWeight.w400,
-                                                          color: Colors.black,
-                                                        ),
-                                                      ),
-                                      ),
-                                    ],
-                                                  ),
+                                                  ],
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                );
-                                if (result != null && result.isNotEmpty) {
-                                  setState(() {
-                                    _recordingFileName = result;
-                                  });
-                                }
-                              },
-                              child: Icon(Icons.edit, size: 18, color: Colors.black54),
-                            ),
-                          ],
-                        ),
+                                            );
+                                          },
+                                        );
+                                        if (result != null && result.isNotEmpty) {
+                                          setState(() {
+                                            _recordingFileName = result;
+                                          });
+                                        }
+                                      },
+                                      child: Icon(Icons.edit, size: 18, color: Colors.black54),
+                                    ),
+                                  ],
+                                ),
                       ],
                     ),
                     TextButton(
@@ -596,41 +626,41 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                           final blobName = 'recordings/${user.uid}/$fileName';
                           final file = File(_recordingPath!);
                           final fileUrl = await AzureStorageService.uploadFile(file, blobName);
-                          if (widget.showSaveScreenAtEnd) {
-                            Navigator.of(context).pop();
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              backgroundColor: Colors.transparent,
-                              builder: (context) => SaveRecordingScreen(
-                                azureFileUrl: fileUrl,
-                                timerValue: _formatElapsed(_elapsedSeconds),
-                                recordingFileName: fileName,
-                              ),
-                            );
-                          } else {
-                            // Save directly to the provided session in Firestore
-                            final recordingsRef = FirebaseFirestore.instance
-                              .collection('sessions')
-                              .doc(widget.sessionId)
-                              .collection('recordings');
-                            final docRef = await recordingsRef.add({
-                              'userId': user.uid,
-                              'fileUrl': fileUrl,
-                              'duration': _formatElapsed(_elapsedSeconds),
-                              'createdAt': FieldValue.serverTimestamp(),
-                              'fileName': fileName,
-                            });
-                            await recordingsRef.doc(docRef.id).update({
-                              'recordingId': docRef.id,
-                            });
-                            Get.snackbar(
-                              'Success',
-                              'Recording uploaded and saved!',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.green,
-                              colorText: Colors.white,
-                            );
+                                  if (widget.showSaveScreenAtEnd) {
+                                    Navigator.of(context).pop();
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (context) => SaveRecordingScreen(
+                                        azureFileUrl: fileUrl,
+                                        timerValue: _formatElapsed(_elapsedSeconds),
+                                        recordingFileName: _recordingFileName,
+                                      ),
+                                    );
+                                  } else {
+                                    // Save directly to the provided session in Firestore
+                          final recordingsRef = FirebaseFirestore.instance
+                            .collection('sessions')
+                                      .doc(widget.sessionId)
+                            .collection('recordings');
+                          final docRef = await recordingsRef.add({
+                            'userId': user.uid,
+                            'fileUrl': fileUrl,
+                            'duration': _formatElapsed(_elapsedSeconds),
+                            'createdAt': FieldValue.serverTimestamp(),
+                                      'fileName': _recordingFileName,
+                          });
+                          await recordingsRef.doc(docRef.id).update({
+                            'recordingId': docRef.id,
+                          });
+                          Get.snackbar(
+                            'Success',
+                            'Recording uploaded and saved!',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.green,
+                            colorText: Colors.white,
+                          );
                             int pops = 0;
                             Navigator.of(context, rootNavigator: true).popUntil((route) {
                               pops++;
@@ -638,10 +668,10 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                             });
                           }
                         } catch (e) {
-                          print('Error processing and uploading recording: $e');
+                                  print('Error processing and uploading recording: $e');
                           Get.snackbar(
                             'Error',
-                            'Failed to process and upload recording: $e',
+                                    'Failed to process and upload recording: $e',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Colors.red,
                             colorText: Colors.white,
@@ -818,55 +848,43 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                   ],
                 ),
               ),
-              // Add Stop/Continue buttons at the bottom, above the nav bar
-              const SizedBox(height: 16),
-              // Playback controls fixed at the bottom
-              Padding(
-                padding: const EdgeInsets.only(bottom: 24.0, top: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildControlButton(
-                      icon: Icons.play_arrow,
-                      label: 'Play back',
-                      onPressed: (_recordingPath != null && File(_recordingPath!).existsSync() && File(_recordingPath!).lengthSync() > 0)
-                          ? () async {
-                              final player = just_audio.AudioPlayer();
-                              try {
-                                await player.setFilePath(_recordingPath!);
-                                await player.play();
-                              } catch (e) {
-                                Get.snackbar(
-                                  'Playback Error',
-                                  'Could not play recording: $e',
-                                  snackPosition: SnackPosition.BOTTOM,
-                                  backgroundColor: Colors.red,
-                                  colorText: Colors.white,
-                                );
-                              }
-                            }
-                          : null,
-                      iconColor: Colors.black,
-                      textColor: Colors.black,
-                    ),
-                    // _buildControlButton(
-                    //   icon: Icons.fiber_manual_record_outlined,
-                    //   label: 'Continue',
-                    //   onPressed: null,
-                    //   iconColor: Colors.red,
-                    //   textColor: Colors.black,
-                    // ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+              if (_isPaused)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 44.0, top: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildControlButton(
+                        icon: _isAudioPlaying ? Icons.pause : Icons.play_arrow,
+                        label: _isAudioPlaying ? 'Pause' : 'Play back',
+                        onPressed: (_recordingPath != null && File(_recordingPath!).existsSync() && File(_recordingPath!).lengthSync() > 0)
+                            ? () async {
+                                if (_isAudioPlaying) {
+                                  await _audioPlayer.pause();
+                                } else {
+                                  // Only set file path if idle or completed
+                                  if (_audioPlayer.processingState == just_audio.ProcessingState.idle ||
+                                      _audioPlayer.processingState == just_audio.ProcessingState.completed) {
+                                    await _audioPlayer.setFilePath(_recordingPath!);
+                                  }
+                                  await _audioPlayer.play();
+                                }
+                              }
+                            : null,
+                        iconColor: Colors.black,
+                        textColor: Colors.black,
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
         ),
       ),
-    )]
-    ),
-    ),
-    ),
     );
   }
 

@@ -3,23 +3,23 @@ import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
 import 'main_navigation.dart';
 import 'dart:async';
-import 'save.recording.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:flutter_sound/flutter_sound.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 import 'package:just_audio/just_audio.dart' as just_audio;
-import 'package:audioplayers/audioplayers.dart' as ap;
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PausedRecording extends StatefulWidget {
-  final VoidCallback? onNext;
-  final bool showSaveScreenAtEnd;
   final String? recordingFilePath;
+  final String? recordingDocId;
+  final String? recordingName;
+  final String? sessionName;
+  final String? sessionId;
+  
   const PausedRecording({
     super.key, 
-    this.onNext, 
-    this.showSaveScreenAtEnd = false,
     this.recordingFilePath,
+    this.recordingDocId,
+    this.recordingName,
+    this.sessionName,
+    this.sessionId,
   });
 
   @override
@@ -31,25 +31,13 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   bool _isPlaying = false;
   Timer? _timer;
   double _elapsedSeconds = 0.0;
-  String _recordingFileName = 'New Recording';
+  String _recordingFileName = '';
   final TextEditingController _fileNameController = TextEditingController();
   bool _showCenterButton = true;
-
-  // Loading indicator for permission
-  bool _isRequestingPermission = true;
-  bool _hasPermission = false;
 
   // just_audio player for playback
   final just_audio.AudioPlayer _audioPlayer = just_audio.AudioPlayer();
   bool _isAudioPlaying = false;
-  // flutter_sound for recording only
-  final FlutterSoundRecorder _audioRecorder = FlutterSoundRecorder();
-  bool _isAudioRecording = false;
-  String? _recordingPath;
-
-  // just_audio player for playback (if needed elsewhere)
-  // audioplayers for test
-  final ap.AudioPlayer _testAudioPlayer = ap.AudioPlayer();
 
   @override
   void initState() {
@@ -57,126 +45,24 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
-    ); // Do NOT start animation here
+    );
+    
+    // Set recording file name from passed parameter or use default
+    _recordingFileName = widget.recordingName ?? 'New Recording';
+    _fileNameController.text = _recordingFileName;
     
     // If we have a recording file path, we can potentially get the actual duration
-    // For now, we'll start with 0 and let the user see the timer as they interact
     if (widget.recordingFilePath != null) {
-      // You could add logic here to get the actual audio file duration
-      // For now, we'll start with 0 and let the timer run
       _elapsedSeconds = 0.0;
     }
 
-   _audioRecorder.openRecorder();
-_requestMicrophonePermissionAndStart();
-    _audioRecorder.openRecorder();
-    _requestMicrophonePermissionAndStart();
-  }
-
-  Future<void> _requestMicrophonePermissionAndStart() async {
-    // Stop and reset everything BEFORE showing permission dialog
-    _controller.stop();
-    _controller.value = 0.0;
-    _timer?.cancel();
-    _elapsedSeconds = 0.0;
-    setState(() { _isRequestingPermission = true; });
-
-    final status = await Permission.microphone.request();
-
-    if (status.isGranted) {
-      setState(() { _hasPermission = true; });
-      await _startAudioRecording();
-      _controller.repeat();
-      _startTimer();
-    } else {
-      setState(() { _hasPermission = false; });
-      // Already stopped and reset above
-      Get.snackbar(
-        'Permission Required',
-        'Microphone permission is required to record audio.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
-    setState(() { _isRequestingPermission = false; });
-  }
-
-  Future<String> _getRecordingSavePath() async {
-    final directory = await getApplicationDocumentsDirectory(); // App directory, safe for all platforms
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    final fileName = 'paused_recording_$timestamp.m4a';
-    return '${directory.path}/$fileName';
-  }
-
-  Future<void> _pauseRecordingAndSave() async {
-    if (_isAudioRecording) {
-      await _audioRecorder.stopRecorder();
-      setState(() {
-        _isAudioRecording = false;
-      });
-      // Show a small message when the temp file is saved
-      if (_recordingPath != null) {
-        Get.snackbar(
-          'Recording Saved',
-          'Temporary recording file saved.',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          duration: const Duration(seconds: 2),
-        );
-      }
-    }
-  }
-
-  // Update _startAudioRecording to use the app directory
-  Future<void> _startAudioRecording() async {
-    try {
-      final filePath = await _getRecordingSavePath();
-      _recordingPath = filePath; // Save temp recording file path
-      await _audioRecorder.startRecorder(
-        toFile: _recordingPath!,
-        codec: Codec.aacMP4,
-      );
-      setState(() {
-        _isAudioRecording = true;
-      });
-    } catch (e) {
-      print('Error starting audio recording: $e');
-      Get.snackbar(
-        'Recording Error',
-        'Failed to start audio recording: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
-  }
-
-  Future<void> _stopAudioRecording() async {
-    try {
-      if (_isAudioRecording) {
-        await _audioRecorder.stopRecorder();
+    // Listen to audio player position for playback progress
+    _audioPlayer.positionStream.listen((position) {
+      if (_isAudioPlaying) {
         setState(() {
-          _isAudioRecording = false;
+          _elapsedSeconds = position.inMilliseconds / 1000.0;
         });
       }
-    } catch (e) {
-      print('Error stopping audio recording: $e');
-    }
-  }
-
-  void _startTimer() {
-    setState(() {
-      _isPlaying = true;
-      _showCenterButton = false;
-    });
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
-      if (!_isPlaying) return;
-      setState(() {
-        _elapsedSeconds += 0.03;
-      });
     });
   }
 
@@ -184,43 +70,40 @@ _requestMicrophonePermissionAndStart();
   void dispose() {
     _controller.dispose();
     _timer?.cancel();
-    _audioPlayer.dispose(); // just_audio cleanup
-    _audioRecorder.closeRecorder();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
-  // Pause logic: stop and save recording
-  Future<void> _onPausePressed() async {
-    await _pauseRecordingAndSave(); // This will stop and ensure _recordingPath is set
-    setState(() {
-      _isPlaying = false;
-      _isAudioRecording = false;
-      // Do NOT reset _elapsedSeconds
-    });
-  }
-
-  // Play Back logic: play from saved temp file, do NOT reset timer
+  // Play Back logic: play from Azure URL
   Future<void> _onPlayPressed() async {
-    if (_isAudioRecording) {
-      await _pauseRecordingAndSave();
-    }
-    final tempPath = _recordingPath;
-    if (tempPath == null || !File(tempPath).existsSync()) {
-      Get.snackbar('No Recording', 'No recording file found to play.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
+    final recordingPath = widget.recordingFilePath;
+    if (recordingPath == null) {
+      Get.snackbar('No Recording', 'No recording found to play.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
       return;
     }
+    
     setState(() {
       _isAudioPlaying = true;
       _isPlaying = true;
       _showCenterButton = false;
     });
+    
     try {
-      await _testAudioPlayer.play(ap.DeviceFileSource(tempPath));
-      _testAudioPlayer.onPlayerComplete.listen((event) {
-        setState(() {
-          _isAudioPlaying = false;
-          _isPlaying = false;
-        });
+      // Only set URL if player is idle or completed
+      if (_audioPlayer.processingState == just_audio.ProcessingState.idle || 
+          _audioPlayer.processingState == just_audio.ProcessingState.completed) {
+        await _audioPlayer.setUrl(recordingPath);
+      }
+      await _audioPlayer.play();
+      
+      // Listen for completion
+      _audioPlayer.playerStateStream.listen((state) {
+        if (state.processingState == just_audio.ProcessingState.completed) {
+          setState(() {
+            _isAudioPlaying = false;
+            _isPlaying = false;
+          });
+        }
       });
     } catch (e) {
       setState(() {
@@ -228,6 +111,20 @@ _requestMicrophonePermissionAndStart();
         _isPlaying = false;
       });
       Get.snackbar('Playback Error', 'Failed to play audio: $e', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red, colorText: Colors.white);
+    }
+  }
+
+  // Pause logic: pause playback
+  Future<void> _onPausePressed() async {
+    setState(() {
+      _isAudioPlaying = false;
+      _isPlaying = false;
+      _showCenterButton = true;
+    });
+    try {
+      await _audioPlayer.pause();
+    } catch (e) {
+      print('Error pausing audio: $e');
     }
   }
 
@@ -247,44 +144,98 @@ _requestMicrophonePermissionAndStart();
   }
 
   Future<void> _onStopPlayback() async {
-    await _testAudioPlayer.stop();
+    try {
+      await _audioPlayer.stop();
+    } catch (e) {
+      print('Error stopping audio: $e');
+    }
     setState(() {
       _isAudioPlaying = false;
       _isPlaying = false;
     });
   }
 
+  Widget _buildControlButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback? onPressed,
+    required Color iconColor,
+    required Color textColor,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          icon: Icon(icon, size: 48),
+          color: iconColor,
+          onPressed: onPressed,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: textColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
   String _formatElapsed(double seconds) {
     final int min = seconds ~/ 60;
     final int sec = seconds.toInt() % 60;
     final int ms = ((seconds - seconds.floor()) * 100).toInt();
-    return '${min.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}.${ms.toString().padLeft(2, '0')}' ;
+    return '${min.toString().padLeft(2, '0')}:${sec.toString().padLeft(2, '0')}.${ms.toString().padLeft(2, '0')}';
+  }
+
+  // Update recording name in Firestore
+  Future<void> _updateRecordingNameInFirestore(String newName) async {
+    if (widget.recordingDocId == null) {
+      print('No recording document ID available');
+      return;
+    }
+
+    if (widget.sessionId == null) {
+      print('No session ID available');
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(widget.sessionId)
+          .collection('recordings')
+          .doc(widget.recordingDocId)
+          .update({
+        'name': newName,
+      });
+      print('Recording name updated successfully in Firestore');
+      Get.snackbar(
+        'Success',
+        'Recording name updated',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      print('Error updating recording name in Firestore: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to update recording name',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final NavigationController navController = Get.find<NavigationController>();
 
-    if (_isRequestingPermission) {
-      // Timer and waveform are not built, and are at zero
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    if (!_hasPermission) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: Text('Microphone permission is required to record.'),
-        ),
-      );
-    }
-
-    // Only here, after permission is granted, build timer and waveform
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
       child: Scaffold(
@@ -317,9 +268,9 @@ _requestMicrophonePermissionAndStart();
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          const Text(
-                            'New Session',
-                            style: TextStyle(
+                          Text(
+                            widget.sessionName ?? 'New Session',
+                            style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
@@ -340,22 +291,22 @@ _requestMicrophonePermissionAndStart();
                                 message: 'Edit file name',
                                 child: GestureDetector(
                                   onTap: () async {
-                                     print('🟢 Edit icon tapped'); // ✅ Debug print
+                                    print('🟢 Edit icon tapped');
                                     _fileNameController.text = _recordingFileName;
                                     String? errorText;
                                     final result = await showDialog<String>(
                                       context: context,
-                                      barrierDismissible: false, // User must tap Save or Cancel
+                                      barrierDismissible: false,
                                       builder: (context) {
                                         return StatefulBuilder(
                                           builder: (context, setState) {
                                             return AlertDialog(
-                                              backgroundColor: Colors.white, // Pure white background
+                                              backgroundColor: Colors.white,
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.zero, // Sharp corners
+                                                borderRadius: BorderRadius.zero,
                                               ),
-                                              insetPadding: EdgeInsets.zero, // Remove default dialog padding
-                                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Minimal padding
+                                              insetPadding: EdgeInsets.zero,
+                                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                               titlePadding: EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 0),
                                               actionsPadding: EdgeInsets.only(left: 0, right: 0, bottom: 16, top: 8),
                                               title: const Text('Recording Name', style: TextStyle(fontSize: 16)),
@@ -363,7 +314,7 @@ _requestMicrophonePermissionAndStart();
                                                 controller: _fileNameController,
                                                 decoration: InputDecoration(
                                                   border: OutlineInputBorder(
-                                                    borderRadius: BorderRadius.zero, // Sharp corners
+                                                    borderRadius: BorderRadius.zero,
                                                   ),
                                                   enabledBorder: OutlineInputBorder(
                                                     borderRadius: BorderRadius.zero,
@@ -388,7 +339,7 @@ _requestMicrophonePermissionAndStart();
                                                       foregroundColor: Colors.black,
                                                       side: const BorderSide(
                                                         width: 2,
-                                                        color: Color(0xFFFF9800), // Orange border (can use gradient if needed)
+                                                        color: Color(0xFFFF9800),
                                                       ),
                                                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
                                                       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
@@ -414,14 +365,19 @@ _requestMicrophonePermissionAndStart();
                                       },
                                     );
                                     if (result != null && result.isNotEmpty) {
-                                      setState(() {
-                                        _recordingFileName = result;
-                                      });
+                                      final newName = result.trim();
+                                      if (newName != _recordingFileName) {
+                                        setState(() {
+                                          _recordingFileName = newName;
+                                        });
+                                        // Update the recording name in Firestore
+                                        await _updateRecordingNameInFirestore(newName);
+                                      }
                                     }
                                   },
                                   child: const Icon(
                                     Icons.edit,
-                                    size: 18, // Larger size for better visibility
+                                    size: 18,
                                     color: Color.fromARGB(255, 253, 162, 27),
                                   ),
                                 ),
@@ -433,18 +389,11 @@ _requestMicrophonePermissionAndStart();
                     ),
                     TextButton(
                       onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (context) => SaveRecordingScreen(
-                              timerValue: _formatElapsed(_elapsedSeconds),
-                              recordingFilePath: widget.recordingFilePath ?? _recordingPath,
-                              recordingFileName: _recordingFileName,
-                            ),
-                          ),
-                        );
+                        // Dismiss the bottom sheet modal
+                        Navigator.of(context).pop();
                       },
                       child: Text(
-                        'Next',
+                        'Done',
                         style: const TextStyle(
                           color: Colors.blue,
                           fontSize: 16,
@@ -564,53 +513,50 @@ _requestMicrophonePermissionAndStart();
               ),
               const Spacer(),
               // Play back and Continue buttons
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Visibility(
-                  visible: !_showCenterButton,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      IgnorePointer(
-                        ignoring: true,
-                        child: _buildControlButton(
-                          icon: _isAudioPlaying ? Icons.stop : Icons.play_arrow,
-                          label: _isAudioPlaying ? 'Stop' : 'Play back',
-                          onPressed: _isAudioPlaying ? _onStopPlayback : _onPlayPressed,
-                          iconColor: _isAudioPlaying ? Colors.red : Colors.blue,
-                          textColor: _isAudioPlaying ? Colors.red : Colors.blue,
-                        ),
-                      ),
-                      _buildControlButton(
-                        icon: Icons.fiber_manual_record_outlined,
-                        label: 'Continue',
-                        onPressed: _onContinuePressed,
-                        iconColor: Colors.red,
-                        textColor: Colors.black,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              // Padding(
+              //   padding: const EdgeInsets.only(bottom: 16.0),
+              //   child: Visibility(
+              //     visible: !_showCenterButton,
+              //     child: Row(
+              //       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              //       children: [
+              //         IgnorePointer(
+              //           ignoring: true,
+              //           child: _buildControlButton(
+              //             icon: _isAudioPlaying ? Icons.stop : Icons.play_arrow,
+              //             label: _isAudioPlaying ? 'Stop' : 'Play back',
+              //             onPressed: _isAudioPlaying ? _onStopPlayback : _onPlayPressed,
+              //             iconColor: _isAudioPlaying ? Colors.red : Colors.blue,
+              //             textColor: _isAudioPlaying ? Colors.red : Colors.blue,
+              //           ),
+              //         ),
+              //         _buildControlButton(
+              //           icon: Icons.fiber_manual_record_outlined,
+              //           label: 'Continue',
+              //           onPressed: _onContinuePressed,
+              //           iconColor: Colors.red,
+              //           textColor: Colors.black,
+              //         ),
+              //       ],
+              //     ),
+              //   ),
+              // ),
             ],
           ),
         ),
-        floatingActionButton: Visibility(
-          visible: !_showCenterButton,
-          child: SizedBox(
-            height: 64,
-            width: 64,
-            child: FloatingActionButton(
-              onPressed: _onPausePressed,
-              elevation: 0,
-              backgroundColor: const Color.fromARGB(255, 255, 255, 255),
-              shape: const CircleBorder(),
-              child: Image.asset(
-                'assets/images/linemdpause.png',
-                width: 64,
-                height: 64,
-                fit: BoxFit.contain,
-              ),
+        floatingActionButton: SizedBox(
+          height: 64,
+          width: 64,
+          child: FloatingActionButton(
+            onPressed: _isAudioPlaying ? _onPausePressed : _onPlayPressed,
+            elevation: 0,
+            backgroundColor: Colors.white,
+            shape: const CircleBorder(),
+            child: Image.asset(
+              'assets/images/linemdpause.png',
+              width: 64,
+              height: 64,
+              fit: BoxFit.contain,
             ),
           ),
         ),
@@ -693,34 +639,6 @@ _requestMicrophonePermissionAndStart();
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildControlButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback? onPressed,
-    required Color iconColor,
-    required Color textColor,
-  }) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          icon: Icon(icon, size: 48),
-          color: iconColor,
-          onPressed: onPressed,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: textColor,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 }

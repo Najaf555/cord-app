@@ -30,7 +30,7 @@ class MainNavigation extends StatelessWidget {
                 init: SessionDetailController(
                   session: navController.currentSession.value!,
                 ),
-                builder: (_) => SessionDetailView(),
+                builder: (_) => SessionDetailView(session: navController.currentSession.value!),
               );
             } else {
               // Otherwise, show the selected tab (SessionsView or SettingsView)
