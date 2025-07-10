@@ -437,8 +437,8 @@ _requestMicrophonePermissionAndStart();
                           MaterialPageRoute(
                             builder: (context) => SaveRecordingScreen(
                               timerValue: _formatElapsed(_elapsedSeconds),
-                              recordingFilePath: widget.recordingFilePath ?? _recordingPath,
-                              recordingFileName: _recordingFileName,
+                              azureFileUrl: widget.recordingFilePath ?? _recordingPath,
+                              fileName: _recordingFileName,
                             ),
                           ),
                         );
