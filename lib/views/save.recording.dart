@@ -4,18 +4,21 @@ import '../controllers/navigation_controller.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/session_detail_controller.dart';
+import '../utils/azure_storage_service.dart';
+import 'dart:io';
+import '../views/sessions_view.dart';
 
 class SaveRecordingScreen extends StatefulWidget {
   final String? timerValue;
+  final String? recordingFilePath;
+  final String? recordingFileName;
   final String? azureFileUrl;
-  final String? fileName;
-  final Map<String, dynamic>? recordingMetadata;
   const SaveRecordingScreen({
     super.key, 
     this.timerValue,
+    this.recordingFilePath,
+    this.recordingFileName,
     this.azureFileUrl,
-    this.fileName,
-    this.recordingMetadata,
   });
 
   @override
@@ -33,22 +36,17 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.fileName != null && widget.fileName!.isNotEmpty) {
-      // Remove .m4a extension for display name
-      String displayName = widget.fileName!;
-      if (displayName.toLowerCase().endsWith('.m4a')) {
-        displayName = displayName.substring(0, displayName.length - 4);
-      }
-      _recordingName = displayName;
+    if (widget.recordingFileName != null && widget.recordingFileName!.isNotEmpty) {
+      _recordingName = widget.recordingFileName!;
     }
   }
 
-  // Function to save recording to Firestore using existing Azure URL
+  // Function to upload recording to Azure and save to Firestore
   Future<void> _saveRecordingToSession(String sessionId) async {
-    if (widget.azureFileUrl == null || widget.azureFileUrl!.isEmpty) {
+    if (widget.azureFileUrl == null) {
       Get.snackbar(
-        'No Recording URL',
-        'Recording URL not found.',
+        'No Recording File',
+        'Recording file not found.',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -56,6 +54,18 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
       return;
     }
 
+    if (sessionId.isEmpty) {
+      Get.snackbar(
+        'No Session Id',
+        'Session Id not found.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+
+    print("sessionId: $sessionId");
     setState(() {
       _isUploading = true;
     });
@@ -64,33 +74,39 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not logged in');
 
-      // Use the existing Azure URL and metadata
-      final fileUrl = widget.azureFileUrl!;
-      final fileName = widget.fileName ?? 'recording_${DateTime.now().millisecondsSinceEpoch}.m4a';
-      
-      // 2. Save to Firestore with complete document structure
+      // 1. Upload to Azure
+      // final timestamp = DateTime.now().millisecondsSinceEpoch;
+      // If user edited the name, use it as fileName (with .m4a), else use auto-generated
+      // String fileName;
+      // if (_recordingName != 'New Recording' && _recordingName.trim().isNotEmpty) {
+      //   // Sanitize and ensure .m4a extension
+      //   fileName = _recordingName.trim();
+      //   if (!fileName.toLowerCase().endsWith('.m4a')) {
+      //     fileName = '$fileName.m4a';
+      //   }
+      // } else {
+      //   fileName = 'recording_$timestamp.m4a';
+      // }
+      // final blobName = 'recordings/${user.uid}/$fileName';
+      // final file = File(widget.recordingFilePath!);
+      // final fileUrl = await AzureStorageService.uploadFile(file, blobName);
+
+      // 2. Save to Firestore (only fileName, not name)
       final recordingsRef = FirebaseFirestore.instance
           .collection('sessions')
           .doc(sessionId)
           .collection('recordings');
-      
-      // Create document with all required fields and metadata
       final docRef = await recordingsRef.add({
         'userId': user.uid,
-        'fileUrl': fileUrl,
+        'fileUrl': widget.azureFileUrl,
         'duration': widget.timerValue ?? '00:00.00',
         'createdAt': FieldValue.serverTimestamp(),
-        'fileName': fileName,
-        'totalSegments': widget.recordingMetadata?['totalSegments'] ?? 1,
-        'segments': widget.recordingMetadata?['segments'] ?? [],
-        'isMultiSegment': widget.recordingMetadata?['isMultiSegment'] ?? false,
+        'recordingId': '', // placeholder, will set below
+        'fileName': widget.recordingFileName,
       });
-      
-      // Update with the actual recordingId
       await recordingsRef.doc(docRef.id).update({
         'recordingId': docRef.id,
       });
-      
       // Store doc ID and sessionId for later updates
       setState(() {
         _recordingDocId = docRef.id;
@@ -109,19 +125,25 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
 
       Get.snackbar(
         'Success',
-        'Recording saved to session successfully!',
+        'Recording uploaded and saved to session!',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
 
-      Navigator.of(context).pop();
+      // Navigate to SessionsView after success
+      Future.delayed(const Duration(milliseconds: 500), () {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => SessionsView()),
+          (route) => false,
+        );
+      });
 
     } catch (e) {
-      print('Error saving recording to session: $e');
+      print('Error uploading or saving recording: $e');
       Get.snackbar(
         'Error',
-        'Failed to save recording to session: $e',
+        'Failed to upload/save recording: $e',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -175,7 +197,9 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                         children: [
                   Text(
                             _recordingName,
-                            style: const TextStyle(fontSize: 15, color: Colors.black54),
+                            style: (_recordingName.startsWith('recording_') && _recordingName.endsWith('.m4a'))
+                                ? const TextStyle(fontSize: 12, color: Colors.grey)
+                                : const TextStyle(fontSize: 15, color: Colors.black54),
                           ),
                           const SizedBox(width: 6),
                           GestureDetector(
@@ -348,11 +372,11 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                                             final user = FirebaseAuth.instance.currentUser;
                                             if (user == null) return;
 
-                                                // Check if we have a recording URL to save
-                                                if (widget.azureFileUrl == null || widget.azureFileUrl!.isEmpty) {
+                                                // Check if we have a recording file to upload
+                                                if (widget.azureFileUrl == null) {
                                                   ScaffoldMessenger.of(context).showSnackBar(
                                                     const SnackBar(
-                                                      content: Text('No recording URL found to save.'),
+                                                      content: Text('No recording file found to save.'),
                                                       backgroundColor: Colors.red,
                                                     ),
                                                   );

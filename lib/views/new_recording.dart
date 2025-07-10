@@ -11,8 +11,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/azure_storage_service.dart';
-import '../utils/audio_combine_service.dart';
-import 'package:just_audio/just_audio.dart' as ja;
+import 'package:just_audio/just_audio.dart' as just_audio;
 
 /*
  * Recording Document Structure:
@@ -35,7 +34,8 @@ import 'package:just_audio/just_audio.dart' as ja;
 
 class NewRecordingScreen extends StatefulWidget {
   final bool showSaveScreenAtEnd;
-  const NewRecordingScreen({super.key, this.showSaveScreenAtEnd = false});
+  final String? sessionId;
+  const NewRecordingScreen({super.key, this.showSaveScreenAtEnd = false, this.sessionId});
 
   @override
   State<NewRecordingScreen> createState() => _NewRecordingScreenState();
@@ -56,17 +56,10 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   bool _hasPermission = false;
   // Add a new state variable to track if we are in the paused controls state
   bool _showPausedControls = false;
-  String? _playbackSnapshotPath;
-  List<String> _segmentPaths = [];
-  int _segmentIndex = 0;
-  String? _currentSegmentPath;
 
   // Session title variable for editing
   String _sessionTitle = 'Free Falling v2';
   String _recordingFileName = 'New Recording';
-
-  final ja.AudioPlayer _audioPlayer = ja.AudioPlayer();
-  bool _isAudioPlaying = false;
 
   @override
   void initState() {
@@ -77,22 +70,11 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     )..addListener(() {
         setState(() {});
       });
-    _segmentPaths = [];
-    _segmentIndex = 0;
-    _startNewSegment();
+    // Start recording automatically
     _startRecording();
     
-    // Test FFmpeg integration
-    _testFFmpegIntegration();
-  }
-
-  Future<void> _testFFmpegIntegration() async {
-    try {
-      final isWorking = await AudioCombineService.testIntegration();
-      print('🎵 FFmpeg integration test: ${isWorking ? "SUCCESS" : "FAILED"}');
-    } catch (e) {
-      print('🎵 FFmpeg integration test error: $e');
-    }
+    // Request microphone permission and start audio recording
+    _requestMicrophonePermission();
   }
 
   @override
@@ -100,78 +82,56 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     _controller.dispose();
     _timer?.cancel();
     _audioRecorder.closeRecorder();
-    _audioPlayer.dispose();
     super.dispose();
   }
 
-  // Start a new segment (called on start and resume)
-  Future<void> _startNewSegment() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final segmentPath = '${directory.path}/segment_${_segmentIndex++}.m4a';
-      _currentSegmentPath = segmentPath;
-      await _audioRecorder.openRecorder();
-      await _audioRecorder.startRecorder(
-        toFile: segmentPath,
-        codec: Codec.aacMP4,
-      );
+  void _startRecording() {
       setState(() {
-        _isAudioRecording = true;
+      _isRecording = true;
       });
-      print('Started new segment: $segmentPath');
-    } catch (e) {
-      print('Error starting new segment: $e');
-      Get.snackbar(
-        'Recording Error',
-        'Failed to start new segment: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
+    _controller.repeat();
+    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
+      setState(() {
+        _elapsedSeconds += 0.03;
+      });
+    });
   }
 
-  // Stop the current segment (called on pause and final stop)
-  Future<void> _stopCurrentSegment() async {
-    try {
+  void _stopRecording() {
+        setState(() {
+      _isRecording = false;
+        });
+    _controller.stop();
+    _timer?.cancel();
+    }
+
+  Future<void> _pauseRecording() async {
       if (_isAudioRecording) {
         final path = await _audioRecorder.stopRecorder();
         await _audioRecorder.closeRecorder();
         setState(() {
           _isAudioRecording = false;
-        });
+      _isPaused = true;
+      _showPausedControls = true;
         if (path != null) {
-          _currentSegmentPath = path;
-          _segmentPaths.add(path);
-          print('Stopped segment: $path');
+          _recordingPath = path;
+          print('Paused. File path: $_recordingPath');
+          print('Exists: \\${File(_recordingPath!).existsSync()}');
+          print('Size: \\${File(_recordingPath!).lengthSync()}');
         }
-      }
-    } catch (e) {
-      print('Error stopping segment: $e');
+      });
+    _timer?.cancel();
+      _controller.stop();
     }
   }
 
-  // On pause, stop the current segment
-  void _pauseRecording() async {
-    setState(() {
-      _isPaused = true;
-      _isRecording = false;
-      _showPausedControls = true;
-    });
-    _controller.stop();
-    _timer?.cancel();
-    await _stopCurrentSegment();
-  }
-
-  // On resume, start a new segment
   void _resumeRecording() async {
     setState(() {
       _isPaused = false;
       _isRecording = true;
       _showPausedControls = false;
     });
-    await _startNewSegment();
+    await _audioRecorder.resumeRecorder();
     _controller.repeat();
     _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
       setState(() {
@@ -180,79 +140,10 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     });
   }
 
-  // On start, start the first segment
-  void _startRecording() {
+  void _playback() {
     setState(() {
-      _isRecording = true;
+      _elapsedSeconds = 0.0; // Reset timer to 00:00.00
     });
-    _controller.repeat();
-    _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
-      setState(() {
-        _elapsedSeconds += 0.03;
-      });
-    });
-  }
-
-  // On final stop, stop the current segment
-  Future<void> _stopAudioRecording() async {
-    await _stopCurrentSegment();
-  }
-
-  // Playback: play all segments in order
-  void _playback() async {
-    if (_segmentPaths.isEmpty) {
-      Get.snackbar(
-        'No Recording',
-        'No recording segments found to play.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-      );
-      return;
-    }
-    final sources = <ja.AudioSource>[];
-    for (final path in _segmentPaths) {
-      if (File(path).existsSync()) {
-        final file = File(path);
-        final fileSize = await file.length();
-        if (fileSize > 44) {
-          sources.add(ja.AudioSource.uri(Uri.file(path)));
-        }
-      }
-    }
-    if (sources.isEmpty) {
-      Get.snackbar(
-        'Empty Recording',
-        'No playable segments found.',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      return;
-    }
-    try {
-      await _audioPlayer.setAudioSource(ja.ConcatenatingAudioSource(children: sources));
-      await _audioPlayer.play();
-      setState(() {
-        _isAudioPlaying = true;
-      });
-      _audioPlayer.playerStateStream.listen((state) {
-        if (state.processingState == ja.ProcessingState.completed) {
-          setState(() {
-            _isAudioPlaying = false;
-          });
-        }
-      });
-    } catch (e) {
-      print('Playback error: $e');
-      Get.snackbar(
-        'Playback Error',
-        'Failed to play recording: $e',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-    }
   }
 
   Future<void> _requestMicrophonePermission() async {
@@ -274,27 +165,32 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     }
   }
 
-  // Refactor: Only start recording and create the file when paused (not at start)
   Future<void> _startAudioRecording() async {
     try {
+      // Check if we have permission to record
       final status = await Permission.microphone.status;
       if (status.isGranted) {
         final directory = await getApplicationDocumentsDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
+        // Generate automatic file name with format: recording_1234567890.m4a
         final fileName = 'recording_$timestamp.m4a';
-        _recordingPath = '${directory.path}/$fileName';
+        final tempRecordingPath = '${directory.path}/$fileName';
+        
         print('Generated recording file:');
         print('- File name: $fileName');
         print('- Full path: $_recordingPath');
         print('- Timestamp: $timestamp');
+        
         await _audioRecorder.openRecorder();
         await _audioRecorder.startRecorder(
-          toFile: _recordingPath!,
+          toFile: tempRecordingPath,
           codec: Codec.aacMP4,
         );
+        
         setState(() {
           _isAudioRecording = true;
         });
+        
         print('Audio recording started at: $_recordingPath');
         print('Generated file name: $fileName');
         print('File name format: recording_$timestamp.m4a');
@@ -316,6 +212,27 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    }
+  }
+
+  Future<void> _stopAudioRecording() async {
+    try {
+      if (_isAudioRecording) {
+        final path = await _audioRecorder.stopRecorder();
+        await _audioRecorder.closeRecorder();
+        setState(() {
+          _isAudioRecording = false;
+          if (path != null) {
+            _recordingPath = path;
+          }
+        });
+        
+        if (path != null) {
+          print('Audio recording stopped. File saved at: $_recordingPath');
+        }
+      }
+    } catch (e) {
+      print('Error stopping audio recording: $e');
     }
   }
 
@@ -386,7 +303,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   Widget _buildControlButton({
     required IconData icon,
     required String label,
-    required VoidCallback onPressed,
+    VoidCallback? onPressed,
     required Color iconColor,
     required Color textColor,
   }) {
@@ -396,6 +313,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         IconButton(
           icon: Icon(icon, size: 48),
           color: iconColor,
+          disabledColor: iconColor,
           onPressed: onPressed,
         ),
         const SizedBox(height: 4),
@@ -495,108 +413,153 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
             ),
           ],
         ),
-        floatingActionButton: !_showPausedControls
-            ? Visibility(
-                visible: !_isPaused,
-                child: SizedBox(
-                  height: 64,
-                  width: 64,
-                  child: FloatingActionButton(
-                    onPressed: () {
-                      if (_isRecording) {
-                        _pauseRecording();
-                      }
-                    },
-                    elevation: 0,
-                    backgroundColor: Colors.white,
-                    shape: const CircleBorder(),
-                    child: Image.asset(
-                      'assets/images/linemdpause.png',
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              )
-            : null,
+        floatingActionButton: null,
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         body: SafeArea(
           child: Column(
             children: [
-              // Top indicator for closing screen
-              Padding(
-                padding: const EdgeInsets.only(top: 8, bottom: 8),
-                child: Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-              ),
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const SizedBox(width: 24), // Placeholder for symmetry
-                    Column(
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Text(
-                              _sessionTitle, // Use a variable for the session title
-                              style: const TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                        // Top indicator for closing screen
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8, bottom: 8),
+                          child: Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(2),
                               ),
                             ),
-                          ],
+                          ),
                         ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _recordingFileName,
-                              style: const TextStyle(fontSize: 14, color: Colors.black54),
-                            ),
-                            const SizedBox(width: 6),
-                            GestureDetector(
-                              onTap: () async {
-                                final controller = TextEditingController(text: _recordingFileName);
-                                final result = await showDialog<String>(
-                                  context: context,
-                                  builder: (context) {
-                                    return AlertDialog(
-                                      title: const Text('Edit Recording Name'),
-                                      content: TextField(
-                                        controller: controller,
-                                        decoration: const InputDecoration(
-                                          labelText: 'Recording Name',
-                                          border: OutlineInputBorder(),
+                        // Header
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const SizedBox(width: 24), // Placeholder for symmetry
+                              Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        _sessionTitle, // Use a variable for the session title
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        autofocus: true,
                                       ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.of(context).pop(),
-                                          child: const Text('Cancel'),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _recordingFileName,
+                                        style: const TextStyle(fontSize: 14, color: Colors.black54),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      GestureDetector(
+                                        onTap: () async {
+                                          final controller = TextEditingController(text: _recordingFileName);
+                                          final result = await showDialog<String>(
+                                            context: context,
+                                            barrierDismissible: false,
+                                            builder: (context) {
+                                              return Dialog(
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.zero,
+                                                ),
+                                                backgroundColor: Colors.white,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                    children: [
+                                                      Container(
+                                                        decoration: BoxDecoration(
+                                                          border: Border.all(color: Colors.grey.shade400, width: 2),
+                                                          borderRadius: BorderRadius.zero,
+                                                          color: Colors.white,
+                                                        ),
+                                                        child: TextField(
+                                          controller: controller,
+                                          decoration: const InputDecoration(
+                                                    hintText: 'New Session',
+                                                    border: InputBorder.none,
+                                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                                  ),
+                                                  style: const TextStyle(
+                                                    fontSize: 18,
+                                                    color: Colors.black54,
+                                                    fontWeight: FontWeight.w500,
+                                          ),
+                                          autofocus: true,
                                         ),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            final newName = controller.text.trim();
-                                            if (newName.isNotEmpty) {
-                                              Navigator.of(context).pop(newName);
-                                            }
-                                          },
-                                          child: const Text('Save'),
+                                      ),
+                                          const SizedBox(height: 24),
+                                          GestureDetector(
+                                            onTap: () {
+                                          final newName = controller.text.trim();
+                                          if (newName.isNotEmpty) {
+                                            Navigator.of(context).pop(newName);
+                                          }
+                                        },
+                                            child: Center(
+                                              child: Container(
+                                                width: 120,
+                                                height: 40,
+                                                padding: EdgeInsets.zero,
+                                                child: Stack(
+                                                  children: [
+                                                    // Gradient border
+                                                    Container(
+                                                      decoration: BoxDecoration(
+                                                        borderRadius: BorderRadius.zero,
+                                                        gradient: const LinearGradient(
+                                                          colors: [
+                                                            Color(0xFFFFA726), // orange
+                                                            Color(0xFFE040FB), // pink
+                                                          ],
+                                                          begin: Alignment.centerLeft,
+                                                          end: Alignment.centerRight,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    // Inner white container with margin for border effect
+                                                    Container(
+                                                      margin: const EdgeInsets.all(1.5), // Border thickness
+                                                      decoration: const BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius: BorderRadius.zero,
+                                                      ),
+                                                      alignment: Alignment.center,
+                                                      child: const Text(
+                                                        'Save',
+                                                        style: TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight: FontWeight.w400,
+                                                          color: Colors.black,
+                                                        ),
+                                                      ),
+                                      ),
+                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                      ),
                                     );
                                   },
                                 );
@@ -615,98 +578,24 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                     TextButton(
                       onPressed: () async {
                         await _stopAudioRecording();
-                        
-                        // Check if we have recording segments to combine
-                        if (_segmentPaths.isEmpty) {
+                        if (_recordingPath == null || !File(_recordingPath!).existsSync()) {
                           Get.snackbar(
                             'No Recording',
-                            'No recording segments found to save.',
+                            'No recording file found to save.',
                             snackPosition: SnackPosition.BOTTOM,
                             backgroundColor: Colors.orange,
                             colorText: Colors.white,
                           );
                           return;
                         }
-
-                        // Show loading indicator
-                        Get.dialog(
-                          const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                          barrierDismissible: false,
-                        );
-
                         try {
-                          // Validate input files
-                          final isValid = await AudioCombineService.validateInputFiles(_segmentPaths);
-                          if (!isValid) {
-                            Get.back(); // Close loading dialog
-                            Get.snackbar(
-                              'Invalid Files',
-                              'Some recording segments are invalid or missing.',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.red,
-                              colorText: Colors.white,
-                            );
-                            return;
-                          }
-
-                          // Check if segments are ready for upload
-                          final areReady = await AudioCombineService.areSegmentsReadyForUpload(_segmentPaths);
-                          if (!areReady) {
-                            Get.back(); // Close loading dialog
-                            Get.snackbar(
-                              'Segments Not Ready',
-                              'Some recording segments are not ready for upload.',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.red,
-                              colorText: Colors.white,
-                            );
-                            return;
-                          }
-
-                          // Get primary recording file (first segment)
-                          final primaryFilePath = await AudioCombineService.getPrimaryRecordingFile(_segmentPaths);
-                          if (primaryFilePath == null) {
-                            Get.back(); // Close loading dialog
-                            Get.snackbar(
-                              'No Primary File',
-                              'No primary recording file found.',
-                              snackPosition: SnackPosition.BOTTOM,
-                              backgroundColor: Colors.red,
-                              colorText: Colors.white,
-                            );
-                            return;
-                          }
-
-                          // Get recording metadata
-                          final metadata = await AudioCombineService.getRecordingMetadata(_segmentPaths);
-                          
-                          print('🎵 Processing recording segments...');
-                          print('🎵 Total segments: ${_segmentPaths.length}');
-                          print('🎵 Primary file: $primaryFilePath');
-
-                          // 1. Upload primary file to Azure
+                          // 1. Upload to Azure
                           final user = FirebaseAuth.instance.currentUser;
                           if (user == null) throw Exception('User not logged in');
-                          
-                          final fileName = primaryFilePath.split('/').last;
+                          final fileName = _recordingPath!.split('/').last;
                           final blobName = 'recordings/${user.uid}/$fileName';
-                          final file = File(primaryFilePath);
+                          final file = File(_recordingPath!);
                           final fileUrl = await AzureStorageService.uploadFile(file, blobName);
-                          
-                          // Clean up temporary segment files
-                          await AudioCombineService.cleanupTempFiles(_segmentPaths);
-                          
-                          Get.back(); // Close loading dialog
-                          Get.snackbar(
-                            'Success',
-                            'Recording uploaded to Azure successfully! (${_segmentPaths.length} segments)',
-                            snackPosition: SnackPosition.BOTTOM,
-                            backgroundColor: Colors.green,
-                            colorText: Colors.white,
-                          );
-                          
                           if (widget.showSaveScreenAtEnd) {
                             Navigator.of(context).pop();
                             showModalBottomSheet(
@@ -716,11 +605,32 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                               builder: (context) => SaveRecordingScreen(
                                 azureFileUrl: fileUrl,
                                 timerValue: _formatElapsed(_elapsedSeconds),
-                                fileName: fileName,
-                                recordingMetadata: metadata,
+                                recordingFileName: fileName,
                               ),
                             );
                           } else {
+                            // Save directly to the provided session in Firestore
+                            final recordingsRef = FirebaseFirestore.instance
+                              .collection('sessions')
+                              .doc(widget.sessionId)
+                              .collection('recordings');
+                            final docRef = await recordingsRef.add({
+                              'userId': user.uid,
+                              'fileUrl': fileUrl,
+                              'duration': _formatElapsed(_elapsedSeconds),
+                              'createdAt': FieldValue.serverTimestamp(),
+                              'fileName': fileName,
+                            });
+                            await recordingsRef.doc(docRef.id).update({
+                              'recordingId': docRef.id,
+                            });
+                            Get.snackbar(
+                              'Success',
+                              'Recording uploaded and saved!',
+                              snackPosition: SnackPosition.BOTTOM,
+                              backgroundColor: Colors.green,
+                              colorText: Colors.white,
+                            );
                             int pops = 0;
                             Navigator.of(context, rootNavigator: true).popUntil((route) {
                               pops++;
@@ -728,7 +638,6 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                             });
                           }
                         } catch (e) {
-                          Get.back(); // Close loading dialog
                           print('Error processing and uploading recording: $e');
                           Get.snackbar(
                             'Error',
@@ -910,36 +819,58 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                 ),
               ),
               // Add Stop/Continue buttons at the bottom, above the nav bar
-              const Spacer(),
-              if (_showPausedControls)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildControlButton(
-                        icon: Icons.play_arrow,
-                        label: 'Play back',
-                        onPressed: _playback,
-                        iconColor: Colors.black,
-                        textColor: Colors.black,
-                      ),
-                      _buildControlButton(
-                        icon: Icons.fiber_manual_record_outlined,
-                        label: 'Continue',
-                        onPressed: _resumeRecording,
-                        iconColor: Colors.red,
-                        textColor: Colors.black,
-                      ),
-                    ],
-                  ),
+              const SizedBox(height: 16),
+              // Playback controls fixed at the bottom
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24.0, top: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildControlButton(
+                      icon: Icons.play_arrow,
+                      label: 'Play back',
+                      onPressed: (_recordingPath != null && File(_recordingPath!).existsSync() && File(_recordingPath!).lengthSync() > 0)
+                          ? () async {
+                              final player = just_audio.AudioPlayer();
+                              try {
+                                await player.setFilePath(_recordingPath!);
+                                await player.play();
+                              } catch (e) {
+                                Get.snackbar(
+                                  'Playback Error',
+                                  'Could not play recording: $e',
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  backgroundColor: Colors.red,
+                                  colorText: Colors.white,
+                                );
+                              }
+                            }
+                          : null,
+                      iconColor: Colors.black,
+                      textColor: Colors.black,
+                    ),
+                    // _buildControlButton(
+                    //   icon: Icons.fiber_manual_record_outlined,
+                    //   label: 'Continue',
+                    //   onPressed: null,
+                    //   iconColor: Colors.red,
+                    //   textColor: Colors.black,
+                    // ),
+                  ],
                 ),
+              ),
             ],
           ),
         ),
       ),
+    )]
+    ),
+    ),
+    ),
     );
   }
+
+
 
   Future<void> _doneAndSaveRecording() async {
     await _stopAudioRecording();
@@ -960,9 +891,12 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
       final blobName = 'recordings/${user.uid}/$fileName';
       final file = File(_recordingPath!);
       final fileUrl = await AzureStorageService.uploadFile(file, blobName);
+
+      if (widget.sessionId != null) {
+        // Save directly to the provided session
       final recordingsRef = FirebaseFirestore.instance
         .collection('sessions')
-        .doc('6xfhQsVPQkTGCeFDfcIt')
+          .doc(widget.sessionId)
         .collection('recordings');
       final docRef = await recordingsRef.add({
         'userId': user.uid,
@@ -982,6 +916,19 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         colorText: Colors.white,
       );
       Navigator.of(context).pop(); // Close the recording screen
+      } else {
+        // No sessionId: go to SaveRecordingScreen for session selection
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => SaveRecordingScreen(
+            azureFileUrl: fileUrl,
+            timerValue: _formatElapsed(_elapsedSeconds),
+            recordingFileName: fileName,
+          ),
+        );
+      }
     } catch (e) {
       print('Error uploading or saving recording: $e');
       Get.snackbar(

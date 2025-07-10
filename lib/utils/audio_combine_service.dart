@@ -41,7 +41,7 @@ class AudioCombineService {
           return false;
         }
         
-        print('AudioCombineService: Validated file: $filePath (${fileSize} bytes)');
+        print('AudioCombineService: Validated file: $filePath ($fileSize bytes)');
       }
       
       return true;
@@ -175,7 +175,7 @@ class AudioCombineService {
 
         final fileSize = await file.length();
         if (fileSize < 100) { // Minimum size check (100 bytes)
-          print('AudioCombineService: Segment too small: $filePath (${fileSize} bytes)');
+          print('AudioCombineService: Segment too small: $filePath ($fileSize bytes)');
           return false;
         }
       }

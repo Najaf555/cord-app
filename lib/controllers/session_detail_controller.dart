@@ -72,7 +72,7 @@ class SessionDetailController extends GetxController {
   }
 
   Future<void> loadRecordingsFromFirestore() async {
-    final sessionId = '6xfhQsVPQkTGCeFDfcIt';
+    final sessionId = session.id;
     final recordingsRef = FirebaseFirestore.instance
         .collection('sessions')
         .doc(sessionId)

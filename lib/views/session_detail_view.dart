@@ -2,14 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/session_detail_controller.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import '../utils/date_util.dart';
-import '../utils/validators.dart';
-import '../utils/responsive.dart';
-import '../models/session.dart';
-import 'session_detail_view.dart';
 import 'new_recording.dart';
-import 'sessions_view.dart';
-import 'settings_view.dart';
 import '../controllers/navigation_controller.dart';
 import '../views/main_navigation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -91,14 +84,22 @@ class _SessionDetailViewState extends State<SessionDetailView>
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            Obx(() => Text(
-                              controller.sessionName.value,
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFF222222),
+                            Obx(() => 
+                              // Use a flexible widget to prevent overflow and auto-resize font
+                              Flexible(
+                                child: Text(
+                                  controller.sessionName.value,
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.w900,
+                                    color: Color(0xFF222222),
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  softWrap: true,
+                                ),
                               ),
-                            )),
+                            ),
                             const SizedBox(width: 4),
                             IconButton(
                               icon: const Icon(
@@ -876,7 +877,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
-              builder: (context) => SizedBox.expand(child: NewRecordingScreen()),
+              builder: (context) => SizedBox.expand(child: NewRecordingScreen(sessionId: controller.session.id)),
             );
           },
           elevation: 0,

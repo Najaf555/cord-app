@@ -523,6 +523,7 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
                                           final session = sessions[index];
                                           return InkWell(
                                             onTap: () {
+                                              Get.delete<SessionDetailController>();
                                               Get.put(SessionDetailController(session: session));
                                               Get.to(() => SessionDetailView());
                                             },
