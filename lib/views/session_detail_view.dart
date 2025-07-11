@@ -230,9 +230,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Created ${controller.session.createdDate.day.toString().padLeft(2, '0')}/'
-                          '${controller.session.createdDate.month.toString().padLeft(2, '0')}/'
-                          '${controller.session.createdDate.year.toString().substring(2)}',
+                          'Created ${controller.session.createdDate.day.toString().padLeft(2, '0')}/${controller.session.createdDate.month.toString().padLeft(2, '0')}/${controller.session.createdDate.year.toString().substring(2)}',
                           style: const TextStyle(
                             fontSize: 13,
                             color: Color(0xFF828282),
@@ -623,278 +621,277 @@ class _SessionDetailViewState extends State<SessionDetailView>
                       child: TabBarView(
                         controller: _tabController,
                         children: [
-                          // Recordings Tab Content with StreamBuilder for real-time updates
-                          Expanded(
-                            child: StreamBuilder<List<dynamic>>(
-                              stream: controller.recordingsStream,
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState == ConnectionState.waiting) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                }
-                                if (snapshot.hasError) {
-                                  return Center(
-                                    child: Text(
-                                      'Error loading recordings: ${snapshot.error}',
-                                      style: const TextStyle(color: Colors.grey),
-                                    ),
-                                  );
-                                }
-                                final recordings = snapshot.data ?? [];
-                                if (recordings.isEmpty) {
-                                  return const Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.mic_off,
-                                          size: 64,
+                          StreamBuilder<List<dynamic>>(
+                            stream: controller.recordingsStream,
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+                              if (snapshot.hasError) {
+                                return Center(
+                                  child: Text(
+                                    'Error loading recordings: ${snapshot.error}',
+                                    style: const TextStyle(color: Colors.grey),
+                                  ),
+                                );
+                              }
+                              final recordings = snapshot.data ?? [];
+                              if (recordings.isEmpty) {
+                                return const Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.mic_off,
+                                        size: 64,
+                                        color: Color(0xFFBDBDBD),
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'No recordings yet',
+                                        style: TextStyle(
+                                          color: Color(0xFF959595),
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Start recording to see your audio here',
+                                        style: TextStyle(
                                           color: Color(0xFFBDBDBD),
+                                          fontSize: 14,
                                         ),
-                                        SizedBox(height: 16),
-                                        Text(
-                                          'No recordings yet',
-                                          style: TextStyle(
-                                            color: Color(0xFF959595),
-                                            fontSize: 16,
-                                          ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+                              // Sort the recordings based on isDescendingOrder observable
+                              final sortedRecordings = List<dynamic>.from(recordings);
+                              if (controller.isDescendingOrder.value) {
+                                sortedRecordings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                              } else {
+                                sortedRecordings.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+                              }
+                              return ListView.separated(
+                                itemCount: sortedRecordings.length,
+                                separatorBuilder: (_, __) => const Divider(
+                                  height: 1,
+                                  thickness: 1,
+                                  color: Color(0xFFF0F0F0),
+                                ),
+                                itemBuilder: (context, index) {
+                                  final recording = sortedRecordings[index];
+                                  return Slidable(
+                                    key: ValueKey(recording.recordingId),
+                                    endActionPane: ActionPane(
+                                      motion: const DrawerMotion(),
+                                      children: [
+                                        SlidableAction(
+                                          onPressed: (context) {},
+                                          backgroundColor: Colors.blueGrey[50]!,
+                                          foregroundColor: Colors.blueGrey,
+                                          icon: Icons.drive_file_move,
+                                          label: 'Move',
                                         ),
-                                        SizedBox(height: 8),
-                                        Text(
-                                          'Start recording to see your audio here',
-                                          style: TextStyle(
-                                            color: Color(0xFFBDBDBD),
-                                            fontSize: 14,
-                                          ),
+                                        SlidableAction(
+                                          onPressed: (context) async {
+                                            final confirm = await showDialog<bool>(
+                                              context: context,
+                                              builder: (context) => AlertDialog(
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                                                backgroundColor: Colors.white,
+                                                title: const Text('Delete Recording'),
+                                                content: const Text('Are you sure you want to delete this recording?'),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(context).pop(false),
+                                                    child: const Text('Cancel'),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () => Navigator.of(context).pop(true),
+                                                    child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                            if (confirm == true) {
+                                              await controller.deleteRecording(recording.recordingId);
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('Recording deleted'), backgroundColor: Colors.red),
+                                              );
+                                            }
+                                          },
+                                          backgroundColor: Colors.red[50]!,
+                                          foregroundColor: Colors.red,
+                                          icon: Icons.delete,
+                                          label: 'Delete',
                                         ),
                                       ],
                                     ),
-                                  );
-                                }
-                                return Obx(() {
-                                  final sortedRecordings = List<dynamic>.from(recordings);
-                                  sortedRecordings.sort((a, b) => controller.isDescendingOrder.value
-                                      ? b.createdAt.compareTo(a.createdAt)
-                                      : a.createdAt.compareTo(b.createdAt));
-                                  return ListView.separated(
-                                    itemCount: sortedRecordings.length,
-                                    separatorBuilder: (_, __) => const Divider(
-                                      height: 1,
-                                      thickness: 1,
-                                      color: Color(0xFFF0F0F0),
-                                    ),
-                                    itemBuilder: (context, index) {
-                                      final recording = sortedRecordings[index];
-                                      return Slidable(
-                                        key: ValueKey(recording.recordingId),
-                                        endActionPane: ActionPane(
-                                          motion: const DrawerMotion(),
-                                          children: [
-                                            SlidableAction(
-                                              onPressed: (context) {},
-                                              backgroundColor: Colors.blueGrey[50]!,
-                                              foregroundColor: Colors.blueGrey,
-                                              icon: Icons.drive_file_move,
-                                              label: 'Move',
+                                    child: InkWell(
+                                      onTap: () {
+                                        print("recording.recordingId: ${recording.recordingId}");
+                                        print("recording.fileUrl: ${recording.fileUrl}");
+                                        // Show paused_recording screen as modal bottom sheet
+                                        showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          backgroundColor: Colors.transparent,
+                                          builder: (context) => SizedBox.expand(
+                                            child: PausedRecording(
+                                              recordingDocId: recording.recordingId,
+                                              recordingFilePath: recording.fileUrl,
+                                              recordingName: recording.name ?? recording.fileName,
+                                              sessionName: widget.session.name,
+                                              sessionId: widget.session.id,
                                             ),
-                                            SlidableAction(
-                                              onPressed: (context) async {
-                                                final confirm = await showDialog<bool>(
-                                                  context: context,
-                                                  builder: (context) => AlertDialog(
-                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                                                    backgroundColor: Colors.white,
-                                                    title: const Text('Delete Recording'),
-                                                    content: const Text('Are you sure you want to delete this recording?'),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed: () => Navigator.of(context).pop(false),
-                                                        child: const Text('Cancel'),
-                                                      ),
-                                                      TextButton(
-                                                        onPressed: () => Navigator.of(context).pop(true),
-                                                        child: const Text('Delete', style: TextStyle(color: Colors.red)),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-                                                if (confirm == true) {
-                                                  await controller.deleteRecording(recording.recordingId);
-                                                  ScaffoldMessenger.of(context).showSnackBar(
-                                                    const SnackBar(content: Text('Recording deleted'), backgroundColor: Colors.red),
-                                                  );
-                                                }
-                                              },
-                                              backgroundColor: Colors.red[50]!,
-                                              foregroundColor: Colors.red,
-                                              icon: Icons.delete,
-                                              label: 'Delete',
-                                            ),
-                                          ],
+                                          ),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 8.0,
                                         ),
-                                                      child: InkWell(
-                onTap: () {
-                  print("recording.recordingId: ${recording.recordingId}");
-                  print("recording.fileUrl: ${recording.fileUrl}");
-                  // Show paused_recording screen as modal bottom sheet
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (context) => SizedBox.expand(
-                      child: PausedRecording(
-                        recordingDocId: recording.recordingId,
-                        recordingFilePath: recording.fileUrl,
-                        recordingName: recording.name ?? recording.fileName,
-                        sessionName: widget.session.name,
-                        sessionId: widget.session.id,
-                      ),
-                    ),
-                  );
-                },
-                                          borderRadius: BorderRadius.circular(8),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 8.0,
-                                            ),
-                                            child: Row(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                // Recording name and date
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
+                                        child: Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // Recording name and date
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment
+                                                        .start,
+                                                children: [
+                                                  Row(
                                                     children: [
-                                                      Row(
-                                                        children: [
-                                                          if (recording.name ==
-                                                              'New Recording')
-                                                            Padding(
-                                                              padding:
-                                                                  const EdgeInsets.only(
-                                                                    right: 6.0,
-                                                                  ),
-                                                              child: Image.asset(
-                                                                'assets/images/ellipse.png',
-                                                                width: 8,
-                                                                height: 8,
-                                                                color:
-                                                                    const Color(
-                                                                      0xFFEB5757,
-                                                                    ),
+                                                      if (recording.name ==
+                                                          'New Recording')
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                right: 6.0,
                                                               ),
-                                                            ),
-                                                          if (recording.duration == '00:00.00')
-                                                            Padding(
-                                                              padding:
-                                                                  const EdgeInsets.only(
-                                                                    right: 4.0,
-                                                                  ),
-                                                              child: Image.asset(
-                                                                'assets/images/ellipse.png',
-                                                                width: 8,
-                                                                height: 8,
-                                                                color:
-                                                                    const Color(
-                                                                      0xFFEB5757,
-                                                                    ),
-                                                              ),
-                                                            ),
-                                                          Text(
-                                                            recording.name ?? recording.fileName,
-                                                            style:
-                                                                const TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w700,
-                                                                  fontSize: 17,
-                                                                  color: Color(
-                                                                    0xFF222222,
-                                                                  ),
+                                                          child: Image.asset(
+                                                            'assets/images/ellipse.png',
+                                                            width: 8,
+                                                            height: 8,
+                                                            color:
+                                                                const Color(
+                                                                  0xFFEB5757,
                                                                 ),
                                                           ),
-                                                        ],
-                                                      ),
-                                                      const SizedBox(height: 2),
-                                                      Text(
-                                                        '${recording.createdAt.day.toString().padLeft(2, '0')}/${recording.createdAt.month.toString().padLeft(2, '0')}/${recording.createdAt.year.toString().substring(2)} ${recording.createdAt.hour.toString().padLeft(2, '0')}:${recording.createdAt.minute.toString().padLeft(2, '0')}',
-                                                        style: const TextStyle(
-                                                          fontSize: 13,
-                                                          color: Color(
-                                                            0xFF828282,
-                                                          ),
-                                                          fontWeight:
-                                                              FontWeight.w400,
                                                         ),
+                                                      if (recording.duration == '00:00.00')
+                                                        Padding(
+                                                          padding:
+                                                              const EdgeInsets.only(
+                                                                right: 4.0,
+                                                              ),
+                                                          child: Image.asset(
+                                                            'assets/images/ellipse.png',
+                                                            width: 8,
+                                                            height: 8,
+                                                            color:
+                                                                const Color(
+                                                                  0xFFEB5757,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                      Text(
+                                                        recording.name ?? recording.fileName,
+                                                        style:
+                                                            const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              fontSize: 17,
+                                                              color: Color(
+                                                                0xFF222222,
+                                                              ),
+                                                            ),
                                                       ),
                                                     ],
                                                   ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    '${recording.createdAt.day.toString().padLeft(2, '0')}/${recording.createdAt.month.toString().padLeft(2, '0')}/${recording.createdAt.year.toString().substring(2)} ${recording.createdAt.hour.toString().padLeft(2, '0')}:${recording.createdAt.minute.toString().padLeft(2, '0')}',
+                                                    style: const TextStyle(
+                                                      fontSize: 13,
+                                                      color: Color(
+                                                        0xFF828282,
+                                                      ),
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            // User avatar and duration/status
+                                            Column(
+                                              mainAxisSize:
+                                                  MainAxisSize.min,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
+                                              children: [
+                                                // User avatar placeholder - can be enhanced to fetch user info from userId
+                                                CircleAvatar(
+                                                  radius: 16,
+                                                  backgroundColor: Colors.grey[200],
+                                                  child: Icon(
+                                                    Icons.person,
+                                                    size: 20,
+                                                    color: Colors.grey[600],
+                                                  ),
                                                 ),
-                                                const SizedBox(width: 12),
-                                                // User avatar and duration/status
-                                                Column(
+                                                const SizedBox(height: 4),
+                                                Row(
                                                   mainAxisSize:
                                                       MainAxisSize.min,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.end,
                                                   children: [
-                                                    // User avatar placeholder - can be enhanced to fetch user info from userId
-                                                    CircleAvatar(
-                                                      radius: 16,
-                                                      backgroundColor: Colors.grey[200],
-                                                      child: Icon(
-                                                        Icons.person,
-                                                        size: 20,
-                                                        color: Colors.grey[600],
+                                                    // Show completed recording icon
+                                                    Image.asset(
+                                                      'assets/images/recordingIcon.png',
+                                                      width: 14,
+                                                      height: 14,
+                                                      color: const Color(
+                                                        0xFFBDBDBD,
                                                       ),
                                                     ),
-                                                    const SizedBox(height: 4),
-                                                    Row(
-                                                      mainAxisSize:
-                                                          MainAxisSize.min,
-                                                      children: [
-                                                        // Show completed recording icon
-                                                        Image.asset(
-                                                          'assets/images/recordingIcon.png',
-                                                          width: 14,
-                                                          height: 14,
-                                                          color: const Color(
-                                                            0xFFBDBDBD,
-                                                          ),
+                                                    const SizedBox(
+                                                      width: 4,
+                                                    ),
+                                                    Text(
+                                                      recording.duration,
+                                                      style: TextStyle(
+                                                        color: const Color(
+                                                          0xFFBDBDBD,
                                                         ),
-                                                        const SizedBox(
-                                                          width: 4,
-                                                        ),
-                                                        Text(
-                                                          recording.duration,
-                                                          style: TextStyle(
-                                                            color: const Color(
-                                                              0xFFBDBDBD,
-                                                            ),
-                                                            fontSize: 12,
-                                                            fontWeight:
-                                                                FontWeight.w400,
-                                                          ),
-                                                        ),
-                                                      ],
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.w400,
+                                                      ),
                                                     ),
                                                   ],
                                                 ),
                                               ],
                                             ),
-                                          ),
+                                          ],
                                         ),
-                                      );
-                                    },
+                                      ),
+                                    ),
                                   );
-                                });
-                              },
-                            ),
+                                },
+                              );
+                            },
                           ),
+                          
                           // Lyrics Tab Content (custom, matches image)
                           const _LyricsTabImageExact(),
                         ],
@@ -1624,3 +1621,4 @@ class _GradientBorderPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
