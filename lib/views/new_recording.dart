@@ -729,16 +729,14 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                     height: 80,
                     width: double.infinity,
                     color: const Color(0xFFF5F5F5),
-                    child: Center(
-                      child: Container(
-                        width: 180,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.blue, width: 1.5),
-                        ),
-                        child: CustomPaint(
-                          painter: _WaveformPainter(phase: _isRecording ? _controller.value : 0.0),
-                        ),
+                    child: Container(
+                      width: double.infinity,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blue, width: 1.5),
+                      ),
+                      child: CustomPaint(
+                        painter: _WaveformPainter(phase: _isRecording ? _controller.value : 0.0),
                       ),
                     ),
                   ),

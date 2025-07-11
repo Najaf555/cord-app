@@ -46,6 +46,9 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
       vsync: this,
       duration: const Duration(seconds: 4),
     );
+    _controller.addListener(() {
+      if (mounted) setState(() {});
+    });
     
     // Set recording file name from passed parameter or use default
     _recordingFileName = widget.recordingName ?? 'New Recording';
@@ -62,6 +65,25 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
         setState(() {
           _elapsedSeconds = position.inMilliseconds / 1000.0;
         });
+      }
+    });
+    // Listen for audio player state changes ONCE
+    _audioPlayer.playerStateStream.listen((state) {
+      if (state.playing && state.processingState == just_audio.ProcessingState.ready) {
+        if (!_isPlaying) {
+          setState(() {
+            _isPlaying = true;
+          });
+          _controller.reset();
+          _controller.repeat();
+        }
+      } else {
+        if (_isPlaying) {
+          setState(() {
+            _isPlaying = false;
+          });
+          _controller.stop();
+        }
       }
     });
   }
@@ -84,7 +106,6 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
     
     setState(() {
       _isAudioPlaying = true;
-      _isPlaying = true;
       _showCenterButton = false;
     });
     
@@ -96,20 +117,12 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
       }
       await _audioPlayer.play();
       
-      // Listen for completion
-      _audioPlayer.playerStateStream.listen((state) {
-        if (state.processingState == just_audio.ProcessingState.completed) {
-          setState(() {
-            _isAudioPlaying = false;
-            _isPlaying = false;
-          });
-        }
-      });
     } catch (e) {
       setState(() {
         _isAudioPlaying = false;
         _isPlaying = false;
       });
+      _controller.stop();
       Get.snackbar('Playback Error', 'Failed to play audio: $e', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.red, colorText: Colors.white);
     }
   }
@@ -118,7 +131,6 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   Future<void> _onPausePressed() async {
     setState(() {
       _isAudioPlaying = false;
-      _isPlaying = false;
       _showCenterButton = true;
     });
     try {
@@ -134,6 +146,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
       setState(() {
         _isPlaying = true;
       });
+      _controller.reset();
       _controller.repeat();
       _timer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
         setState(() {
@@ -146,6 +159,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   Future<void> _onStopPlayback() async {
     try {
       await _audioPlayer.stop();
+      _controller.stop();
     } catch (e) {
       print('Error stopping audio: $e');
     }
@@ -276,113 +290,123 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _recordingFileName,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Tooltip(
-                                message: 'Edit file name',
-                                child: GestureDetector(
-                                  onTap: () async {
-                                    print('🟢 Edit icon tapped');
-                                    _fileNameController.text = _recordingFileName;
-                                    String? errorText;
-                                    final result = await showDialog<String>(
-                                      context: context,
-                                      barrierDismissible: false,
-                                      builder: (context) {
-                                        return StatefulBuilder(
-                                          builder: (context, setState) {
-                                            return AlertDialog(
-                                              backgroundColor: Colors.white,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.zero,
-                                              ),
-                                              insetPadding: EdgeInsets.zero,
-                                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                              titlePadding: EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 0),
-                                              actionsPadding: EdgeInsets.only(left: 0, right: 0, bottom: 16, top: 8),
-                                              title: const Text('Recording Name', style: TextStyle(fontSize: 16)),
-                                              content: TextField(
-                                                controller: _fileNameController,
-                                                decoration: InputDecoration(
-                                                  border: OutlineInputBorder(
+                          Align(
+                            alignment: Alignment.center,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 32), // 16px padding each side
+                              child: Row(
+                                mainAxisSize: MainAxisSize.max,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _recordingFileName,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.black54,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Tooltip(
+                                    message: 'Edit file name',
+                                    child: GestureDetector(
+                                      onTap: () async {
+                                        print('🟢 Edit icon tapped');
+                                        _fileNameController.text = _recordingFileName;
+                                        String? errorText;
+                                        final result = await showDialog<String>(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (context) {
+                                            return StatefulBuilder(
+                                              builder: (context, setState) {
+                                                return AlertDialog(
+                                                  backgroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(
                                                     borderRadius: BorderRadius.zero,
                                                   ),
-                                                  enabledBorder: OutlineInputBorder(
-                                                    borderRadius: BorderRadius.zero,
-                                                    borderSide: BorderSide(color: Colors.grey),
-                                                  ),
-                                                  focusedBorder: OutlineInputBorder(
-                                                    borderRadius: BorderRadius.zero,
-                                                    borderSide: BorderSide(color: Colors.black),
-                                                  ),
-                                                  errorText: errorText,
-                                                  fillColor: Colors.white,
-                                                  filled: true,
-                                                ),
-                                                style: const TextStyle(fontSize: 22),
-                                                autofocus: true,
-                                              ),
-                                              actions: [
-                                                Center(
-                                                  child: OutlinedButton(
-                                                    style: OutlinedButton.styleFrom(
-                                                      backgroundColor: Colors.white,
-                                                      foregroundColor: Colors.black,
-                                                      side: const BorderSide(
-                                                        width: 2,
-                                                        color: Color(0xFFFF9800),
+                                                  insetPadding: EdgeInsets.zero,
+                                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                  titlePadding: EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 0),
+                                                  actionsPadding: EdgeInsets.only(left: 0, right: 0, bottom: 16, top: 8),
+                                                  title: const Text('Recording Name', style: TextStyle(fontSize: 16)),
+                                                  content: TextField(
+                                                    controller: _fileNameController,
+                                                    decoration: InputDecoration(
+                                                      border: OutlineInputBorder(
+                                                        borderRadius: BorderRadius.zero,
                                                       ),
-                                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                                                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                                                      textStyle: const TextStyle(fontSize: 20),
+                                                      enabledBorder: OutlineInputBorder(
+                                                        borderRadius: BorderRadius.zero,
+                                                        borderSide: BorderSide(color: Colors.grey),
+                                                      ),
+                                                      focusedBorder: OutlineInputBorder(
+                                                        borderRadius: BorderRadius.zero,
+                                                        borderSide: BorderSide(color: Colors.black),
+                                                      ),
+                                                      errorText: errorText,
+                                                      fillColor: Colors.white,
+                                                      filled: true,
                                                     ),
-                                                    onPressed: () {
-                                                      final trimmed = _fileNameController.text.trim();
-                                                      if (trimmed.isEmpty) {
-                                                        setState(() {
-                                                          errorText = 'File name cannot be empty';
-                                                        });
-                                                      } else {
-                                                        Navigator.of(context).pop(trimmed);
-                                                      }
-                                                    },
-                                                    child: const Text('Save'),
+                                                    style: const TextStyle(fontSize: 22),
+                                                    autofocus: true,
                                                   ),
-                                                ),
-                                              ],
+                                                  actions: [
+                                                    Center(
+                                                      child: OutlinedButton(
+                                                        style: OutlinedButton.styleFrom(
+                                                          backgroundColor: Colors.white,
+                                                          foregroundColor: Colors.black,
+                                                          side: const BorderSide(
+                                                            width: 2,
+                                                            color: Color(0xFFFF9800),
+                                                          ),
+                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                                                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                                                          textStyle: const TextStyle(fontSize: 20),
+                                                        ),
+                                                        onPressed: () {
+                                                          final trimmed = _fileNameController.text.trim();
+                                                          if (trimmed.isEmpty) {
+                                                            setState(() {
+                                                              errorText = 'File name cannot be empty';
+                                                            });
+                                                          } else {
+                                                            Navigator.of(context).pop(trimmed);
+                                                          }
+                                                        },
+                                                        child: const Text('Save'),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                );
+                                              },
                                             );
                                           },
                                         );
+                                        if (result != null && result.isNotEmpty) {
+                                          final newName = result.trim();
+                                          if (newName != _recordingFileName) {
+                                            setState(() {
+                                              _recordingFileName = newName;
+                                            });
+                                            // Update the recording name in Firestore
+                                            await _updateRecordingNameInFirestore(newName);
+                                          }
+                                        }
                                       },
-                                    );
-                                    if (result != null && result.isNotEmpty) {
-                                      final newName = result.trim();
-                                      if (newName != _recordingFileName) {
-                                        setState(() {
-                                          _recordingFileName = newName;
-                                        });
-                                        // Update the recording name in Firestore
-                                        await _updateRecordingNameInFirestore(newName);
-                                      }
-                                    }
-                                  },
-                                  child: const Icon(
-                                    Icons.edit,
-                                    size: 18,
-                                    color: Color.fromARGB(255, 253, 162, 27),
+                                      child: const Icon(
+                                        Icons.edit,
+                                        size: 18,
+                                        color: Color.fromARGB(255, 253, 162, 27),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
@@ -395,7 +419,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                       child: Text(
                         'Done',
                         style: const TextStyle(
-                          color: Colors.blue,
+                          color: Color.fromARGB(255, 47, 142, 238),
                           fontSize: 16,
                         ),
                       ),
@@ -425,18 +449,16 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                     height: 110,
                     width: double.infinity,
                     color: const Color(0xFFF5F5F5),
-                    child: Center(
-                      child: Container(
-                        width: 250,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.blue, width: 1.5),
-                        ),
-                        child: ClipRect(
-                          child: CustomPaint(
-                            painter: _WaveformPainter(
-                              phase: _isPlaying ? _controller.value : 0.0,
-                            ),
+                    child: Container(
+                      width: double.infinity,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blue, width: 1.5),
+                      ),
+                      child: ClipRect(
+                        child: CustomPaint(
+                          painter: _WaveformPainter(
+                            phase: _isPlaying ? _controller.value : 0.0,
                           ),
                         ),
                       ),

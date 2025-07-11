@@ -7,6 +7,7 @@ import '../controllers/session_detail_controller.dart';
 import '../utils/azure_storage_service.dart';
 import 'dart:io';
 import '../views/sessions_view.dart';
+import '../views/main_navigation.dart';
 
 class SaveRecordingScreen extends StatefulWidget {
   final String? timerValue;
@@ -132,10 +133,9 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
 
       // Navigate to SessionsView after success
       Future.delayed(const Duration(milliseconds: 500), () {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => SessionsView()),
-          (route) => false,
-        );
+        final navController = Get.put(NavigationController(), permanent: true);
+        navController.changeTab(0); // 0 for Sessions tab
+        Get.offAll(() => MainNavigation());
       });
 
     } catch (e) {

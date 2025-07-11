@@ -802,18 +802,17 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                                 ),
                                                           ),
                                                         ),
-                                                      Text(
-                                                        recording.name ?? recording.fileName,
-                                                        style:
-                                                            const TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w700,
-                                                              fontSize: 17,
-                                                              color: Color(
-                                                                0xFF222222,
-                                                              ),
-                                                            ),
+                                                      Flexible(
+                                                        child: Text(
+                                                          recording.name ?? recording.fileName,
+                                                          style: const TextStyle(
+                                                            fontWeight: FontWeight.w700,
+                                                            fontSize: 17,
+                                                            color: Color(0xFF222222),
+                                                          ),
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
                                                       ),
                                                     ],
                                                   ),
