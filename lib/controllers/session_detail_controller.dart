@@ -3,6 +3,7 @@ import '../models/session.dart';
 import '../models/user.dart';
 import '../models/recording.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 
 class SessionDetailController extends GetxController {
   final Session session;
@@ -14,6 +15,8 @@ class SessionDetailController extends GetxController {
   var recordings = <Recording>[].obs;
   var isDescendingOrder = true.obs;
   var sessionName = ''.obs;
+  var isRecordingsLoading = false.obs;
+  StreamSubscription? _recordingsSubscription;
 
   // Add stream for real-time recordings updates
   Stream<List<Recording>> get recordingsStream {
@@ -31,13 +34,99 @@ class SessionDetailController extends GetxController {
             }).toList());
   }
 
+  // Explicit Firestore loading for recordings (like sessions)
+  Future<void> loadRecordingsFromFirestore() async {
+    try {
+      isRecordingsLoading.value = true;
+      final sessionId = session.id;
+      final recordingsRef = FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(sessionId)
+          .collection('recordings');
+      final snapshot = await recordingsRef.get();
+      final List<Recording> loadedRecordings = [];
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final recording = Recording.fromFirestore(data, doc.id);
+        // Fetch user avatar
+        String avatarUrl = '';
+        if (recording.userId.isNotEmpty) {
+          final userDoc = await FirebaseFirestore.instance.collection('users').doc(recording.userId).get();
+          if (userDoc.exists) {
+            final userData = userDoc.data() as Map<String, dynamic>;
+            avatarUrl = userData['profileImageUrl'] ?? userData['avatarUrl'] ?? userData['imageUrl'] ?? '';
+          }
+        }
+        // Attach avatarUrl to the recording (if you want to extend the Recording model, do so; otherwise, use a map or tuple)
+        // For now, we'll use a RecordingWithAvatar tuple-like class (or you can extend Recording)
+        loadedRecordings.add(recording.copyWith(userAvatarUrl: avatarUrl ?? ''));
+      }
+      // Sort by createdAt
+      if (isDescendingOrder.value) {
+        loadedRecordings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      } else {
+        loadedRecordings.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      }
+      recordings.value = loadedRecordings;
+    } catch (e) {
+      print('Error loading recordings from Firestore: $e');
+    } finally {
+      isRecordingsLoading.value = false;
+    }
+  }
+
+  // Manual refresh for pull-to-refresh
+  Future<void> refreshRecordings() async {
+    await loadRecordingsFromFirestore();
+  }
+
+  // Update sorting and reload
   @override
   void onInit() {
     super.onInit();
     participants.assignAll(session.users);
     sessionName.value = session.name;
-    // Remove the one-time loadRecordingsFromFirestore call
-    // loadMockRecordings();
+    _listenToRecordings();
+    ever(isDescendingOrder, (_) => _listenToRecordings());
+  }
+
+  void _listenToRecordings() {
+    _recordingsSubscription?.cancel();
+    final sessionId = session.id;
+    final recordingsRef = FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(sessionId)
+        .collection('recordings');
+    _recordingsSubscription = recordingsRef.snapshots().listen((snapshot) async {
+      final List<Recording> loadedRecordings = [];
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final recording = Recording.fromFirestore(data, doc.id);
+        // Fetch user avatar
+        String avatarUrl = '';
+        if (recording.userId.isNotEmpty) {
+          final userDoc = await FirebaseFirestore.instance.collection('users').doc(recording.userId).get();
+          if (userDoc.exists) {
+            final userData = userDoc.data() as Map<String, dynamic>;
+            avatarUrl = userData['profileImageUrl'] ?? userData['avatarUrl'] ?? userData['imageUrl'] ?? '';
+          }
+        }
+        loadedRecordings.add(recording.copyWith(userAvatarUrl: avatarUrl ?? ''));
+      }
+      // Sort by createdAt
+      if (isDescendingOrder.value) {
+        loadedRecordings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      } else {
+        loadedRecordings.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      }
+      recordings.value = loadedRecordings;
+    });
+  }
+
+  @override
+  void onClose() {
+    _recordingsSubscription?.cancel();
+    super.onClose();
   }
 
   void loadMockRecordings() {
@@ -97,9 +186,7 @@ class SessionDetailController extends GetxController {
         .doc(sessionId)
         .collection('recordings');
     await recordingsRef.doc(recordingId).delete();
-    // Remove the manual update since stream will handle it automatically
-    // recordings.removeWhere((rec) => rec.recordingId == recordingId);
-    // update();
+    await refreshRecordings(); // Refresh after delete
   }
 
   Future<void> updateSessionName(String newName) async {

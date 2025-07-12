@@ -4,6 +4,7 @@ import '../models/user.dart' as app_user;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:rxdart/rxdart.dart';
+import 'dart:async';
 
 class SessionController extends GetxController {
   var sessions = <Session>[].obs;
@@ -11,6 +12,7 @@ class SessionController extends GetxController {
   var isLoading = false.obs;
   var isAuthenticated = false.obs;
   var isDescendingOrder = true.obs; // true = newest first, false = oldest first
+  StreamSubscription? _sessionsSubscription;
 
   @override
   void onInit() {
@@ -20,24 +22,101 @@ class SessionController extends GetxController {
       isAuthenticated.value = user != null;
       if (user != null) {
         print('User authenticated: ${user.uid}');
-        loadSessionsFromFirestore();
+        _listenToSessions();
       } else {
         print('User signed out');
         sessions.clear();
+        _sessionsSubscription?.cancel();
       }
     });
-    
     // Check if user is already authenticated
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser != null) {
       isAuthenticated.value = true;
       print('User already authenticated: ${currentUser.uid}');
-      loadSessionsFromFirestore();
+      _listenToSessions();
     } else {
       print('No user authenticated initially');
       // Load mock data initially
       // loadMockSessions();
     }
+    ever(isDescendingOrder, (_) => _listenToSessions());
+  }
+
+  void _listenToSessions() {
+    _sessionsSubscription?.cancel();
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) return;
+    final sessionsRef = FirebaseFirestore.instance.collection('sessions');
+    _sessionsSubscription = sessionsRef.snapshots().listen((snapshot) async {
+      // Filter sessions where user is host or participant
+      final List<Session> sessionsList = [];
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        // Check if user is host or participant
+        final hostId = data['hostId'];
+        final participantIds = (data['participantIds'] != null && data['participantIds'] is List)
+            ? List<String>.from(data['participantIds'])
+            : <String>[];
+        if (hostId == currentUser.uid || participantIds.contains(currentUser.uid)) {
+          // Fetch real users from participantIds and hostId
+          List<String> allParticipantIds = List<String>.from(participantIds);
+          if (hostId != null && !allParticipantIds.contains(hostId)) {
+            allParticipantIds.insert(0, hostId);
+          }
+          List<app_user.User> realUsers = [];
+          if (allParticipantIds.isNotEmpty) {
+            final userDocs = await Future.wait(allParticipantIds.map((uid) async {
+              final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+              return userDoc.exists ? userDoc : null;
+            }));
+            for (var userDoc in userDocs) {
+              if (userDoc != null) {
+                final userData = userDoc.data() as Map<String, dynamic>;
+                realUsers.add(app_user.User(
+                  id: userDoc.id,
+                  name: "${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}",
+                  email: userData['email'] ?? '',
+                  avatarUrl: userData['imageUrl'] ?? '',
+                ));
+              }
+            }
+          }
+          // Parse timestamps
+          DateTime createdAt = DateTime.now();
+          DateTime updatedAt = DateTime.now();
+          if (data['createdAt'] != null) {
+            createdAt = (data['createdAt'] as Timestamp).toDate();
+          }
+          if (data['updatedAt'] != null) {
+            updatedAt = (data['updatedAt'] as Timestamp).toDate();
+          }
+          // Create session object
+          final session = Session(
+            id: doc.id,
+            name: data['name'] ?? 'Untitled Session',
+            dateTime: updatedAt,
+            createdDate: createdAt,
+            users: realUsers,
+            recordingsCount: 0,
+          );
+          sessionsList.add(session);
+        }
+      }
+      // Sort sessions by createdAt based on current sort order
+      if (isDescendingOrder.value) {
+        sessionsList.sort((a, b) => b.createdDate.compareTo(a.createdDate));
+      } else {
+        sessionsList.sort((a, b) => a.createdDate.compareTo(b.createdDate));
+      }
+      sessions.value = sessionsList;
+    });
+  }
+
+  @override
+  void onClose() {
+    _sessionsSubscription?.cancel();
+    super.onClose();
   }
 
   Future<void> loadSessionsFromFirestore() async {
@@ -180,49 +259,49 @@ class SessionController extends GetxController {
     }
   }
 
-  void loadMockSessions() {
-    final users = [
-      app_user.User(id: '1', name: 'User1', email: 'user1@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
-      app_user.User(id: '2', name: 'User2', email: 'user2@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
-      app_user.User(id: '3', name: 'User3', email: 'user3@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
-      app_user.User(id: '4', name: 'User4', email: 'user4@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/4.jpg'),
-      app_user.User(id: '5', name: 'User5', email: 'user5@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/5.jpg'),
-    ];
-    sessions.value = [
-      Session(
-        id: '1',
-        name: 'Spellbound',
-        dateTime: DateTime(2024, 10, 19, 13, 50),
-        createdDate: DateTime(2024, 10, 15),
-        users: users,
-        recordingsCount: 14,
-      ),
-      Session(
-        id: '2',
-        name: 'Remedy',
-        dateTime: DateTime(2024, 10, 16, 18, 25),
-        createdDate: DateTime(2024, 10, 10),
-        users: [users[1], users[2], users[3]],
-        recordingsCount: 7,
-      ),
-      Session(
-        id: '3',
-        name: 'Lighthouse',
-        dateTime: DateTime(2024, 9, 9, 11, 44),
-        createdDate: DateTime(2024, 9, 5),
-        users: [users[2], users[4]],
-        recordingsCount: 9,
-      ),
-      Session(
-        id: '4',
-        name: 'Free Falling v2',
-        dateTime: DateTime(2024, 12, 30, 13, 50),
-        createdDate: DateTime(2024, 12, 30),
-        users: [users[0], users[1], users[2]],
-        recordingsCount: 3,
-      ),
-    ];
-  }
+  // void loadMockSessions() {
+  //   final users = [
+  //     app_user.User(id: '1', name: 'User1', email: 'user1@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/1.jpg'),
+  //     app_user.User(id: '2', name: 'User2', email: 'user2@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/2.jpg'),
+  //     app_user.User(id: '3', name: 'User3', email: 'user3@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/3.jpg'),
+  //     app_user.User(id: '4', name: 'User4', email: 'user4@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/4.jpg'),
+  //     app_user.User(id: '5', name: 'User5', email: 'user5@example.com', avatarUrl: 'https://randomuser.me/api/portraits/men/5.jpg'),
+  //   ];
+  //   sessions.value = [
+  //     Session(
+  //       id: '1',
+  //       name: 'Spellbound',
+  //       dateTime: DateTime(2024, 10, 19, 13, 50),
+  //       createdDate: DateTime(2024, 10, 15),
+  //       users: users,
+  //       recordingsCount: 14,
+  //     ),
+  //     Session(
+  //       id: '2',
+  //       name: 'Remedy',
+  //       dateTime: DateTime(2024, 10, 16, 18, 25),
+  //       createdDate: DateTime(2024, 10, 10),
+  //       users: [users[1], users[2], users[3]],
+  //       recordingsCount: 7,
+  //     ),
+  //     Session(
+  //       id: '3',
+  //       name: 'Lighthouse',
+  //       dateTime: DateTime(2024, 9, 9, 11, 44),
+  //       createdDate: DateTime(2024, 9, 5),
+  //       users: [users[2], users[4]],
+  //       recordingsCount: 9,
+  //     ),
+  //     Session(
+  //       id: '4',
+  //       name: 'Free Falling v2',
+  //       dateTime: DateTime(2024, 12, 30, 13, 50),
+  //       createdDate: DateTime(2024, 12, 30),
+  //       users: [users[0], users[1], users[2]],
+  //       recordingsCount: 3,
+  //     ),
+  //   ];
+  // }
 
   List<Session> get filteredSessions {
     if (searchQuery.value.isEmpty) {

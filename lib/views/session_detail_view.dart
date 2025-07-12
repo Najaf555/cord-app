@@ -617,73 +617,96 @@ class _SessionDetailViewState extends State<SessionDetailView>
                       ],
                     ),
                     const SizedBox(height: 16),
+                    // Row with number of recordings (left) and sort button (right)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+                      child: Row(
+                        children: [
+                          Obx(() {
+                            final count = controller.recordings.length;
+                            return Text(
+                              '$count recording${count == 1 ? '' : 's'}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF828282),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            );
+                          }),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () {
+                              controller.toggleSortOrder();
+                            },
+                            child: Tooltip(
+                              message: controller.isDescendingOrder.value
+                                  ? 'Newest first (click to change to oldest first)'
+                                  : 'Oldest first (click to change to newest first)',
+                              child: Obx(() => Icon(
+                                    Icons.swap_vert,
+                                    color: controller.isDescendingOrder.value
+                                        ? const Color(0xFF2F80ED)
+                                        : const Color(0xFF000000),
+                                    size: 20,
+                                  )),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     Expanded(
                       child: TabBarView(
                         controller: _tabController,
                         children: [
-                          StreamBuilder<List<dynamic>>(
-                            stream: controller.recordingsStream,
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
-                              if (snapshot.hasError) {
-                                return Center(
-                                  child: Text(
-                                    'Error loading recordings: ${snapshot.error}',
-                                    style: const TextStyle(color: Colors.grey),
-                                  ),
-                                );
-                              }
-                              final recordings = snapshot.data ?? [];
-                              if (recordings.isEmpty) {
-                                return const Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.mic_off,
-                                        size: 64,
+                          // Recordings tab
+                          Obx(() {
+                            if (controller.isRecordingsLoading.value) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            final recordings = controller.recordings;
+                            if (recordings.isEmpty) {
+                              return const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.mic_off,
+                                      size: 64,
+                                      color: Color(0xFFBDBDBD),
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'No recordings yet',
+                                      style: TextStyle(
+                                        color: Color(0xFF959595),
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'Start recording to see your audio here',
+                                      style: TextStyle(
                                         color: Color(0xFFBDBDBD),
+                                        fontSize: 14,
                                       ),
-                                      SizedBox(height: 16),
-                                      Text(
-                                        'No recordings yet',
-                                        style: TextStyle(
-                                          color: Color(0xFF959595),
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        'Start recording to see your audio here',
-                                        style: TextStyle(
-                                          color: Color(0xFFBDBDBD),
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              }
-                              // Sort the recordings based on isDescendingOrder observable
-                              final sortedRecordings = List<dynamic>.from(recordings);
-                              if (controller.isDescendingOrder.value) {
-                                sortedRecordings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-                              } else {
-                                sortedRecordings.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-                              }
-                              return ListView.separated(
-                                itemCount: sortedRecordings.length,
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            return RefreshIndicator(
+                              color: Color(0xFFFF9800),
+                              onRefresh: controller.refreshRecordings,
+                              child: ListView.separated(
+                                itemCount: recordings.length,
                                 separatorBuilder: (_, __) => const Divider(
                                   height: 1,
                                   thickness: 1,
                                   color: Color(0xFFF0F0F0),
                                 ),
                                 itemBuilder: (context, index) {
-                                  final recording = sortedRecordings[index];
+                                  final recording = recordings[index];
                                   return Slidable(
                                     key: ValueKey(recording.recordingId),
                                     endActionPane: ActionPane(
@@ -733,8 +756,8 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                     ),
                                     child: InkWell(
                                       onTap: () {
-                                        print("recording.recordingId: ${recording.recordingId}");
-                                        print("recording.fileUrl: ${recording.fileUrl}");
+                                        print("recording.recordingId: "+recording.recordingId);
+                                        print("recording.fileUrl: "+recording.fileUrl);
                                         // Show paused_recording screen as modal bottom sheet
                                         showModalBottomSheet(
                                           context: context,
@@ -764,8 +787,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                             Expanded(
                                               child: Column(
                                                 crossAxisAlignment:
-                                                    CrossAxisAlignment
-                                                        .start,
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Row(
                                                     children: [
@@ -839,15 +861,20 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.end,
                                               children: [
-                                                // User avatar placeholder - can be enhanced to fetch user info from userId
+                                                // User avatar
                                                 CircleAvatar(
                                                   radius: 16,
                                                   backgroundColor: Colors.grey[200],
-                                                  child: Icon(
-                                                    Icons.person,
-                                                    size: 20,
-                                                    color: Colors.grey[600],
-                                                  ),
+                                                  backgroundImage: (recording.userAvatarUrl.isNotEmpty)
+                                                      ? NetworkImage(recording.userAvatarUrl)
+                                                      : null,
+                                                  child: (recording.userAvatarUrl.isEmpty)
+                                                      ? Icon(
+                                                          Icons.person,
+                                                          size: 20,
+                                                          color: Colors.grey[600],
+                                                        )
+                                                      : null,
                                                 ),
                                                 const SizedBox(height: 4),
                                                 Row(
@@ -887,11 +914,10 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                     ),
                                   );
                                 },
-                              );
-                            },
-                          ),
-                          
-                          // Lyrics Tab Content (custom, matches image)
+                              ),
+                            );
+                          }),
+                          // Lyrics tab (unchanged)
                           const _LyricsTabImageExact(),
                         ],
                       ),
@@ -912,7 +938,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
-              builder: (context) => SizedBox.expand(child: NewRecordingScreen()),
+              builder: (context) => SizedBox.expand(child: NewRecordingScreen(sessionId: widget.session.id, sessionName: widget.session.name)),
             );
           },
           elevation: 0,

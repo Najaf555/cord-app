@@ -19,6 +19,7 @@ class SettingsView extends StatefulWidget {
 class _SettingsViewState extends State<SettingsView> {
   String userName = 'Loading...';
   String userEmail = '';
+  String userProfileImageUrl = '';
   bool isLoading = true;
 
   @override
@@ -34,19 +35,18 @@ class _SettingsViewState extends State<SettingsView> {
         // First try to get display name from Firebase Auth
         String name = user.displayName ?? '';
         String email = user.email ?? '';
-        
+        String profileImageUrl = '';
         // If no display name, try to get from Firestore
         if (name.isEmpty) {
           final userDoc = await FirebaseFirestore.instance
               .collection('users')
               .doc(user.uid)
               .get();
-          
           if (userDoc.exists) {
             final userData = userDoc.data();
             final firstName = userData?['firstName'] ?? '';
             final lastName = userData?['lastName'] ?? '';
-            
+            profileImageUrl = userData?['imageUrl'] ?? '';
             if (firstName.isNotEmpty && lastName.isNotEmpty) {
               name = '$firstName $lastName';
             } else if (firstName.isNotEmpty) {
@@ -60,16 +60,17 @@ class _SettingsViewState extends State<SettingsView> {
             name = email.split('@')[0]; // Use email prefix as fallback
           }
         }
-        
         setState(() {
           userName = name;
           userEmail = email;
+          userProfileImageUrl = profileImageUrl;
           isLoading = false;
         });
       } else {
         setState(() {
           userName = 'Guest User';
           userEmail = '';
+          userProfileImageUrl = '';
           isLoading = false;
         });
       }
@@ -78,6 +79,7 @@ class _SettingsViewState extends State<SettingsView> {
       setState(() {
         userName = 'User';
         userEmail = '';
+        userProfileImageUrl = '';
         isLoading = false;
       });
     }
@@ -112,16 +114,21 @@ class _SettingsViewState extends State<SettingsView> {
                     CircleAvatar(
                       radius: 30,
                       backgroundColor: Colors.grey[200],
-                      child: isLoading 
-                        ? const CircularProgressIndicator()
-                        : Text(
-                            userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
+                      backgroundImage: (userProfileImageUrl.isNotEmpty)
+                          ? NetworkImage(userProfileImageUrl)
+                          : null,
+                      child: (userProfileImageUrl.isEmpty)
+                          ? (isLoading
+                              ? const CircularProgressIndicator()
+                              : Text(
+                                  userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ))
+                          : null,
                     ),
                     const SizedBox(width: 16),
                     Expanded(

@@ -35,7 +35,8 @@ import 'package:just_audio/just_audio.dart' as just_audio;
 class NewRecordingScreen extends StatefulWidget {
   final bool showSaveScreenAtEnd;
   final String? sessionId;
-  const NewRecordingScreen({super.key, this.showSaveScreenAtEnd = false, this.sessionId});
+  final String? sessionName;
+  const NewRecordingScreen({super.key, this.showSaveScreenAtEnd = false, this.sessionId, this.sessionName});
 
   @override
   State<NewRecordingScreen> createState() => _NewRecordingScreenState();
@@ -58,7 +59,6 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   bool _showPausedControls = false;
 
   // Session title variable for editing
-  String _sessionTitle = 'Free Falling v2';
   String _recordingFileName = 'New Recording';
 
   // 1. Add to state:
@@ -74,6 +74,8 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     )..addListener(() {
         setState(() {});
       });
+
+
     // Start recording automatically
     _startRecording();
     
@@ -481,7 +483,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                         Row(
                           children: [
                                     Text(
-                                      _sessionTitle, // Use a variable for the session title
+                                      widget.sessionName ?? "", // Use a variable for the session title
                                       style: const TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.bold,
@@ -495,7 +497,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                                     Text(
                                       _recordingFileName,
                                       style: const TextStyle(fontSize: 14, color: Colors.black54),
-                                    ),
+                            ),
                             const SizedBox(width: 6),
                                     GestureDetector(
                                       onTap: () async {
@@ -729,14 +731,14 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                     height: 80,
                     width: double.infinity,
                     color: const Color(0xFFF5F5F5),
-                    child: Container(
+                      child: Container(
                       width: double.infinity,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.blue, width: 1.5),
-                      ),
-                      child: CustomPaint(
-                        painter: _WaveformPainter(phase: _isRecording ? _controller.value : 0.0),
+                        height: 60,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.blue, width: 1.5),
+                        ),
+                        child: CustomPaint(
+                          painter: _WaveformPainter(phase: _isRecording ? _controller.value : 0.0),
                       ),
                     ),
                   ),

@@ -18,6 +18,7 @@ class Recording {
   final DateTime createdAt;
   final String fileName;
   final String? name; // Optional name field for backward compatibility
+  final String userAvatarUrl;
 
   Recording({
     required this.recordingId,
@@ -27,6 +28,7 @@ class Recording {
     required this.createdAt,
     required this.fileName,
     this.name,
+    this.userAvatarUrl = '',
   });
 
   // Factory constructor to create Recording from Firestore document
@@ -39,6 +41,7 @@ class Recording {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       fileName: data['fileName'] ?? '',
       name: data['name'],
+      userAvatarUrl: data['userAvatarUrl'] ?? '',
     );
   }
 
@@ -52,6 +55,22 @@ class Recording {
       'recordingId': recordingId,
       'fileName': fileName,
       if (name != null) 'name': name,
+      if (userAvatarUrl.isNotEmpty) 'userAvatarUrl': userAvatarUrl,
     };
+  }
+
+  Recording copyWith({
+    String? userAvatarUrl,
+  }) {
+    return Recording(
+      recordingId: recordingId,
+      userId: userId,
+      fileUrl: fileUrl,
+      duration: duration,
+      createdAt: createdAt,
+      fileName: fileName,
+      name: name,
+      userAvatarUrl: userAvatarUrl ?? this.userAvatarUrl,
+    );
   }
 } 
