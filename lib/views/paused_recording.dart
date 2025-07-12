@@ -275,44 +275,60 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
               // Header
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Column(
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const SizedBox(width: 60), // Balance the Done button
+                        Expanded(
+                          child: Text(
                             widget.sessionName ?? 'New Session',
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
+                            textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 4),
-                          Align(
-                            alignment: Alignment.center,
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width - 32), // 16px padding each side
-                              child: Row(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      _recordingFileName,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.black54,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Tooltip(
-                                    message: 'Edit file name',
-                                    child: GestureDetector(
-                                      onTap: () async {
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            // Dismiss the bottom sheet modal
+                            Navigator.of(context).pop();
+                          },
+                          child: Text(
+                            'Done',
+                            style: const TextStyle(
+                              color: Color.fromARGB(255, 47, 142, 238),
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Centered recording name with edit icon
+                    Center(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _recordingFileName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.black54,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: 'Edit file name',
+                            child: GestureDetector(
+                              onTap: () async {
                                         print('🟢 Edit icon tapped');
                                         _fileNameController.text = _recordingFileName;
                                         String? errorText;
@@ -322,65 +338,112 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                                           builder: (context) {
                                             return StatefulBuilder(
                                               builder: (context, setState) {
-                                                return AlertDialog(
+                                                return Dialog(
                                                   backgroundColor: Colors.white,
                                                   shape: RoundedRectangleBorder(
                                                     borderRadius: BorderRadius.zero,
                                                   ),
-                                                  insetPadding: EdgeInsets.zero,
-                                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                                  titlePadding: EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 0),
-                                                  actionsPadding: EdgeInsets.only(left: 0, right: 0, bottom: 16, top: 8),
-                                                  title: const Text('Recording Name', style: TextStyle(fontSize: 16)),
-                                                  content: TextField(
-                                                    controller: _fileNameController,
-                                                    decoration: InputDecoration(
-                                                      border: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.zero,
-                                                      ),
-                                                      enabledBorder: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.zero,
-                                                        borderSide: BorderSide(color: Colors.grey),
-                                                      ),
-                                                      focusedBorder: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.zero,
-                                                        borderSide: BorderSide(color: Colors.black),
-                                                      ),
-                                                      errorText: errorText,
-                                                      fillColor: Colors.white,
-                                                      filled: true,
-                                                    ),
-                                                    style: const TextStyle(fontSize: 22),
-                                                    autofocus: true,
-                                                  ),
-                                                  actions: [
-                                                    Center(
-                                                      child: OutlinedButton(
-                                                        style: OutlinedButton.styleFrom(
-                                                          backgroundColor: Colors.white,
-                                                          foregroundColor: Colors.black,
-                                                          side: const BorderSide(
-                                                            width: 2,
-                                                            color: Color(0xFFFF9800),
+                                                  insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+                                                  child: Container(
+                                                    width: double.infinity,
+                                                    padding: const EdgeInsets.all(24),
+                                                    child: Column(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                                      children: [
+                                                        const Text(
+                                                          'Recording Name',
+                                                          style: TextStyle(
+                                                            fontSize: 15,
+                                                            fontWeight: FontWeight.bold,
                                                           ),
-                                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-                                                          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                                                          textStyle: const TextStyle(fontSize: 20),
+                                                          textAlign: TextAlign.center,
                                                         ),
-                                                        onPressed: () {
-                                                          final trimmed = _fileNameController.text.trim();
-                                                          if (trimmed.isEmpty) {
-                                                            setState(() {
-                                                              errorText = 'File name cannot be empty';
-                                                            });
-                                                          } else {
-                                                            Navigator.of(context).pop(trimmed);
-                                                          }
-                                                        },
-                                                        child: const Text('Save'),
-                                                      ),
+                                                        const SizedBox(height: 24),
+                                                        TextField(
+                                                          controller: _fileNameController,
+                                                          textAlign: TextAlign.center,
+                                                          decoration: InputDecoration(
+                                                            border: OutlineInputBorder(
+                                                              borderRadius: BorderRadius.zero,
+                                                            ),
+                                                            enabledBorder: OutlineInputBorder(
+                                                              borderRadius: BorderRadius.zero,
+                                                              borderSide: BorderSide(color: Colors.grey),
+                                                            ),
+                                                            focusedBorder: OutlineInputBorder(
+                                                              borderRadius: BorderRadius.zero,
+                                                              borderSide: BorderSide(color: Colors.black),
+                                                            ),
+                                                            errorText: errorText,
+                                                            fillColor: Colors.white,
+                                                            filled: true,
+                                                            contentPadding: const EdgeInsets.symmetric(
+                                                              horizontal: 16,
+                                                              vertical: 16,
+                                                            ),
+                                                          ),
+                                                          style: const TextStyle(fontSize: 15),
+                                                          autofocus: true,
+                                                        ),
+                                                        const SizedBox(height: 24),
+                                                        GestureDetector(
+                                                          onTap: () {
+                                                            final trimmed = _fileNameController.text.trim();
+                                                            if (trimmed.isEmpty) {
+                                                              setState(() {
+                                                                errorText = 'File name cannot be empty';
+                                                              });
+                                                            } else {
+                                                              Navigator.of(context).pop(trimmed);
+                                                            }
+                                                          },
+                                                          child: Center(
+                                                            child: Container(
+                                                              width: 120,
+                                                              height: 40,
+                                                              padding: EdgeInsets.zero,
+                                                              child: Stack(
+                                                                children: [
+                                                                  // Gradient border
+                                                                  Container(
+                                                                    decoration: BoxDecoration(
+                                                                      borderRadius: BorderRadius.zero,
+                                                                      gradient: const LinearGradient(
+                                                                        colors: [
+                                                                          Color(0xFFFFA726), // orange
+                                                                          Color(0xFFE040FB), // pink
+                                                                        ],
+                                                                        begin: Alignment.centerLeft,
+                                                                        end: Alignment.centerRight,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                  // Inner white container with margin for border effect
+                                                                  Container(
+                                                                    margin: const EdgeInsets.all(1.5), // Border thickness
+                                                                    decoration: const BoxDecoration(
+                                                                      color: Colors.white,
+                                                                      borderRadius: BorderRadius.zero,
+                                                                    ),
+                                                                    alignment: Alignment.center,
+                                                                    child: const Text(
+                                                                      'Save',
+                                                                      style: TextStyle(
+                                                                        fontSize: 16,
+                                                                        fontWeight: FontWeight.w400,
+                                                                        color: Colors.black,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                  ],
+                                                  ),
                                                 );
                                               },
                                             );
@@ -407,25 +470,8 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                                 ],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        // Dismiss the bottom sheet modal
-                        Navigator.of(context).pop();
-                      },
-                      child: Text(
-                        'Done',
-                        style: const TextStyle(
-                          color: Color.fromARGB(255, 47, 142, 238),
-                          fontSize: 16,
+                          ],
                         ),
-                      ),
-                    ),
-                  ],
-                ),
               ),
               const SizedBox(height: 16),
               Text(

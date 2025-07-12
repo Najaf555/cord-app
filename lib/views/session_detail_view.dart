@@ -707,6 +707,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                 ),
                                 itemBuilder: (context, index) {
                                   final recording = recordings[index];
+                                  final isRecording = recording.isRecording == true;
                                   return Slidable(
                                     key: ValueKey(recording.recordingId),
                                     endActionPane: ActionPane(
@@ -783,7 +784,18 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            // Recording name and date
+                                            // Left: Red dot if recording in progress
+                                            if (isRecording)
+                                              Padding(
+                                                padding: const EdgeInsets.only(right: 8.0, top: 6.0),
+                                                child: Image.asset(
+                                                  'assets/images/ellipse.png',
+                                                  width: 10,
+                                                  height: 10,
+                                                  color: const Color(0xFFEB5757),
+                                                ),
+                                              ),
+                                            // Main content
                                             Expanded(
                                               child: Column(
                                                 crossAxisAlignment:
@@ -791,39 +803,6 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                 children: [
                                                   Row(
                                                     children: [
-                                                      if (recording.name ==
-                                                          'New Recording')
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets.only(
-                                                                right: 6.0,
-                                                              ),
-                                                          child: Image.asset(
-                                                            'assets/images/ellipse.png',
-                                                            width: 8,
-                                                            height: 8,
-                                                            color:
-                                                                const Color(
-                                                                  0xFFEB5757,
-                                                                ),
-                                                          ),
-                                                        ),
-                                                      if (recording.duration == '00:00.00')
-                                                        Padding(
-                                                          padding:
-                                                              const EdgeInsets.only(
-                                                                right: 4.0,
-                                                              ),
-                                                          child: Image.asset(
-                                                            'assets/images/ellipse.png',
-                                                            width: 8,
-                                                            height: 8,
-                                                            color:
-                                                                const Color(
-                                                                  0xFFEB5757,
-                                                                ),
-                                                          ),
-                                                        ),
                                                       Flexible(
                                                         child: Text(
                                                           recording.name ?? recording.fileName,
@@ -843,11 +822,8 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                     '${recording.createdAt.day.toString().padLeft(2, '0')}/${recording.createdAt.month.toString().padLeft(2, '0')}/${recording.createdAt.year.toString().substring(2)} ${recording.createdAt.hour.toString().padLeft(2, '0')}:${recording.createdAt.minute.toString().padLeft(2, '0')}',
                                                     style: const TextStyle(
                                                       fontSize: 13,
-                                                      color: Color(
-                                                        0xFF828282,
-                                                      ),
-                                                      fontWeight:
-                                                          FontWeight.w400,
+                                                      color: Color(0xFF828282),
+                                                      fontWeight: FontWeight.w400,
                                                     ),
                                                   ),
                                                 ],
@@ -877,35 +853,48 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                       : null,
                                                 ),
                                                 const SizedBox(height: 4),
-                                                Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    // Show completed recording icon
-                                                    Image.asset(
-                                                      'assets/images/recordingIcon.png',
-                                                      width: 14,
-                                                      height: 14,
-                                                      color: const Color(
-                                                        0xFFBDBDBD,
+                                                if (isRecording)
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Image.asset(
+                                                        'assets/images/recordingIcon.png',
+                                                        width: 16,
+                                                        height: 16,
+                                                        color: const Color(0xFFEB5757),
                                                       ),
-                                                    ),
-                                                    const SizedBox(
-                                                      width: 4,
-                                                    ),
-                                                    Text(
-                                                      recording.duration,
-                                                      style: TextStyle(
-                                                        color: const Color(
-                                                          0xFFBDBDBD,
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        'Recording...',
+                                                        style: TextStyle(
+                                                          color: const Color(0xFFEB5757),
+                                                          fontSize: 13,
+                                                          fontWeight: FontWeight.w500,
                                                         ),
-                                                        fontSize: 12,
-                                                        fontWeight:
-                                                            FontWeight.w400,
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
+                                                    ],
+                                                  )
+                                                else
+                                                  Row(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Image.asset(
+                                                        'assets/images/recordingIcon.png',
+                                                        width: 14,
+                                                        height: 14,
+                                                        color: const Color(0xFFBDBDBD),
+                                                      ),
+                                                      const SizedBox(width: 4),
+                                                      Text(
+                                                        recording.duration,
+                                                        style: TextStyle(
+                                                          color: const Color(0xFFBDBDBD),
+                                                          fontSize: 12,
+                                                          fontWeight: FontWeight.w400,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                               ],
                                             ),
                                           ],

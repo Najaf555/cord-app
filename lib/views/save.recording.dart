@@ -33,6 +33,10 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
   bool _isUploading = false;
   String? _recordingDocId; // Store Firestore doc ID after save
   String? _sessionIdForDoc; // Store sessionId for update
+  // Efficient avatar cache: sessionId -> List of avatar URLs
+  final Map<String, List<String>> _sessionAvatars = {};
+  // Efficient recordings count cache: sessionId -> count
+  final Map<String, int> _sessionRecordingsCount = {};
 
   @override
   void initState() {
@@ -528,6 +532,14 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                             final sessionName = (data['name'] ?? '').toString().toLowerCase();
                             return sessionName.contains(_searchQuery);
                           }).toList();
+                    // Sort by createdAt descending (newest first)
+                    filteredSessions.sort((a, b) {
+                      final aData = a.data() as Map<String, dynamic>;
+                      final bData = b.data() as Map<String, dynamic>;
+                      final aCreated = aData['createdAt'] is Timestamp ? (aData['createdAt'] as Timestamp).toDate() : DateTime.fromMillisecondsSinceEpoch(0);
+                      final bCreated = bData['createdAt'] is Timestamp ? (bData['createdAt'] as Timestamp).toDate() : DateTime.fromMillisecondsSinceEpoch(0);
+                      return bCreated.compareTo(aCreated);
+                    });
                     return ListView.separated(
                       itemCount: filteredSessions.length,
                       separatorBuilder: (context, index) => Center(
@@ -537,33 +549,151 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                           color: Colors.grey[300],
                         ),
                       ),
-                    itemBuilder: (context, index) {
-                        final data = filteredSessions[index].data() as Map<String, dynamic>;
+                      itemBuilder: (context, index) {
+                        final doc = filteredSessions[index];
+                        final data = doc.data() as Map<String, dynamic>;
                         final sessionName = data['name'] ?? 'Unnamed Session';
                         final createdAt = data['createdAt'] is Timestamp
                             ? (data['createdAt'] as Timestamp).toDate()
                             : null;
-                        final sessionId = filteredSessions[index].id;
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          leading: const Icon(Icons.folder, color: Colors.blue),
-                          title: Text(sessionName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: createdAt != null
-                              ? Text('Created: ${createdAt.toString().substring(0, 16)}', style: const TextStyle(fontSize: 12, color: Colors.black38))
-                              : null,
-                              trailing: _isUploading 
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.chevron_right, color: Colors.black38),
-                              onTap: _isUploading ? null : () async {
-                                await _saveRecordingToSession(sessionId);
+                        final sessionId = doc.id;
+                        final participantIds = (data['participantIds'] != null && data['participantIds'] is List)
+                            ? List<String>.from(data['participantIds'])
+                            : <String>[];
+                        final hostId = data['hostId'];
+                        if (hostId != null && !participantIds.contains(hostId)) {
+                          participantIds.insert(0, hostId);
+                        }
+                        // Use cached avatars if available
+                        final cachedAvatars = _sessionAvatars[sessionId];
+                        final cachedCount = _sessionRecordingsCount[sessionId];
+                        Widget avatarsWidget;
+                        if (cachedAvatars != null) {
+                          avatarsWidget = Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: cachedAvatars
+                                .map((url) => Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                                      child: CircleAvatar(
+                                        radius: 18,
+                                        backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
+                                        backgroundColor: Colors.white,
+                                        child: url.isEmpty
+                                            ? const Icon(Icons.person, size: 18, color: Colors.grey)
+                                            : null,
+                                      ),
+                                    ))
+                                .toList(),
+                          );
+                        } else {
+                          avatarsWidget = FutureBuilder<List<String>>(
+                            future: _fetchSessionAvatars(participantIds),
+                            builder: (context, snapshot) {
+                              final urls = snapshot.data ?? [];
+                              if (snapshot.connectionState == ConnectionState.done && urls.isNotEmpty) {
+                                // Cache for future builds
+                                _sessionAvatars[sessionId] = urls;
+                              }
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: urls
+                                    .map((url) => Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                                          child: CircleAvatar(
+                                            radius: 18,
+                                            backgroundImage: url.isNotEmpty ? NetworkImage(url) : null,
+                                            backgroundColor: Colors.white,
+                                            child: url.isEmpty
+                                                ? const Icon(Icons.person, size: 18, color: Colors.grey)
+                                                : null,
+                                          ),
+                                        ))
+                                    .toList(),
+                              );
+                            },
+                          );
+                        }
+                        Widget recordingsCountWidget;
+                        if (cachedCount != null) {
+                          recordingsCountWidget = Text(
+                            '$cachedCount recordings',
+                            style: const TextStyle(
+                              color: Color(0xFFBDBDBD),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400,
+                            ),
+                          );
+                        } else {
+                          recordingsCountWidget = FutureBuilder<int>(
+                            future: _fetchRecordingsCount(sessionId),
+                            builder: (context, snapshot) {
+                              final count = snapshot.data ?? 0;
+                              if (snapshot.connectionState == ConnectionState.done) {
+                                _sessionRecordingsCount[sessionId] = count;
+                              }
+                              return Text(
+                                '$count recordings',
+                                style: const TextStyle(
+                                  color: Color(0xFFBDBDBD),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              );
+                            },
+                          );
+                        }
+                        return InkWell(
+                          onTap: _isUploading ? null : () async {
+                            await _saveRecordingToSession(sessionId);
                           },
-                      );
-                    },
-                  );
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        sessionName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 17,
+                                          color: Color(0xFF222222),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        createdAt != null
+                                            ? '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year.toString().substring(2)} ${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}'
+                                            : '',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          color: Color(0xFF828282),
+                                          fontWeight: FontWeight.w400,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    avatarsWidget,
+                                    const SizedBox(height: 4),
+                                    recordingsCountWidget,
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
                 },
               ),
             ),
@@ -760,6 +890,30 @@ Stream<QuerySnapshot> _userSessionsStream() {
         return QuerySnapshotFake(allSessions.values.toList());
       })
       .asyncExpand((snap) => Stream.value(snap));
+}
+
+// Add this method to fetch up to 3 real avatar URLs for a session
+Future<List<String>> _fetchSessionAvatars(List<String> userIds) async {
+  final List<String> urls = [];
+  for (int i = 0; i < userIds.length && urls.length < 3; i++) {
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userIds[i]).get();
+    if (userDoc.exists) {
+      final userData = userDoc.data() as Map<String, dynamic>;
+      final url = userData['profileImageUrl'] ?? userData['avatarUrl'] ?? userData['imageUrl'] ?? '';
+      urls.add(url ?? '');
+    }
+  }
+  return urls;
+}
+
+// Add this method to fetch the recordings count for a session
+Future<int> _fetchRecordingsCount(String sessionId) async {
+  final snapshot = await FirebaseFirestore.instance
+      .collection('sessions')
+      .doc(sessionId)
+      .collection('recordings')
+      .get();
+  return snapshot.docs.length;
 }
 
 // Helper class to fake a QuerySnapshot for the builder

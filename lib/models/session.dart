@@ -16,4 +16,22 @@ class Session {
     required this.users,
     required this.recordingsCount,
   });
+
+  Session copyWith({
+    String? id,
+    String? name,
+    DateTime? dateTime,
+    DateTime? createdDate,
+    List<User>? users,
+    int? recordingsCount,
+  }) {
+    return Session(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      dateTime: dateTime ?? this.dateTime,
+      createdDate: createdDate ?? this.createdDate,
+      users: users ?? this.users,
+      recordingsCount: recordingsCount ?? this.recordingsCount,
+    );
+  }
 } 

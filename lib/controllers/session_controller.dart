@@ -1,10 +1,10 @@
-import 'package:get/get.dart' hide Rx;
+import 'package:get/get.dart';
 import '../models/session.dart';
 import '../models/user.dart' as app_user;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:rxdart/rxdart.dart';
 import 'dart:async';
+import 'package:rxdart/rxdart.dart';
 
 class SessionController extends GetxController {
   var sessions = <Session>[].obs;
@@ -13,6 +13,8 @@ class SessionController extends GetxController {
   var isAuthenticated = false.obs;
   var isDescendingOrder = true.obs; // true = newest first, false = oldest first
   StreamSubscription? _sessionsSubscription;
+  // Efficient recordings count cache: sessionId -> count
+  final RxMap<String, int> recordingsCountCache = <String, int>{}.obs;
 
   @override
   void onInit() {
@@ -91,6 +93,14 @@ class SessionController extends GetxController {
           if (data['updatedAt'] != null) {
             updatedAt = (data['updatedAt'] as Timestamp).toDate();
           }
+          // Efficiently fetch and cache recordings count
+          int recordingsCount = 0;
+          if (recordingsCountCache.containsKey(doc.id)) {
+            recordingsCount = recordingsCountCache[doc.id]!;
+          } else {
+            // Fetch asynchronously, update cache and UI when done
+            _fetchAndCacheRecordingsCount(doc.id);
+          }
           // Create session object
           final session = Session(
             id: doc.id,
@@ -98,7 +108,7 @@ class SessionController extends GetxController {
             dateTime: updatedAt,
             createdDate: createdAt,
             users: realUsers,
-            recordingsCount: 0,
+            recordingsCount: recordingsCount,
           );
           sessionsList.add(session);
         }
@@ -427,7 +437,7 @@ class SessionController extends GetxController {
     // Convert isDescendingOrder observable to stream
     final sortOrderStream = isDescendingOrder.stream;
     
-    return Rx.combineLatest3<QuerySnapshot, QuerySnapshot, bool, List<Session>>(
+    return CombineLatestStream.combine3<QuerySnapshot, QuerySnapshot, bool, List<Session>>(
       participantStream,
       hostStream,
       sortOrderStream,
@@ -439,31 +449,11 @@ class SessionController extends GetxController {
         for (var doc in hostSnap.docs) {
           allDocs[doc.id] = doc;
         }
+        
+        // Create sessions with basic data first, then fetch users asynchronously
         final sessionsList = allDocs.values.map((doc) {
           final data = doc.data() as Map<String, dynamic>;
-          // Fetch real users from participantIds
-          List<String> participantIds = [];
-          if (data['participantIds'] != null && data['participantIds'] is List) {
-            participantIds = List<String>.from(data['participantIds']);
-          }
-          List<app_user.User> realUsers = [];
-          if (participantIds.isNotEmpty) {
-            // Fetch all user docs in parallel
-            final userDocs = Future.wait(participantIds.map((uid) async {
-              final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-              return userDoc.exists ? userDoc : null;
-            }));
-            // for (var userDoc in userDocs) {
-            //   if (userDoc != null) {
-            //     final userData = userDoc.data() as Map<String, dynamic>;
-            //     realUsers.add(app_user.User(
-            //       id: userDoc.id,
-            //       name: userData['name'] ?? '',
-            //       avatarUrl: userData['avatarUrl'] ?? '',
-            //     ));
-            //   }
-            // }
-          }
+          
           DateTime createdAt = DateTime.now();
           DateTime updatedAt = DateTime.now();
           if (data['createdAt'] != null) {
@@ -472,21 +462,97 @@ class SessionController extends GetxController {
           if (data['updatedAt'] != null) {
             updatedAt = (data['updatedAt'] as Timestamp).toDate();
           }
+          
+          // Efficiently fetch and cache recordings count
+          int recordingsCount = 0;
+          if (recordingsCountCache.containsKey(doc.id)) {
+            recordingsCount = recordingsCountCache[doc.id]!;
+          } else {
+            // Fetch asynchronously, update cache and UI when done
+            _fetchAndCacheRecordingsCount(doc.id);
+          }
+          
           return Session(
             id: doc.id,
             name: data['name'] ?? 'Untitled Session',
             dateTime: updatedAt,
             createdDate: createdAt,
-            users: realUsers,
-            recordingsCount: 0,
+            users: [], // Start with empty users, will be populated by _listenToSessions
+            recordingsCount: recordingsCount,
           );
         }).toList();
+        
         // Sort by createdAt (descending or ascending)
         sessionsList.sort((a, b) => isDescending
             ? b.createdDate.compareTo(a.createdDate)
             : a.createdDate.compareTo(b.createdDate));
+        
         return sessionsList;
       },
-    );
+    ).switchMap((sessions) async* {
+      // For each session, fetch the user data asynchronously
+      final sessionsWithUsers = <Session>[];
+      for (var session in sessions) {
+        // Get the session document to fetch user data
+        final sessionDoc = await FirebaseFirestore.instance
+            .collection('sessions')
+            .doc(session.id)
+            .get();
+        
+        if (sessionDoc.exists) {
+          final data = sessionDoc.data() as Map<String, dynamic>;
+          
+          // Fetch real users from participantIds and hostId
+          List<String> allParticipantIds = [];
+          if (data['participantIds'] != null && data['participantIds'] is List) {
+            allParticipantIds = List<String>.from(data['participantIds']);
+          }
+          String? hostId = data['hostId'];
+          if (hostId != null && !allParticipantIds.contains(hostId)) {
+            allParticipantIds.insert(0, hostId);
+          }
+          
+          List<app_user.User> realUsers = [];
+          if (allParticipantIds.isNotEmpty) {
+            final userDocs = await Future.wait(allParticipantIds.map((uid) async {
+              final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+              return userDoc.exists ? userDoc : null;
+            }));
+            
+            for (var userDoc in userDocs) {
+              if (userDoc != null) {
+                final userData = userDoc.data() as Map<String, dynamic>;
+                realUsers.add(app_user.User(
+                  id: userDoc.id,
+                  name: "${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}",
+                  email: userData['email'] ?? '',
+                  avatarUrl: userData['imageUrl'] ?? '',
+                ));
+              }
+            }
+          }
+          
+          sessionsWithUsers.add(session.copyWith(users: realUsers));
+        } else {
+          sessionsWithUsers.add(session);
+        }
+      }
+      
+      yield sessionsWithUsers;
+    });
+  }
+
+  // Helper to fetch and cache recordings count for a session
+  Future<void> _fetchAndCacheRecordingsCount(String sessionId) async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(sessionId)
+        .collection('recordings')
+        .get();
+    recordingsCountCache[sessionId] = snapshot.docs.length;
+    // Update the sessions list to reflect the new count
+    sessions.value = sessions.map((s) =>
+      s.id == sessionId ? s.copyWith(recordingsCount: snapshot.docs.length) : s
+    ).toList();
   }
 } 

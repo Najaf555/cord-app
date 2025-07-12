@@ -19,6 +19,7 @@ class Recording {
   final String fileName;
   final String? name; // Optional name field for backward compatibility
   final String userAvatarUrl;
+  final bool? isRecording;
 
   Recording({
     required this.recordingId,
@@ -29,6 +30,7 @@ class Recording {
     required this.fileName,
     this.name,
     this.userAvatarUrl = '',
+    this.isRecording,
   });
 
   // Factory constructor to create Recording from Firestore document
@@ -42,6 +44,7 @@ class Recording {
       fileName: data['fileName'] ?? '',
       name: data['name'],
       userAvatarUrl: data['userAvatarUrl'] ?? '',
+      isRecording: data['is_recording'],
     );
   }
 
@@ -56,11 +59,13 @@ class Recording {
       'fileName': fileName,
       if (name != null) 'name': name,
       if (userAvatarUrl.isNotEmpty) 'userAvatarUrl': userAvatarUrl,
+      if (isRecording != null) 'is_recording': isRecording,
     };
   }
 
   Recording copyWith({
     String? userAvatarUrl,
+    bool? isRecording,
   }) {
     return Recording(
       recordingId: recordingId,
@@ -71,6 +76,7 @@ class Recording {
       fileName: fileName,
       name: name,
       userAvatarUrl: userAvatarUrl ?? this.userAvatarUrl,
+      isRecording: isRecording ?? this.isRecording,
     );
   }
 } 

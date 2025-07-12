@@ -64,6 +64,8 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   // 1. Add to state:
   final just_audio.AudioPlayer _audioPlayer = just_audio.AudioPlayer();
   bool _isAudioPlaying = false;
+  String? _firestoreRecordingDocId;
+  bool _recordingFinalized = false;
 
   @override
   void initState() {
@@ -75,9 +77,6 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         setState(() {});
       });
 
-
-    // Start recording automatically
-    _startRecording();
     
     // Request microphone permission and start audio recording
     _requestMicrophonePermission();
@@ -99,6 +98,14 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     _timer?.cancel();
     _audioRecorder.closeRecorder();
     _audioPlayer.dispose();
+    // If a Firestore recording doc was created but not finalized, delete it
+    if (!_recordingFinalized && _firestoreRecordingDocId != null && widget.sessionId != null) {
+      final recordingsRef = FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(widget.sessionId)
+          .collection('recordings');
+      recordingsRef.doc(_firestoreRecordingDocId).delete();
+    }
     super.dispose();
   }
 
@@ -164,12 +171,17 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
   }
 
   Future<void> _requestMicrophonePermission() async {
+    _timer?.cancel();
     final status = await Permission.microphone.request();
     setState(() {
       _hasPermission = status.isGranted;
     });
     
     if (_hasPermission) {
+      // Create Firestore doc if in session context
+      if (!widget.showSaveScreenAtEnd) {
+        await _createFirestoreRecordingDoc();
+      }
       await _startAudioRecording();
     } else {
       Get.snackbar(
@@ -204,13 +216,15 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
           codec: Codec.aacMP4,
         );
         
-        setState(() {
-          _isAudioRecording = true;
-        });
-        
         print('Audio recording started at: $_recordingPath');
         print('Generated file name: $fileName');
         print('File name format: recording_$timestamp.m4a');
+
+        setState(() {
+          _isAudioRecording = true;
+          _startRecording();
+        });
+
       } else {
         Get.snackbar(
           'Permission Required',
@@ -649,6 +663,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                           final docRef = await recordingsRef.add({
                             'userId': user.uid,
                             'fileUrl': fileUrl,
+                            'is_recording': false,
                             'duration': _formatElapsed(_elapsedSeconds),
                             'createdAt': FieldValue.serverTimestamp(),
                                       'fileName': _recordingFileName,
@@ -700,7 +715,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                     _formatElapsed(_elapsedSeconds),
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
                   ),
-                  if (_isAudioRecording) ...[
+                  if (_isAudioRecording && !_isPaused) ...[
                     const SizedBox(width: 8),
                     Container(
                       width: 8,
@@ -957,6 +972,25 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         colorText: Colors.white,
       );
     }
+  }
+
+  Future<void> _createFirestoreRecordingDoc() async {
+    if (widget.sessionId == null) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final recordingsRef = FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(widget.sessionId)
+        .collection('recordings');
+    final docRef = await recordingsRef.add({
+      'userId': user.uid,
+      'createdAt': FieldValue.serverTimestamp(),
+      'fileName': _recordingFileName,
+      'is_recording': true,
+    });
+    _firestoreRecordingDocId = docRef.id;
+    // Optionally, update with the doc ID
+    await recordingsRef.doc(docRef.id).update({'recordingId': docRef.id});
   }
 }
 

@@ -598,14 +598,14 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
                                                                 .toList(),
                                                       ),
                                                       const SizedBox(height: 4),
-                                                      Text(
-                                                        '${session.recordingsCount} recordings',
+                                                      Obx(() => Text(
+                                                        '${controller.recordingsCountCache[session.id] ?? 0} recordings',
                                                         style: const TextStyle(
                                                           color: Color(0xFFBDBDBD),
                                                           fontSize: 12,
                                                           fontWeight: FontWeight.w400,
                                                         ),
-                                                      ),
+                                                      )),
                                                     ],
                                                   ),
                                                 ],
