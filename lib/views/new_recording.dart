@@ -219,12 +219,12 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
         print('Audio recording started at: $_recordingPath');
         print('Generated file name: $fileName');
         print('File name format: recording_$timestamp.m4a');
-
+        
         setState(() {
           _isAudioRecording = true;
           _startRecording();
         });
-
+        
       } else {
         Get.snackbar(
           'Permission Required',

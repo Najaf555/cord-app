@@ -549,7 +549,7 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                           color: Colors.grey[300],
                         ),
                       ),
-                      itemBuilder: (context, index) {
+                    itemBuilder: (context, index) {
                         final doc = filteredSessions[index];
                         final data = doc.data() as Map<String, dynamic>;
                         final sessionName = data['name'] ?? 'Unnamed Session';
@@ -605,7 +605,7 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                                             backgroundColor: Colors.white,
                                             child: url.isEmpty
                                                 ? const Icon(Icons.person, size: 18, color: Colors.grey)
-                                                : null,
+                              : null,
                                           ),
                                         ))
                                     .toList(),
@@ -643,8 +643,8 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                           );
                         }
                         return InkWell(
-                          onTap: _isUploading ? null : () async {
-                            await _saveRecordingToSession(sessionId);
+                              onTap: _isUploading ? null : () async {
+                                await _saveRecordingToSession(sessionId);
                           },
                           borderRadius: BorderRadius.circular(8),
                           child: Padding(
@@ -691,9 +691,9 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                               ],
                             ),
                           ),
-                        );
-                      },
-                    );
+                      );
+                    },
+                  );
                 },
               ),
             ),

@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'session_detail_view.dart';
 import '../controllers/session_detail_controller.dart';
 import '../models/session.dart';
+import '../utils/fcm_notification_service.dart';
 
 
 class SessionsView extends StatefulWidget {
@@ -106,6 +107,17 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
     print('Responding to invite - docId: $docId, status: $status, sessionId: $sessionId');
 
     try {
+      // Get invitation details before updating
+      final invitationDoc = await FirebaseFirestore.instance.collection('user_invitations').doc(docId).get();
+      if (!invitationDoc.exists) {
+        Get.snackbar('Error', 'Invitation not found.');
+        return;
+      }
+      
+      final invitationData = invitationDoc.data()!;
+      final inviterEmail = invitationData['inviterEmail'] as String?;
+      final sessionName = invitationData['sessionName'] as String? ?? 'Session';
+      
       // 1. Update the invitation status
       await FirebaseFirestore.instance.collection('user_invitations').doc(docId).update({'status': status});
 
@@ -126,8 +138,38 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
         print('Successfully added user to session');
         controller.loadSessionsFromFirestore();
         Get.snackbar('Invitation Accepted', 'You have been added to the session!', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.green, colorText: Colors.white);
+        
+        // Send FCM notification to inviter about acceptance
+        if (inviterEmail != null && inviterEmail != currentUser.email) {
+          try {
+            await FCMNotificationService.sendInvitationAcceptedNotification(
+              inviterEmail: inviterEmail,
+              inviteeEmail: currentUser.email!,
+              sessionId: sessionId,
+              sessionName: sessionName,
+            );
+            print('FCM notification sent to inviter about acceptance');
+          } catch (e) {
+            print('Failed to send FCM notification about acceptance: $e');
+          }
+        }
       } else {
         Get.snackbar('Invitation Rejected', 'You have rejected the invitation.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
+        
+        // Send FCM notification to inviter about rejection
+        if (inviterEmail != null && inviterEmail != currentUser.email) {
+          try {
+            await FCMNotificationService.sendInvitationRejectedNotification(
+              inviterEmail: inviterEmail,
+              inviteeEmail: currentUser.email!,
+              sessionId: sessionId ?? '',
+              sessionName: sessionName,
+            );
+            print('FCM notification sent to inviter about rejection');
+          } catch (e) {
+            print('Failed to send FCM notification about rejection: $e');
+          }
+        }
       }
     } catch (e) {
       print('Error responding to invite: $e');

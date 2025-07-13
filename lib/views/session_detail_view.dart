@@ -17,6 +17,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:async';
 import 'paused_recording.dart';
+import '../utils/fcm_notification_service.dart';
 
 class SessionDetailView extends StatefulWidget {
   final Session session;
@@ -1152,6 +1153,21 @@ class _SessionDetailViewState extends State<SessionDetailView>
         'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
       });
+      
+      // Send FCM notification to the invited user
+      try {
+        await FCMNotificationService.sendSessionInvitationNotification(
+          inviteeEmail: inviteeEmail,
+          inviterEmail: inviter.email!,
+          sessionId: controller.session.id,
+          sessionName: controller.session.name,
+        );
+        print('FCM notification sent successfully for invitation to $inviteeEmail');
+      } catch (e) {
+        print('Failed to send FCM notification: $e');
+        // Don't fail the invitation if FCM fails
+      }
+      
       inviteEmailController.clear();
       // Refresh the previously invited users list
       await _fetchPreviouslyInvitedUsers();
