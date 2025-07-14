@@ -1245,6 +1245,7 @@ class _LyricsTabImageExact extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // VERSE Section
           Text(
             'VERSE',
             style: TextStyle(
@@ -1256,23 +1257,19 @@ class _LyricsTabImageExact extends StatelessWidget {
           const SizedBox(height: 12),
           _SelectableLyricsLine(text: 'Heaven only knows', play: true),
           _SelectableLyricsLine(text: 'Where my body goes'),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Flexible(
-                child: _SelectableLyricsLine(text: 'Floating when you hold me'),
-              ),
-              const SizedBox(width: 8),
-              _NameTag(label: 'Mark', color: Color(0xFF1976D2)),
-            ],
+          _SelectableLyricsLine(
+            text: 'Floating when you hold me',
+            nameTag: _NameTag(label: 'Mark', color: Color(0xFF1976D2)),
           ),
           const SizedBox(height: 8),
           _SelectableLyricsLine(text: 'More than physical', play: true),
           _SelectableLyricsLine(text: "It's deeper in my soul"),
           _SelectableLyricsLine(text: 'The Taste of you is golden'),
           const SizedBox(height: 24),
+
+          // Pre Chorus Section
           Text(
-            'PRE',
+            'PRE CHORUS',
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 15,
@@ -1280,13 +1277,41 @@ class _LyricsTabImageExact extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          _SelectableLyricsLine(
-            text: "When it feels like I'm running out of time",
+          _SelectableLyricsLine(text: 'When it feels like I\'m running out of time', play: true),
+          _SelectableLyricsLine(text: 'I know that you\'ll breath me back again', play: true),
+          _SelectableLyricsLine(text: 'When I\'m in danger you\'re my saviour', play: true),
+          const SizedBox(height: 24),
+
+          // Chorus Section
+          Text(
+            'CHORUS',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.black54,
+            ),
           ),
-          _SelectableLyricsLine(
-            text: "I know that you'll breath me back again",
+          const SizedBox(height: 12),
+          _SelectableLyricsLine(text: 'This is the chorus line one', play: true),
+          _SelectableLyricsLine(text: 'This is the chorus line two', play: true),
+          _SelectableLyricsLine(text: 'This is the chorus line three', play: true),
+          const SizedBox(height: 24),
+
+          // Bridge Section
+          Text(
+            'BRIDGE',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: Colors.black54,
+            ),
           ),
-          _SelectableLyricsLine(text: "When I'm in danger you're my saviour"),
+          const SizedBox(height: 12),
+          _SelectableLyricsLine(text: 'This is the bridge line one', play: true),
+          _SelectableLyricsLine(text: 'This is the bridge line two', play: true),
+          _SelectableLyricsLine(text: 'This is the bridge line three', play: true),
+          const SizedBox(height: 24),
+
           const SizedBox(height: 24),
           Row(children: [_PenPopupMenu()]),
         ],
@@ -1298,10 +1323,14 @@ class _LyricsTabImageExact extends StatelessWidget {
 class _SelectableLyricsLine extends StatelessWidget {
   final String text;
   final bool play;
-   final bool removePadding = false;
+  final bool removePadding = false;
+  final Widget? leading;
+  final Widget? nameTag;
   const _SelectableLyricsLine({
     required this.text,
     this.play = false,
+    this.leading,
+    this.nameTag,
   });
   @override
   Widget build(BuildContext context) {
@@ -1313,8 +1342,42 @@ class _SelectableLyricsLine extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          leading ?? GestureDetector(
+            onTap: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => SizedBox.expand(
+                  child: NewRecordingScreen(
+                    sessionId: null, // You can pass the sessionId if available in context
+                    sessionName: null, // You can pass the sessionName if available in context
+                  ),
+                ),
+              );
+            },
+            child: Image.asset(
+              'assets/images/centerButton.png',
+              width: 22,
+              height: 22,
+              fit: BoxFit.contain,
+            ),
+          ),
+          const SizedBox(width: 8),
           if (play) ...[_PlayPopupMenu(), const SizedBox(width: 4)],
-          Flexible(child: _CustomSelectableText(text: text)),
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _CustomSelectableText(text: text),
+                if (nameTag != null) ...[
+                  const SizedBox(width: 4),
+                  nameTag!,
+                ],
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1328,7 +1391,7 @@ class _CustomSelectableText extends StatelessWidget {
   Widget build(BuildContext context) {
     return SelectableText(
       text,
-      style: const TextStyle(fontSize: 16),
+      style: const TextStyle(fontSize: 15),
       contextMenuBuilder: (context, selectableTextState) {
         final defaultItems = selectableTextState.contextMenuButtonItems;
         return AdaptiveTextSelectionToolbar.buttonItems(
