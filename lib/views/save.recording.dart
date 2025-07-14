@@ -772,12 +772,12 @@ class _SaveRecordingScreenState extends State<SaveRecordingScreen> {
                     selectedItemColor: Color(0xFF222222),
                     unselectedItemColor: Color(0xFFBDBDBD),
                     selectedLabelStyle: TextStyle(
-          fontFamily: 'Inter',
+          fontFamily: 'Poppins',
           fontWeight: FontWeight.w500,
           fontSize: 12,
         ),
                     unselectedLabelStyle: TextStyle(
-          fontFamily: 'Inter',
+          fontFamily: 'Poppins',
           fontWeight: FontWeight.w400,
           fontSize: 12,
         ),

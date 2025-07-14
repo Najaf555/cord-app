@@ -83,7 +83,7 @@ class MyApp extends StatelessWidget {
       title: 'Cord',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Inter',
+        fontFamily: 'Poppins',
         // This is the theme of your application.
         //
         // TRY THIS: Try running your application with "flutter run". You'll see

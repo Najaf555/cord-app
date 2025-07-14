@@ -240,12 +240,12 @@ class ContactUsScreen extends StatelessWidget {
                   selectedItemColor: const Color(0xFF222222),
                   unselectedItemColor: const Color(0xFFBDBDBD),
                   selectedLabelStyle: const TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Poppins',
                     fontWeight: FontWeight.w500,
                     fontSize: 12,
                   ),
                   unselectedLabelStyle: const TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Poppins',
                     fontWeight: FontWeight.w400,
                     fontSize: 12,
                   ),

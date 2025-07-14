@@ -86,7 +86,7 @@ class _InstantRecordingState extends State<InstantRecording> {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          fontFamily: 'Inter',
+                          fontFamily: 'Poppins',
                         ),
                       ),
                       Row(
@@ -97,7 +97,7 @@ class _InstantRecordingState extends State<InstantRecording> {
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.black54,
-                              fontFamily: 'Inter',
+                              fontFamily: 'Poppins',
                             ),
                           ),
                           SizedBox(width: 4),
@@ -117,7 +117,7 @@ class _InstantRecordingState extends State<InstantRecording> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w500,
-              fontFamily: 'Inter',
+              fontFamily: 'Poppins',
             ),
           ),
           SizedBox(height: 12),
@@ -177,7 +177,7 @@ class _InstantRecordingState extends State<InstantRecording> {
                     color: Colors.black,
                     fontWeight: FontWeight.w500,
                     fontSize: 16,
-                    fontFamily: 'Inter',
+                    fontFamily: 'Poppins',
                   ),
                 ),
               ),
@@ -252,12 +252,12 @@ class _InstantRecordingState extends State<InstantRecording> {
                   selectedItemColor: Color(0xFF222222),
                   unselectedItemColor: Color(0xFFBDBDBD),
                   selectedLabelStyle: TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Poppins',
                     fontWeight: FontWeight.w500,
                     fontSize: 12,
                   ),
                   unselectedLabelStyle: TextStyle(
-                    fontFamily: 'Inter',
+                    fontFamily: 'Poppins',
                     fontWeight: FontWeight.w400,
                     fontSize: 12,
                   ),
