@@ -38,6 +38,9 @@ class _SessionDetailViewState extends State<SessionDetailView>
   bool _isInvitingUser = false; // Loading state for invite user functionality
   String? inviteError;
   String currentUserEmail = '';
+  String? _sessionHostId;
+  bool _isCurrentUserHost = false;
+  bool _loadingHost = true;
 
   @override
   void initState() {
@@ -55,7 +58,26 @@ class _SessionDetailViewState extends State<SessionDetailView>
     });
     final user = FirebaseAuth.instance.currentUser;
     currentUserEmail = user?.email ?? '';
+    _fetchSessionHost();
     // Remove the loadRecordingsFromFirestore call since we now use streams
+  }
+
+  Future<void> _fetchSessionHost() async {
+    try {
+      final doc = await FirebaseFirestore.instance.collection('sessions').doc(widget.session.id).get();
+      final data = doc.data();
+      final hostId = data != null ? data['hostId'] as String? : null;
+      final currentUser = FirebaseAuth.instance.currentUser?.uid;
+      setState(() {
+        _sessionHostId = hostId;
+        _isCurrentUserHost = (hostId != null && currentUser != null && hostId == currentUser);
+        _loadingHost = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadingHost = false;
+      });
+    }
   }
 
   @override
@@ -103,130 +125,138 @@ class _SessionDetailViewState extends State<SessionDetailView>
                               ),
                             )),
                             const SizedBox(width: 4),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.edit,
-                                color: Colors.black,
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                final nameController = TextEditingController(text: controller.sessionName.value);
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return Dialog(
-                                      backgroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.zero,
-                                      ),
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(24.0),
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                                          children: [
-                                            const Text(
-                                              'New Session',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.black,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            TextField(
-                                              controller: nameController,
-                                              decoration: InputDecoration(
-                                                labelText: 'New Session',
-                                                labelStyle: TextStyle(
-                                                  color: Colors.grey[600],
-                                                  fontSize: 15,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                                hintText: 'New Session',
-                                                hintStyle: TextStyle(
-                                                  color: Colors.grey[400],
+                            if (_loadingHost)
+                              const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            else if (_isCurrentUserHost)
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.black,
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  final nameController = TextEditingController(text: controller.sessionName.value);
+                                  showDialog(
+                                    context: context,
+                                    builder: (BuildContext context) {
+                                      return Dialog(
+                                        backgroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.zero,
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(24.0),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                            children: [
+                                              const Text(
+                                                'New Session',
+                                                style: TextStyle(
                                                   fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.black,
                                                 ),
-                                                border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.zero,
-                                                  borderSide: BorderSide(
-                                                    color: Colors.grey[400]!,
-                                                    width: 1,
-                                                  ),
-                                                ),
-                                                enabledBorder: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.zero,
-                                                  borderSide: BorderSide(
-                                                    color: Colors.grey[400]!,
-                                                    width: 1,
-                                                  ),
-                                                ),
-                                                focusedBorder: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.zero,
-                                                  borderSide: BorderSide(
-                                                    color: Colors.grey[600]!,
-                                                    width: 1.5,
-                                                  ),
-                                                ),
-                                                contentPadding: const EdgeInsets.symmetric(
-                                                  horizontal: 14,
-                                                  vertical: 14,
-                                                ),
-                                                filled: true,
-                                                fillColor: Colors.white,
                                               ),
-                                              style: const TextStyle(fontSize: 16),
-                                            ),
-                                            const SizedBox(height: 20),
-                                            Center(
-                                              child: GestureDetector(
-                                                onTap: () async {
-                                                  final newName = nameController.text.trim();
-                                                  if (newName.isNotEmpty && newName != controller.sessionName.value) {
-                                                    await controller.updateSessionName(newName);
-                                                  }
-                                                  Navigator.of(context).pop();
-                                                },
-                                                child: Container(
-                                                  width: 100,
-                                                  height: 36,
-                                                  decoration: BoxDecoration(
+                                              const SizedBox(height: 8),
+                                              TextField(
+                                                controller: nameController,
+                                                decoration: InputDecoration(
+                                                  labelText: 'New Session',
+                                                  labelStyle: TextStyle(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                  hintText: 'New Session',
+                                                  hintStyle: TextStyle(
+                                                    color: Colors.grey[400],
+                                                    fontSize: 16,
+                                                  ),
+                                                  border: OutlineInputBorder(
                                                     borderRadius: BorderRadius.zero,
-                                                    gradient: const LinearGradient(
-                                                      colors: [Color(0xFFFF9800), Color(0xFFE91E63)],
-                                                      begin: Alignment.centerLeft,
-                                                      end: Alignment.centerRight,
+                                                    borderSide: BorderSide(
+                                                      color: Colors.grey[400]!,
+                                                      width: 1,
                                                     ),
                                                   ),
+                                                  enabledBorder: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.zero,
+                                                    borderSide: BorderSide(
+                                                      color: Colors.grey[400]!,
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  focusedBorder: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.zero,
+                                                    borderSide: BorderSide(
+                                                      color: Colors.grey[600]!,
+                                                      width: 1.5,
+                                                    ),
+                                                  ),
+                                                  contentPadding: const EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 14,
+                                                  ),
+                                                  filled: true,
+                                                  fillColor: Colors.white,
+                                                ),
+                                                style: const TextStyle(fontSize: 16),
+                                              ),
+                                              const SizedBox(height: 20),
+                                              Center(
+                                                child: GestureDetector(
+                                                  onTap: () async {
+                                                    final newName = nameController.text.trim();
+                                                    if (newName.isNotEmpty && newName != controller.sessionName.value) {
+                                                      await controller.updateSessionName(newName);
+                                                    }
+                                                    Navigator.of(context).pop();
+                                                  },
                                                   child: Container(
-                                                    margin: const EdgeInsets.all(2),
+                                                    width: 100,
+                                                    height: 36,
                                                     decoration: BoxDecoration(
-                                                      color: Colors.white,
                                                       borderRadius: BorderRadius.zero,
+                                                      gradient: const LinearGradient(
+                                                        colors: [Color(0xFFFF9800), Color(0xFFE91E63)],
+                                                        begin: Alignment.centerLeft,
+                                                        end: Alignment.centerRight,
+                                                      ),
                                                     ),
                                                     child: const Center(
                                                       child: Text(
                                                         'Save',
                                                         style: TextStyle(
-                                                          fontSize: 15,
-                                                          fontWeight: FontWeight.w400,
-                                                          color: Colors.black,
+                                                          color: Colors.white,
+                                                          fontWeight: FontWeight.bold,
                                                         ),
                                                       ),
                                                     ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            ),
+                                      );
+                                    },
+                                  );
+                                },
+                              )
+                            else
+                              Tooltip(
+                                message: 'Only the session owner can rename this session',
+                                child: Icon(
+                                  Icons.edit_off,
+                                  color: Colors.grey[400],
+                                  size: 20,
+                                ),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 4),
@@ -723,6 +753,19 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                         ),
                                         SlidableAction(
                                           onPressed: (context) async {
+                                            final currentUser = FirebaseAuth.instance.currentUser;
+                                            if (currentUser == null) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('You must be logged in to delete recordings.'), backgroundColor: Colors.red),
+                                              );
+                                              return;
+                                            }
+                                            if (recording.userId != null && recording.userId != currentUser.uid) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('You can only delete your own recordings.'), backgroundColor: Colors.red),
+                                              );
+                                              return;
+                                            }
                                             final confirm = await showDialog<bool>(
                                               context: context,
                                               builder: (context) => AlertDialog(

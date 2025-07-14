@@ -5,6 +5,7 @@ import 'main_navigation.dart';
 import 'dart:async';
 import 'package:just_audio/just_audio.dart' as just_audio;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PausedRecording extends StatefulWidget {
   final String? recordingFilePath;
@@ -38,6 +39,9 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   // just_audio player for playback
   final just_audio.AudioPlayer _audioPlayer = just_audio.AudioPlayer();
   bool _isAudioPlaying = false;
+  String? _recordingCreatorId;
+  bool _isCurrentUserCreator = false;
+  bool _loadingCreator = true;
 
   @override
   void initState() {
@@ -86,14 +90,44 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
         }
       }
     });
+    _fetchRecordingCreator();
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    _timer?.cancel();
-    _audioPlayer.dispose();
-    super.dispose();
+  Future<void> _fetchRecordingCreator() async {
+    if (widget.sessionId == null || widget.recordingDocId == null) {
+      setState(() {
+        _loadingCreator = false;
+      });
+      return;
+    }
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(widget.sessionId)
+          .collection('recordings')
+          .doc(widget.recordingDocId)
+          .get();
+      final data = doc.data();
+      final userId = data != null ? data['userId'] as String? : null;
+      final currentUser = await _getCurrentUserId();
+      setState(() {
+        _recordingCreatorId = userId;
+        _isCurrentUserCreator = (userId != null && currentUser != null && userId == currentUser);
+        _loadingCreator = false;
+      });
+    } catch (e) {
+      setState(() {
+        _loadingCreator = false;
+      });
+    }
+  }
+
+  Future<String?> _getCurrentUserId() async {
+    try {
+      return FirebaseAuth.instance.currentUser?.uid;
+    } catch (e) {
+      return null;
+    }
   }
 
   // Play Back logic: play from Azure URL
@@ -325,153 +359,169 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                             ),
                           ),
                           const SizedBox(width: 8),
-                          Tooltip(
-                            message: 'Edit file name',
-                            child: GestureDetector(
-                              onTap: () async {
-                                        print('🟢 Edit icon tapped');
-                                        _fileNameController.text = _recordingFileName;
-                                        String? errorText;
-                                        final result = await showDialog<String>(
-                                          context: context,
-                                          barrierDismissible: false,
-                                          builder: (context) {
-                                            return StatefulBuilder(
-                                              builder: (context, setState) {
-                                                return Dialog(
-                                                  backgroundColor: Colors.white,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.zero,
+                          if (_loadingCreator)
+                            const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          else if (_isCurrentUserCreator)
+                            Tooltip(
+                              message: 'Edit file name',
+                              child: GestureDetector(
+                                onTap: () async {
+                                  print('🟢 Edit icon tapped');
+                                  _fileNameController.text = _recordingFileName;
+                                  String? errorText;
+                                  final result = await showDialog<String>(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (context) {
+                                      return StatefulBuilder(
+                                        builder: (context, setState) {
+                                          return Dialog(
+                                            backgroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.zero,
+                                            ),
+                                            insetPadding: const EdgeInsets.symmetric(horizontal: 32),
+                                            child: Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.all(24),
+                                              child: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                children: [
+                                                  const Text(
+                                                    'Recording Name',
+                                                    style: TextStyle(
+                                                      fontSize: 15,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                    textAlign: TextAlign.center,
                                                   ),
-                                                  insetPadding: const EdgeInsets.symmetric(horizontal: 32),
-                                                  child: Container(
-                                                    width: double.infinity,
-                                                    padding: const EdgeInsets.all(24),
-                                                    child: Column(
-                                                      mainAxisSize: MainAxisSize.min,
-                                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                                      children: [
-                                                        const Text(
-                                                          'Recording Name',
-                                                          style: TextStyle(
-                                                            fontSize: 15,
-                                                            fontWeight: FontWeight.bold,
-                                                          ),
-                                                          textAlign: TextAlign.center,
-                                                        ),
-                                                        const SizedBox(height: 24),
-                                                        TextField(
-                                                          controller: _fileNameController,
-                                                          textAlign: TextAlign.center,
-                                                          decoration: InputDecoration(
-                                                            border: OutlineInputBorder(
-                                                              borderRadius: BorderRadius.zero,
-                                                            ),
-                                                            enabledBorder: OutlineInputBorder(
-                                                              borderRadius: BorderRadius.zero,
-                                                              borderSide: BorderSide(color: Colors.grey),
-                                                            ),
-                                                            focusedBorder: OutlineInputBorder(
-                                                              borderRadius: BorderRadius.zero,
-                                                              borderSide: BorderSide(color: Colors.black),
-                                                            ),
-                                                            errorText: errorText,
-                                                            fillColor: Colors.white,
-                                                            filled: true,
-                                                            contentPadding: const EdgeInsets.symmetric(
-                                                              horizontal: 16,
-                                                              vertical: 16,
-                                                            ),
-                                                          ),
-                                                          style: const TextStyle(fontSize: 15),
-                                                          autofocus: true,
-                                                        ),
-                                                        const SizedBox(height: 24),
-                                                        GestureDetector(
-                                                          onTap: () {
-                                                            final trimmed = _fileNameController.text.trim();
-                                                            if (trimmed.isEmpty) {
-                                                              setState(() {
-                                                                errorText = 'File name cannot be empty';
-                                                              });
-                                                            } else {
-                                                              Navigator.of(context).pop(trimmed);
-                                                            }
-                                                          },
-                                                          child: Center(
-                                                            child: Container(
-                                                              width: 120,
-                                                              height: 40,
-                                                              padding: EdgeInsets.zero,
-                                                              child: Stack(
-                                                                children: [
-                                                                  // Gradient border
-                                                                  Container(
-                                                                    decoration: BoxDecoration(
-                                                                      borderRadius: BorderRadius.zero,
-                                                                      gradient: const LinearGradient(
-                                                                        colors: [
-                                                                          Color(0xFFFFA726), // orange
-                                                                          Color(0xFFE040FB), // pink
-                                                                        ],
-                                                                        begin: Alignment.centerLeft,
-                                                                        end: Alignment.centerRight,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                  // Inner white container with margin for border effect
-                                                                  Container(
-                                                                    margin: const EdgeInsets.all(1.5), // Border thickness
-                                                                    decoration: const BoxDecoration(
-                                                                      color: Colors.white,
-                                                                      borderRadius: BorderRadius.zero,
-                                                                    ),
-                                                                    alignment: Alignment.center,
-                                                                    child: const Text(
-                                                                      'Save',
-                                                                      style: TextStyle(
-                                                                        fontSize: 16,
-                                                                        fontWeight: FontWeight.w400,
-                                                                        color: Colors.black,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
+                                                  const SizedBox(height: 24),
+                                                  TextField(
+                                                    controller: _fileNameController,
+                                                    textAlign: TextAlign.center,
+                                                    decoration: InputDecoration(
+                                                      border: OutlineInputBorder(
+                                                        borderRadius: BorderRadius.zero,
+                                                      ),
+                                                      enabledBorder: OutlineInputBorder(
+                                                        borderRadius: BorderRadius.zero,
+                                                        borderSide: BorderSide(color: Colors.grey),
+                                                      ),
+                                                      focusedBorder: OutlineInputBorder(
+                                                        borderRadius: BorderRadius.zero,
+                                                        borderSide: BorderSide(color: Colors.black),
+                                                      ),
+                                                      errorText: errorText,
+                                                      fillColor: Colors.white,
+                                                      filled: true,
+                                                      contentPadding: const EdgeInsets.symmetric(
+                                                        horizontal: 16,
+                                                        vertical: 16,
+                                                      ),
+                                                    ),
+                                                    style: const TextStyle(fontSize: 15),
+                                                    autofocus: true,
+                                                  ),
+                                                  const SizedBox(height: 24),
+                                                  GestureDetector(
+                                                    onTap: () {
+                                                      final trimmed = _fileNameController.text.trim();
+                                                      if (trimmed.isEmpty) {
+                                                        setState(() {
+                                                          errorText = 'File name cannot be empty';
+                                                        });
+                                                      } else {
+                                                        Navigator.of(context).pop(trimmed);
+                                                      }
+                                                    },
+                                                    child: Center(
+                                                      child: Container(
+                                                        width: 120,
+                                                        height: 40,
+                                                        padding: EdgeInsets.zero,
+                                                        child: Stack(
+                                                          children: [
+                                                            // Gradient border
+                                                            Container(
+                                                              decoration: BoxDecoration(
+                                                                borderRadius: BorderRadius.zero,
+                                                                gradient: const LinearGradient(
+                                                                  colors: [
+                                                                    Color(0xFFFFA726), // orange
+                                                                    Color(0xFFE040FB), // pink
+                                                                  ],
+                                                                  begin: Alignment.centerLeft,
+                                                                  end: Alignment.centerRight,
+                                                                ),
                                                               ),
                                                             ),
-                                                          ),
+                                                            // Inner white container with margin for border effect
+                                                            Container(
+                                                              margin: const EdgeInsets.all(1.5), // Border thickness
+                                                              decoration: const BoxDecoration(
+                                                                color: Colors.white,
+                                                                borderRadius: BorderRadius.zero,
+                                                              ),
+                                                              alignment: Alignment.center,
+                                                              child: const Text(
+                                                                'Save',
+                                                                style: TextStyle(
+                                                                  fontSize: 16,
+                                                                  fontWeight: FontWeight.w400,
+                                                                  color: Colors.black,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
-                                                      ],
+                                                      ),
                                                     ),
                                                   ),
-                                                );
-                                              },
-                                            );
-                                          },
-                                        );
-                                        if (result != null && result.isNotEmpty) {
-                                          final newName = result.trim();
-                                          if (newName != _recordingFileName) {
-                                            setState(() {
-                                              _recordingFileName = newName;
-                                            });
-                                            // Update the recording name in Firestore
-                                            await _updateRecordingNameInFirestore(newName);
-                                          }
-                                        }
-                                      },
-                                      child: const Icon(
-                                        Icons.edit,
-                                        size: 18,
-                                        color: Color.fromARGB(255, 253, 162, 27),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                  );
+                                  if (result != null && result.isNotEmpty) {
+                                    final newName = result.trim();
+                                    if (newName != _recordingFileName) {
+                                      setState(() {
+                                        _recordingFileName = newName;
+                                      });
+                                      // Update the recording name in Firestore
+                                      await _updateRecordingNameInFirestore(newName);
+                                    }
+                                  }
+                                },
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 18,
+                                  color: Color.fromARGB(255, 253, 162, 27),
+                                ),
+                              ),
+                            )
+                          else
+                            Tooltip(
+                              message: 'Only the creator can rename this recording',
+                              child: const Icon(
+                                Icons.edit_off,
+                                size: 18,
+                                color: Colors.grey,
                               ),
                             ),
-                          ],
-                        ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               Text(
