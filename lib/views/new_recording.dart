@@ -623,6 +623,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                     ),
                     TextButton(
                       onPressed: () async {
+                        _recordingFinalized = true;
                         await _stopAudioRecording();
                         if (_recordingPath == null || !File(_recordingPath!).existsSync()) {
                           Get.snackbar(
@@ -660,17 +661,29 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                             .collection('sessions')
                                       .doc(widget.sessionId)
                             .collection('recordings');
-                          final docRef = await recordingsRef.add({
-                            'userId': user.uid,
-                            'fileUrl': fileUrl,
-                            'is_recording': false,
-                            'duration': _formatElapsed(_elapsedSeconds),
-                            'createdAt': FieldValue.serverTimestamp(),
-                                      'fileName': _recordingFileName,
-                          });
-                          await recordingsRef.doc(docRef.id).update({
-                            'recordingId': docRef.id,
-                          });
+                          if (_firestoreRecordingDocId != null) {
+                            await recordingsRef.doc(_firestoreRecordingDocId).update({
+                              'userId': user.uid,
+                              'fileUrl': fileUrl,
+                              'is_recording': false,
+                              'duration': _formatElapsed(_elapsedSeconds),
+                              'createdAt': FieldValue.serverTimestamp(),
+                              'fileName': _recordingFileName,
+                              'recordingId': _firestoreRecordingDocId,
+                            });
+                          } else {
+                            final docRef = await recordingsRef.add({
+                              'userId': user.uid,
+                              'fileUrl': fileUrl,
+                              'is_recording': false,
+                              'duration': _formatElapsed(_elapsedSeconds),
+                              'createdAt': FieldValue.serverTimestamp(),
+                              'fileName': _recordingFileName,
+                            });
+                            await recordingsRef.doc(docRef.id).update({
+                              'recordingId': docRef.id,
+                            });
+                          }
                           Get.snackbar(
                             'Success',
                             'Recording uploaded and saved!',

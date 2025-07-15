@@ -1236,8 +1236,27 @@ class _SessionDetailViewState extends State<SessionDetailView>
   }
 }
 
-class _LyricsTabImageExact extends StatelessWidget {
+class _LyricsTabImageExact extends StatefulWidget {
   const _LyricsTabImageExact();
+  @override
+  State<_LyricsTabImageExact> createState() => _LyricsTabImageExactState();
+}
+
+class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
+  final TextEditingController _verseController = TextEditingController();
+  final TextEditingController _preChorusController = TextEditingController();
+  final TextEditingController _chorusController = TextEditingController();
+  final TextEditingController _bridgeController = TextEditingController();
+
+  @override
+  void dispose() {
+    _verseController.dispose();
+    _preChorusController.dispose();
+    _chorusController.dispose();
+    _bridgeController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -1263,11 +1282,28 @@ class _LyricsTabImageExact extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _SelectableLyricsLine(text: 'More than physical', play: true),
-          _SelectableLyricsLine(text: "It's deeper in my soul"),
+          _SelectableLyricsLine(text: "It's deeper in my soul", play: true),
           _SelectableLyricsLine(text: 'The Taste of you is golden'),
-          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.5),
+            child: TextField(
+              controller: _verseController,
+              decoration: InputDecoration(
+                hintText: 'Write a new lyric...',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: const TextStyle(fontSize: 15),
+              minLines: 1,
+              maxLines: null,
+            ),
+          ),
+          const SizedBox(height: 14),
 
-          // Pre Chorus Section
+          Row(children: [_PenPopupMenu()]),
+
+          const SizedBox(height: 14),
+          // PRE CHORUS Section
           Text(
             'PRE CHORUS',
             style: TextStyle(
@@ -1280,9 +1316,26 @@ class _LyricsTabImageExact extends StatelessWidget {
           _SelectableLyricsLine(text: 'When it feels like I\'m running out of time', play: true),
           _SelectableLyricsLine(text: 'I know that you\'ll breath me back again', play: true),
           _SelectableLyricsLine(text: 'When I\'m in danger you\'re my saviour', play: true),
-          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.5),
+            child: TextField(
+              controller: _preChorusController,
+              decoration: InputDecoration(
+                hintText: 'Write a new lyric...',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: const TextStyle(fontSize: 15),
+              minLines: 1,
+              maxLines: null,
+            ),
+          ),
+          const SizedBox(height: 14),
 
-          // Chorus Section
+          Row(children: [_PenPopupMenu()]),
+
+          const SizedBox(height: 14),
+          // CHORUS Section
           Text(
             'CHORUS',
             style: TextStyle(
@@ -1295,9 +1348,26 @@ class _LyricsTabImageExact extends StatelessWidget {
           _SelectableLyricsLine(text: 'This is the chorus line one', play: true),
           _SelectableLyricsLine(text: 'This is the chorus line two', play: true),
           _SelectableLyricsLine(text: 'This is the chorus line three', play: true),
-          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.5),
+            child: TextField(
+              controller: _chorusController,
+              decoration: InputDecoration(
+                hintText: 'Write a new lyric...',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: const TextStyle(fontSize: 15),
+              minLines: 1,
+              maxLines: null,
+            ),
+          ),
+          const SizedBox(height: 14),
 
-          // Bridge Section
+          Row(children: [_PenPopupMenu()]),
+
+          const SizedBox(height: 14),
+          // BRIDGE Section
           Text(
             'BRIDGE',
             style: TextStyle(
@@ -1310,10 +1380,25 @@ class _LyricsTabImageExact extends StatelessWidget {
           _SelectableLyricsLine(text: 'This is the bridge line one', play: true),
           _SelectableLyricsLine(text: 'This is the bridge line two', play: true),
           _SelectableLyricsLine(text: 'This is the bridge line three', play: true),
-          const SizedBox(height: 24),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2.5),
+            child: TextField(
+              controller: _bridgeController,
+              decoration: InputDecoration(
+                hintText: 'Write a new lyric...',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              style: const TextStyle(fontSize: 15),
+              minLines: 1,
+              maxLines: null,
+            ),
+          ),
+          const SizedBox(height: 14),
 
-          const SizedBox(height: 24),
           Row(children: [_PenPopupMenu()]),
+
+          const SizedBox(height: 14),
         ],
       ),
     );
