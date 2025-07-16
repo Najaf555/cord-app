@@ -36,7 +36,8 @@ class NewRecordingScreen extends StatefulWidget {
   final bool showSaveScreenAtEnd;
   final String? sessionId;
   final String? sessionName;
-  const NewRecordingScreen({super.key, this.showSaveScreenAtEnd = false, this.sessionId, this.sessionName});
+  final String? lyricsDocId;
+  const NewRecordingScreen({super.key, this.showSaveScreenAtEnd = false, this.sessionId, this.sessionName, this.lyricsDocId});
 
   @override
   State<NewRecordingScreen> createState() => _NewRecordingScreenState();
@@ -661,6 +662,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                             .collection('sessions')
                                       .doc(widget.sessionId)
                             .collection('recordings');
+                          String recordingId;
                           if (_firestoreRecordingDocId != null) {
                             await recordingsRef.doc(_firestoreRecordingDocId).update({
                               'userId': user.uid,
@@ -671,6 +673,7 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                               'fileName': _recordingFileName,
                               'recordingId': _firestoreRecordingDocId,
                             });
+                            recordingId = _firestoreRecordingDocId!;
                           } else {
                             final docRef = await recordingsRef.add({
                               'userId': user.uid,
@@ -682,6 +685,18 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                             });
                             await recordingsRef.doc(docRef.id).update({
                               'recordingId': docRef.id,
+                            });
+                            recordingId = docRef.id;
+                          }
+                          // Update the lyric document if opened from lyrics tab
+                          if (widget.lyricsDocId != null) {
+                            final lyricRef = FirebaseFirestore.instance
+                              .collection('sessions')
+                              .doc(widget.sessionId)
+                              .collection('lyrics')
+                              .doc(widget.lyricsDocId);
+                            await lyricRef.update({
+                              'recordings': FieldValue.arrayUnion([recordingId])
                             });
                           }
                           Get.snackbar(
@@ -954,6 +969,17 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
       await recordingsRef.doc(docRef.id).update({
         'recordingId': docRef.id,
       });
+      // If opened from lyrics tab, add recordingId to the lyric document
+      if (widget.lyricsDocId != null) {
+        final lyricRef = FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(widget.sessionId)
+          .collection('lyrics')
+          .doc(widget.lyricsDocId);
+        await lyricRef.update({
+          'recordings': FieldValue.arrayUnion([docRef.id])
+        });
+      }
       Get.snackbar(
         'Success',
         'Recording uploaded and saved!',

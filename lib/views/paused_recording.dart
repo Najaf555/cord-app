@@ -33,6 +33,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   Timer? _timer;
   double _elapsedSeconds = 0.0;
   String _recordingFileName = '';
+  String? _recordingFileUrl;
   final TextEditingController _fileNameController = TextEditingController();
   bool _showCenterButton = true;
 
@@ -42,6 +43,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
   String? _recordingCreatorId;
   bool _isCurrentUserCreator = false;
   bool _loadingCreator = true;
+  bool _loadingRecording = false;
 
   @override
   void initState() {
@@ -53,11 +55,39 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
     _controller.addListener(() {
       if (mounted) setState(() {});
     });
-    
-    // Set recording file name from passed parameter or use default
-    _recordingFileName = widget.recordingName ?? 'New Recording';
-    _fileNameController.text = _recordingFileName;
-    
+
+    // If we have a recordingDocId and sessionId, fetch the recording document
+    if (widget.recordingDocId != null && widget.sessionId != null) {
+      _loadingRecording = true;
+      FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(widget.sessionId)
+          .collection('recordings')
+          .doc(widget.recordingDocId)
+          .get()
+          .then((doc) {
+        final data = doc.data();
+        if (data != null) {
+          setState(() {
+            _recordingFileName = data['name'] ?? data['fileName'] ?? 'New Recording';
+            _recordingFileUrl = data['fileUrl'];
+            _fileNameController.text = _recordingFileName;
+            _loadingRecording = false;
+          });
+        } else {
+          setState(() {
+            _recordingFileName = 'New Recording';
+            _recordingFileUrl = null;
+            _fileNameController.text = _recordingFileName;
+            _loadingRecording = false;
+          });
+        }
+      });
+    } else {
+      _recordingFileName = widget.recordingName ?? 'New Recording';
+      _fileNameController.text = _recordingFileName;
+    }
+
     // If we have a recording file path, we can potentially get the actual duration
     if (widget.recordingFilePath != null) {
       _elapsedSeconds = 0.0;
@@ -132,7 +162,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
 
   // Play Back logic: play from Azure URL
   Future<void> _onPlayPressed() async {
-    final recordingPath = widget.recordingFilePath;
+    final recordingPath = _recordingFileUrl ?? widget.recordingFilePath;
     if (recordingPath == null) {
       Get.snackbar('No Recording', 'No recording found to play.', snackPosition: SnackPosition.BOTTOM, backgroundColor: Colors.orange, colorText: Colors.white);
       return;
@@ -347,16 +377,22 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Flexible(
-                            child: Text(
-                              _recordingFileName,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.black54,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                            ),
+                            child: _loadingRecording
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(
+                                  _recordingFileName,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black54,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                ),
                           ),
                           const SizedBox(width: 8),
                           if (_loadingCreator)

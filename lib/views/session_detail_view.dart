@@ -18,6 +18,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'dart:async';
 import 'paused_recording.dart';
 import '../utils/fcm_notification_service.dart';
+import '../controllers/lyrics_controller.dart';
+import '../models/lyric_line.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 class SessionDetailView extends StatefulWidget {
   final Session session;
@@ -41,6 +44,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
   String? _sessionHostId;
   bool _isCurrentUserHost = false;
   bool _loadingHost = true;
+  late BuildContext _rootContext; // <-- Add this line
 
   @override
   void initState() {
@@ -87,8 +91,35 @@ class _SessionDetailViewState extends State<SessionDetailView>
     super.dispose();
   }
 
+  // Add this helper method to fix showDialog after await
+  Future<void> _showMoveDialog(BuildContext parentContext, String sessionId, String recordingId) async {
+    final doc = await FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(sessionId)
+        .collection('recordings')
+        .doc(recordingId)
+        .get();
+    if (!doc.exists) {
+      ScaffoldMessenger.of(parentContext).showSnackBar(
+        const SnackBar(content: Text('Recording not found.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+    if (!mounted) return;
+    showDialog(
+      context: parentContext,
+      builder: (context) => MoveRecordingDialog(
+        currentSessionId: sessionId,
+        recordingId: recordingId,
+        recordingData: doc.data()!,
+        rootContext: _rootContext, // Pass root context
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    _rootContext = context; // <-- Set the root context here
     return Scaffold(
       backgroundColor: Colors.white,
       resizeToAvoidBottomInset: false,
@@ -116,14 +147,19 @@ class _SessionDetailViewState extends State<SessionDetailView>
                         const SizedBox(height: 20),
                         Row(
                           children: [
-                            Obx(() => Text(
-                              controller.sessionName.value,
-                              style: const TextStyle(
-                                fontSize: 32,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFF222222),
-                              ),
-                            )),
+                            Expanded(
+                              child: Obx(() => AutoSizeText(
+                                controller.sessionName.value,
+                                style: const TextStyle(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF222222),
+                                ),
+                                maxLines: 2,
+                                minFontSize: 16,
+                                overflow: TextOverflow.ellipsis,
+                              )),
+                            ),
                             const SizedBox(width: 4),
                             if (_loadingHost)
                               const SizedBox(
@@ -649,42 +685,44 @@ class _SessionDetailViewState extends State<SessionDetailView>
                     ),
                     const SizedBox(height: 16),
                     // Row with number of recordings (left) and sort button (right)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
-                      child: Row(
-                        children: [
-                          Obx(() {
-                            final count = controller.recordings.length;
-                            return Text(
-                              '$count recording${count == 1 ? '' : 's'}',
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Color(0xFF828282),
-                                fontWeight: FontWeight.w500,
+                    Obx(() => controller.selectedTabIndex.value == 0
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+                          child: Row(
+                            children: [
+                              Obx(() {
+                                final count = controller.recordings.length;
+                                return Text(
+                                  '$count recording${count == 1 ? '' : 's'}',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF828282),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                );
+                              }),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: () {
+                                  controller.toggleSortOrder();
+                                },
+                                child: Tooltip(
+                                  message: controller.isDescendingOrder.value
+                                      ? 'Newest first (click to change to oldest first)'
+                                      : 'Oldest first (click to change to newest first)',
+                                  child: Obx(() => Icon(
+                                        Icons.swap_vert,
+                                        color: controller.isDescendingOrder.value
+                                            ? const Color(0xFF2F80ED)
+                                            : const Color(0xFF000000),
+                                        size: 20,
+                                      )),
+                                ),
                               ),
-                            );
-                          }),
-                          const Spacer(),
-                          GestureDetector(
-                            onTap: () {
-                              controller.toggleSortOrder();
-                            },
-                            child: Tooltip(
-                              message: controller.isDescendingOrder.value
-                                  ? 'Newest first (click to change to oldest first)'
-                                  : 'Oldest first (click to change to newest first)',
-                              child: Obx(() => Icon(
-                                    Icons.swap_vert,
-                                    color: controller.isDescendingOrder.value
-                                        ? const Color(0xFF2F80ED)
-                                        : const Color(0xFF000000),
-                                    size: 20,
-                                  )),
-                            ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
+                        )
+                      : const SizedBox.shrink()),
                     const SizedBox(height: 8),
                     Expanded(
                       child: TabBarView(
@@ -745,7 +783,9 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                       motion: const DrawerMotion(),
                                       children: [
                                         SlidableAction(
-                                          onPressed: (context) {},
+                                          onPressed: (context) {
+                                            _showMoveDialog(_rootContext, widget.session.id, recording.recordingId);
+                                          },
                                           backgroundColor: Colors.blueGrey[50]!,
                                           foregroundColor: Colors.blueGrey,
                                           icon: Icons.drive_file_move,
@@ -1236,6 +1276,84 @@ class _SessionDetailViewState extends State<SessionDetailView>
   }
 }
 
+class LyricsInputField extends StatefulWidget {
+  final TextEditingController controller;
+  final void Function(String) onSubmit;
+  const LyricsInputField({required this.controller, required this.onSubmit, super.key});
+
+  @override
+  State<LyricsInputField> createState() => _LyricsInputFieldState();
+}
+
+class _LyricsInputFieldState extends State<LyricsInputField> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        TextField(
+          controller: widget.controller,
+          decoration: const InputDecoration(
+            hintText: 'Write a new lyric...',
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.zero,
+          ),
+          style: const TextStyle(fontSize: 15),
+          minLines: 1,
+          maxLines: null,
+        ),
+        if (widget.controller.text.trim().isNotEmpty)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.blue, size: 26),
+                tooltip: 'Cancel',
+                onPressed: () {
+                  widget.controller.clear();
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.check, color: Colors.blue, size: 26),
+                tooltip: 'Done',
+                onPressed: () {
+                  final value = widget.controller.text.trim();
+                  if (value.isNotEmpty) {
+                    widget.onSubmit(value);
+                    widget.controller.clear();
+                  }
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh, color: Colors.blue, size: 26),
+                tooltip: 'Refresh',
+                onPressed: () {
+                  widget.controller.clear();
+                },
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
 class _LyricsTabImageExact extends StatefulWidget {
   const _LyricsTabImageExact();
   @override
@@ -1247,6 +1365,8 @@ class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
   final TextEditingController _preChorusController = TextEditingController();
   final TextEditingController _chorusController = TextEditingController();
   final TextEditingController _bridgeController = TextEditingController();
+  final LyricsController _lyricsController = LyricsController();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void dispose() {
@@ -1254,151 +1374,97 @@ class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
     _preChorusController.dispose();
     _chorusController.dispose();
     _bridgeController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  String get sessionId => (context.findAncestorWidgetOfExactType<SessionDetailView>()?.session.id ?? '');
+  String? get userId => FirebaseAuth.instance.currentUser?.uid;
+
+  Widget _buildLyricsSection(String section, TextEditingController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          section,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: Colors.black54,
+          ),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<List<LyricLine>>(
+          stream: _lyricsController.streamLyrics(sessionId, section),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final lyrics = snapshot.data ?? [];
+            return Column(
+              children: [
+                for (final lyric in lyrics)
+                  _SelectableLyricsLine(
+                    text: lyric.text,
+                    play: lyric.recordings.isNotEmpty,
+                    recordings: lyric.recordings,
+                    leading: GestureDetector(
+                      onTap: () async {
+                        await showModalBottomSheet<String>(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (context) => SizedBox.expand(
+                            child: NewRecordingScreen(
+                              sessionId: sessionId,
+                              sessionName: null,
+                              lyricsDocId: lyric.id,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Image.asset(
+                        'assets/images/centerButton.png',
+                        width: 22,
+                        height: 22,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2.5),
+                  child: LyricsInputField(
+                    controller: controller,
+                    onSubmit: (value) async {
+                      if (value.isNotEmpty && userId != null) {
+                        await _lyricsController.addLyric(sessionId, section, value, userId!);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Row(children: [_PenPopupMenu()]),
+                const SizedBox(height: 14),
+              ],
+            );
+          },
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+      controller: _scrollController,
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // VERSE Section
-          Text(
-            'VERSE',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _SelectableLyricsLine(text: 'Heaven only knows', play: true),
-          _SelectableLyricsLine(text: 'Where my body goes'),
-          _SelectableLyricsLine(
-            text: 'Floating when you hold me',
-            nameTag: _NameTag(label: 'Mark', color: Color(0xFF1976D2)),
-          ),
-          const SizedBox(height: 8),
-          _SelectableLyricsLine(text: 'More than physical', play: true),
-          _SelectableLyricsLine(text: "It's deeper in my soul", play: true),
-          _SelectableLyricsLine(text: 'The Taste of you is golden'),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.5),
-            child: TextField(
-              controller: _verseController,
-              decoration: InputDecoration(
-                hintText: 'Write a new lyric...',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-              style: const TextStyle(fontSize: 15),
-              minLines: 1,
-              maxLines: null,
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          Row(children: [_PenPopupMenu()]),
-
-          const SizedBox(height: 14),
-          // PRE CHORUS Section
-          Text(
-            'PRE CHORUS',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _SelectableLyricsLine(text: 'When it feels like I\'m running out of time', play: true),
-          _SelectableLyricsLine(text: 'I know that you\'ll breath me back again', play: true),
-          _SelectableLyricsLine(text: 'When I\'m in danger you\'re my saviour', play: true),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.5),
-            child: TextField(
-              controller: _preChorusController,
-              decoration: InputDecoration(
-                hintText: 'Write a new lyric...',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-              style: const TextStyle(fontSize: 15),
-              minLines: 1,
-              maxLines: null,
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          Row(children: [_PenPopupMenu()]),
-
-          const SizedBox(height: 14),
-          // CHORUS Section
-          Text(
-            'CHORUS',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _SelectableLyricsLine(text: 'This is the chorus line one', play: true),
-          _SelectableLyricsLine(text: 'This is the chorus line two', play: true),
-          _SelectableLyricsLine(text: 'This is the chorus line three', play: true),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.5),
-            child: TextField(
-              controller: _chorusController,
-              decoration: InputDecoration(
-                hintText: 'Write a new lyric...',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-              style: const TextStyle(fontSize: 15),
-              minLines: 1,
-              maxLines: null,
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          Row(children: [_PenPopupMenu()]),
-
-          const SizedBox(height: 14),
-          // BRIDGE Section
-          Text(
-            'BRIDGE',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-              color: Colors.black54,
-            ),
-          ),
-          const SizedBox(height: 12),
-          _SelectableLyricsLine(text: 'This is the bridge line one', play: true),
-          _SelectableLyricsLine(text: 'This is the bridge line two', play: true),
-          _SelectableLyricsLine(text: 'This is the bridge line three', play: true),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.5),
-            child: TextField(
-              controller: _bridgeController,
-              decoration: InputDecoration(
-                hintText: 'Write a new lyric...',
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.zero,
-              ),
-              style: const TextStyle(fontSize: 15),
-              minLines: 1,
-              maxLines: null,
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          Row(children: [_PenPopupMenu()]),
-
-          const SizedBox(height: 14),
+          _buildLyricsSection('VERSE', _verseController),
+          _buildLyricsSection('PRE CHORUS', _preChorusController),
+          _buildLyricsSection('CHORUS', _chorusController),
+          _buildLyricsSection('BRIDGE', _bridgeController),
         ],
       ),
     );
@@ -1408,17 +1474,23 @@ class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
 class _SelectableLyricsLine extends StatelessWidget {
   final String text;
   final bool play;
+  final List<String> recordings;
   final bool removePadding = false;
   final Widget? leading;
   final Widget? nameTag;
   const _SelectableLyricsLine({
     required this.text,
-    this.play = false,
+    required this.play,
+    required this.recordings,
     this.leading,
     this.nameTag,
   });
   @override
   Widget build(BuildContext context) {
+    // Get sessionId and sessionName from ancestor
+    final sessionWidget = context.findAncestorWidgetOfExactType<SessionDetailView>();
+    final sessionId = sessionWidget?.session.id;
+    final sessionName = sessionWidget?.session.name;
     return Padding(
       padding:
           removePadding
@@ -1435,8 +1507,8 @@ class _SelectableLyricsLine extends StatelessWidget {
                 backgroundColor: Colors.transparent,
                 builder: (context) => SizedBox.expand(
                   child: NewRecordingScreen(
-                    sessionId: null, // You can pass the sessionId if available in context
-                    sessionName: null, // You can pass the sessionName if available in context
+                    sessionId: sessionId,
+                    sessionName: null,
                   ),
                 ),
               );
@@ -1449,7 +1521,55 @@ class _SelectableLyricsLine extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          if (play) ...[_PlayPopupMenu(), const SizedBox(width: 4)],
+          if (play)
+            GestureDetector(
+              onTap: () async {
+                if (recordings.length == 1) {
+                  // Open PausedRecording directly as a modal bottom sheet
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => SizedBox.expand(
+                      child: PausedRecording(
+                        recordingDocId: recordings.first,
+                        sessionId: sessionId,
+                        sessionName: sessionName,
+                      ),
+                    ),
+                  );
+                } else if (recordings.length > 1) {
+                  // Show popup menu to select recording
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      backgroundColor: Colors.transparent,
+                      child: _PlayPopupMenu(
+                        recordings: recordings,
+                        sessionId: sessionId,
+                        onRecordingSelected: (recordingId) {
+                          Navigator.of(context).pop();
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => SizedBox.expand(
+                              child: PausedRecording(
+                                recordingDocId: recordingId,
+                                sessionId: sessionId,
+                                sessionName: sessionName,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                }
+              },
+              child: Icon(Icons.play_arrow, size: 18, color: Colors.black),
+            ),
+          if (play) const SizedBox(width: 4),
           Flexible(
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1634,135 +1754,62 @@ class _PenPopupMenuState extends State<_PenPopupMenu> {
 }
 
 class _PlayPopupMenu extends StatefulWidget {
+  final List<String> recordings;
+  final String? sessionId;
+  final void Function(String recordingId)? onRecordingSelected;
+  const _PlayPopupMenu({Key? key, required this.recordings, required this.sessionId, this.onRecordingSelected}) : super(key: key);
   @override
   State<_PlayPopupMenu> createState() => _PlayPopupMenuState();
 }
 
 class _PlayPopupMenuState extends State<_PlayPopupMenu> {
-  final GlobalKey _key = GlobalKey();
-  OverlayEntry? _overlayEntry;
-
-  void _showMenu() {
-    final RenderBox renderBox =
-        _key.currentContext!.findRenderObject() as RenderBox;
-    final Offset offset = renderBox.localToGlobal(Offset.zero);
-    _overlayEntry = OverlayEntry(
-      builder:
-          (context) => Positioned(
-            left: offset.dx,
-            top: offset.dy + 28,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                width: 170,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      child: Text(
-                        'Play from...',
-                        style: TextStyle(fontSize: 12, color: Colors.black54),
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        _removeMenu();
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Melody idea',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                            Spacer(),
-                            Icon(Icons.play_arrow, color: Colors.black),
-                          ],
-                        ),
-                      ),
-                    ),
-                    InkWell(
-                      onTap: () {
-                        _removeMenu();
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 10,
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Harmony',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                            Spacer(),
-                            Icon(Icons.play_arrow, color: Colors.black),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-    );
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _removeMenu() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      key: _key,
-      onTap: () {
-        if (_overlayEntry == null) {
-          _showMenu();
-        } else {
-          _removeMenu();
-        }
-      },
-      child: Icon(Icons.play_arrow, size: 18, color: Colors.black),
+    return Container(
+      width: 220,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Text('Select a recording to play', style: TextStyle(fontSize: 12, color: Colors.black54)),
+          ),
+          for (final recordingId in widget.recordings)
+            FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+              future: FirebaseFirestore.instance
+                  .collection('sessions')
+                  .doc(widget.sessionId)
+                  .collection('recordings')
+                  .doc(recordingId)
+                  .get(),
+              builder: (context, snapshot) {
+                final data = snapshot.data?.data();
+                final name = data?['name'] ?? data?['fileName'] ?? 'Recording';
+                return ListTile(
+                  title: Text(name, style: const TextStyle(fontSize: 15)),
+                  trailing: const Icon(Icons.play_arrow, color: Colors.black),
+                  onTap: () {
+                    if (widget.onRecordingSelected != null) {
+                      widget.onRecordingSelected!(recordingId);
+                    }
+                  },
+                );
+              },
+            ),
+        ],
+      ),
     );
-  }
-
-  @override
-  void dispose() {
-    _removeMenu();
-    super.dispose();
   }
 }
 
@@ -1841,5 +1888,108 @@ class _GradientBorderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class MoveRecordingDialog extends StatelessWidget {
+  final String currentSessionId;
+  final String recordingId;
+  final Map<String, dynamic> recordingData;
+  final BuildContext rootContext;
+  const MoveRecordingDialog({required this.currentSessionId, required this.recordingId, required this.recordingData, required this.rootContext, super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const AlertDialog(
+        title: Text('Error'),
+        content: Text('You must be logged in.'),
+      );
+    }
+    return AlertDialog(
+      title: const Text('Move Recording to Session'),
+      content: SizedBox(
+        width: 300,
+        child: FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          future: FirebaseFirestore.instance
+              .collection('sessions')
+              .where('hostId', isEqualTo: user.uid)
+              .get(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Text('No sessions found.');
+            }
+            final sessions = snapshot.data!.docs.where((doc) => doc.id != currentSessionId).toList();
+            if (sessions.isEmpty) {
+              return const Text('No other sessions available.');
+            }
+            return SizedBox(
+              height: 300,
+              width: 300,
+              child: ListView.builder(
+                itemCount: sessions.length,
+                itemBuilder: (context, index) {
+                  final session = sessions[index];
+                  return ListTile(
+                    title: Text(session['name'] ?? 'Untitled'),
+                    onTap: () async {
+                      Navigator.of(context).pop();
+                      await moveRecordingToSession(
+                        context: rootContext, // Use root context for snackbar
+                        fromSessionId: currentSessionId,
+                        toSessionId: session.id,
+                        recordingId: recordingId,
+                        recordingData: recordingData,
+                      );
+                    },
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+Future<void> moveRecordingToSession({
+  required BuildContext context,
+  required String fromSessionId,
+  required String toSessionId,
+  required String recordingId,
+  required Map<String, dynamic> recordingData,
+}) async {
+  try {
+    final fromRef = FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(fromSessionId)
+        .collection('recordings')
+        .doc(recordingId);
+    final toRef = FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(toSessionId)
+        .collection('recordings')
+        .doc(); // new doc ID
+
+    // Remove the old recordingId from the data, set the new one
+    final newData = Map<String, dynamic>.from(recordingData);
+    newData['recordingId'] = toRef.id;
+    newData['createdAt'] = FieldValue.serverTimestamp(); // Optionally update timestamp
+
+    await toRef.set(newData);
+    await fromRef.delete();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Recording moved successfully.'), backgroundColor: Colors.green),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to move recording: $e'), backgroundColor: Colors.red),
+    );
+  }
 }
 
