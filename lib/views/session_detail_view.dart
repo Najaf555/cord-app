@@ -1907,7 +1907,17 @@ class MoveRecordingDialog extends StatelessWidget {
       );
     }
     return AlertDialog(
-      title: const Text('Move Recording to Session'),
+      backgroundColor: Colors.white, // Match invite dialog
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12), // Match invite dialog if rounded
+      ),
+      title: const Text('Move Recording to Session',
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          fontSize: 18,
+          color: Colors.black,
+        ),
+      ),
       content: SizedBox(
         width: 300,
         child: FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -1926,25 +1936,121 @@ class MoveRecordingDialog extends StatelessWidget {
             if (sessions.isEmpty) {
               return const Text('No other sessions available.');
             }
+            // Sort sessions by createdAt descending
+            final sortedSessions = List.from(sessions)
+              ..sort((a, b) {
+                final aDate = (a.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime(1970);
+                final bDate = (b.data()['createdAt'] as Timestamp?)?.toDate() ?? DateTime(1970);
+                return bDate.compareTo(aDate); // Descending
+              });
             return SizedBox(
               height: 300,
-              width: 300,
-              child: ListView.builder(
-                itemCount: sessions.length,
+              width: 350,
+              child: ListView.separated(
+                itemCount: sortedSessions.length,
+                separatorBuilder: (context, index) => const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFF0F0F0),
+                ),
                 itemBuilder: (context, index) {
-                  final session = sessions[index];
-                  return ListTile(
-                    title: Text(session['name'] ?? 'Untitled'),
+                  final session = sortedSessions[index];
+                  final data = session.data();
+                  final name = data['name'] ?? 'Untitled';
+                  final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+                  final users = (data['users'] as List?) ?? [];
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(8),
                     onTap: () async {
                       Navigator.of(context).pop();
                       await moveRecordingToSession(
-                        context: rootContext, // Use root context for snackbar
+                        context: rootContext,
                         fromSessionId: currentSessionId,
                         toSessionId: session.id,
                         recordingId: recordingId,
                         recordingData: recordingData,
                       );
                     },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Session info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 17,
+                                    color: Color(0xFF222222),
+                                  ),
+                                ),
+                                if (createdAt != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${createdAt.day.toString().padLeft(2, '0')}/'
+                                    '${createdAt.month.toString().padLeft(2, '0')}/'
+                                    '${createdAt.year.toString().substring(2)}',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF828282),
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Avatars and recordings count
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (var user in users.take(3))
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                                      child: CircleAvatar(
+                                        radius: 14,
+                                        backgroundImage: user['avatarUrl'] != null
+                                            ? NetworkImage(user['avatarUrl'])
+                                            : null,
+                                        backgroundColor: Colors.white,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              FutureBuilder<QuerySnapshot>(
+                                future: FirebaseFirestore.instance
+                                    .collection('sessions')
+                                    .doc(session.id)
+                                    .collection('recordings')
+                                    .get(),
+                                builder: (context, snapshot) {
+                                  final count = snapshot.data?.docs.length ?? 0;
+                                  return Text(
+                                    '$count recordings',
+                                    style: const TextStyle(
+                                      color: Color(0xFFBDBDBD),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   );
                 },
               ),
@@ -1982,6 +2088,41 @@ Future<void> moveRecordingToSession({
 
     await toRef.set(newData);
     await fromRef.delete();
+
+    // Remove the old recordingId from all lyrics in the old session
+    final lyricsQuery = await FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(fromSessionId)
+        .collection('lyrics')
+        .where('recordings', arrayContains: recordingId)
+        .get();
+    for (final lyricDoc in lyricsQuery.docs) {
+      final lyricRef = lyricDoc.reference;
+      final lyricData = lyricDoc.data();
+      // Remove old recordingId, add new one
+      await lyricRef.update({
+        'recordings': FieldValue.arrayRemove([recordingId])
+      });
+      await lyricRef.update({
+        'recordings': FieldValue.arrayUnion([toRef.id])
+      });
+      // Copy lyric to new session's lyrics subcollection
+      final newLyricData = Map<String, dynamic>.from(lyricData);
+      List recordingsList = List.from(newLyricData['recordings'] ?? []);
+      // Remove old, add new recordingId
+      recordingsList.remove(recordingId);
+      if (!recordingsList.contains(toRef.id)) {
+        recordingsList.add(toRef.id);
+      }
+      newLyricData['recordings'] = recordingsList;
+      await FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(toSessionId)
+          .collection('lyrics')
+          .add(newLyricData);
+      // Delete lyric from old session
+      await lyricRef.delete();
+    }
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Recording moved successfully.'), backgroundColor: Colors.green),

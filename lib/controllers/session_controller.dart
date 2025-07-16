@@ -153,10 +153,10 @@ class SessionController extends GetxController {
       // Show all sessions for debugging
       for (var doc in allSessionsSnapshot.docs) {
         final data = doc.data();
-        print('Session ${doc.id}: ${doc.data()}');
-        print('  - hostId: ${data['hostId']}');
-        print('  - current user UID: ${currentUser.uid}');
-        print('  - hostId matches current user: ${data['hostId'] == currentUser.uid}');
+        // print('Session ${doc.id}: ${doc.data()}');
+        // print('  - hostId: ${data['hostId']}');
+        // print('  - current user UID: ${currentUser.uid}');
+        // print('  - hostId matches current user: ${data['hostId'] == currentUser.uid}');
       }
       final hostSessions = await FirebaseFirestore.instance
           .collection('sessions')
@@ -185,8 +185,8 @@ class SessionController extends GetxController {
 
       for (var doc in sessionsSnapshot) {
         final data = doc.data();
-        print('Processing session document: ${doc.id}');
-        print('Session data: $data');
+        // print('Processing session document: ${doc.id}');
+        // print('Session data: $data');
         
         // Fetch real users from participantIds and hostId
         List<String> participantIds = [];
@@ -334,7 +334,7 @@ class SessionController extends GetxController {
   // Toggle sort order (newest first vs oldest first)
   void toggleSortOrder() {
     isDescendingOrder.value = !isDescendingOrder.value;
-    print('Sort order changed to: ${isDescendingOrder.value ? "newest first" : "oldest first"}');
+    // print('Sort order changed to: ${isDescendingOrder.value ? "newest first" : "oldest first"}');
   }
 
   // Temporary method to load all sessions (for testing)

@@ -876,7 +876,7 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
               'id': doc.id,
               'sessionId': data['sessionId'], // Include the sessionId
             };
-            print('Notification data: $notification'); // Debug print
+            // print('Notification data: $notification'); // Debug print
             return notification;
           }).toList();
           print('Total notifications: ${notifications.length}'); // Debug print
