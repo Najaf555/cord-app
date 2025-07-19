@@ -675,17 +675,17 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
                             });
                             recordingId = _firestoreRecordingDocId!;
                           } else {
-                            final docRef = await recordingsRef.add({
-                              'userId': user.uid,
-                              'fileUrl': fileUrl,
+                          final docRef = await recordingsRef.add({
+                            'userId': user.uid,
+                            'fileUrl': fileUrl,
                               'is_recording': false,
-                              'duration': _formatElapsed(_elapsedSeconds),
-                              'createdAt': FieldValue.serverTimestamp(),
+                            'duration': _formatElapsed(_elapsedSeconds),
+                            'createdAt': FieldValue.serverTimestamp(),
                               'fileName': _recordingFileName,
-                            });
-                            await recordingsRef.doc(docRef.id).update({
-                              'recordingId': docRef.id,
-                            });
+                          });
+                          await recordingsRef.doc(docRef.id).update({
+                            'recordingId': docRef.id,
+                          });
                             recordingId = docRef.id;
                           }
                           // Update the lyric document if opened from lyrics tab

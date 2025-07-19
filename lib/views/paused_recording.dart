@@ -87,7 +87,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
       _recordingFileName = widget.recordingName ?? 'New Recording';
       _fileNameController.text = _recordingFileName;
     }
-
+    
     // If we have a recording file path, we can potentially get the actual duration
     if (widget.recordingFilePath != null) {
       _elapsedSeconds = 0.0;
@@ -109,9 +109,9 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
             _isPlaying = true;
           });
           _controller.reset();
-          _controller.repeat();
+      _controller.repeat();
         }
-      } else {
+    } else {
         if (_isPlaying) {
           setState(() {
             _isPlaying = false;
@@ -345,7 +345,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const SizedBox(width: 60), // Balance the Done button
-                        Expanded(
+                    Expanded(
                           child: Text(
                             widget.sessionName ?? 'New Session',
                             style: const TextStyle(
@@ -369,13 +369,13 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                           ),
                         ),
                       ],
-                    ),
+                          ),
                     const SizedBox(height: 8),
                     // Centered recording name with edit icon
                     Center(
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
-                        children: [
+                            children: [
                           Flexible(
                             child: _loadingRecording
                               ? const SizedBox(
@@ -384,17 +384,17 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                                   child: CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : Text(
-                                  _recordingFileName,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.black54,
+                                _recordingFileName,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.black54,
                                   ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   textAlign: TextAlign.center,
                                 ),
-                          ),
-                          const SizedBox(width: 8),
+                              ),
+                              const SizedBox(width: 8),
                           if (_loadingCreator)
                             const SizedBox(
                               width: 18,
@@ -402,24 +402,24 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           else if (_isCurrentUserCreator)
-                            Tooltip(
-                              message: 'Edit file name',
-                              child: GestureDetector(
-                                onTap: () async {
+                              Tooltip(
+                                message: 'Edit file name',
+                                child: GestureDetector(
+                                  onTap: () async {
                                   print('🟢 Edit icon tapped');
-                                  _fileNameController.text = _recordingFileName;
-                                  String? errorText;
-                                  final result = await showDialog<String>(
-                                    context: context,
+                                    _fileNameController.text = _recordingFileName;
+                                    String? errorText;
+                                    final result = await showDialog<String>(
+                                      context: context,
                                     barrierDismissible: false,
-                                    builder: (context) {
-                                      return StatefulBuilder(
-                                        builder: (context, setState) {
+                                      builder: (context) {
+                                        return StatefulBuilder(
+                                          builder: (context, setState) {
                                           return Dialog(
                                             backgroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(
+                                              shape: RoundedRectangleBorder(
                                               borderRadius: BorderRadius.zero,
-                                            ),
+                                              ),
                                             insetPadding: const EdgeInsets.symmetric(horizontal: 32),
                                             child: Container(
                                               width: double.infinity,
@@ -438,23 +438,23 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                                                   ),
                                                   const SizedBox(height: 24),
                                                   TextField(
-                                                    controller: _fileNameController,
+                                                controller: _fileNameController,
                                                     textAlign: TextAlign.center,
-                                                    decoration: InputDecoration(
-                                                      border: OutlineInputBorder(
+                                                decoration: InputDecoration(
+                                                  border: OutlineInputBorder(
                                                         borderRadius: BorderRadius.zero,
-                                                      ),
-                                                      enabledBorder: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.zero,
-                                                        borderSide: BorderSide(color: Colors.grey),
-                                                      ),
-                                                      focusedBorder: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.zero,
-                                                        borderSide: BorderSide(color: Colors.black),
-                                                      ),
-                                                      errorText: errorText,
-                                                      fillColor: Colors.white,
-                                                      filled: true,
+                                                  ),
+                                                  enabledBorder: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.zero,
+                                                    borderSide: BorderSide(color: Colors.grey),
+                                                  ),
+                                                  focusedBorder: OutlineInputBorder(
+                                                    borderRadius: BorderRadius.zero,
+                                                    borderSide: BorderSide(color: Colors.black),
+                                                  ),
+                                                  errorText: errorText,
+                                                  fillColor: Colors.white,
+                                                  filled: true,
                                                       contentPadding: const EdgeInsets.symmetric(
                                                         horizontal: 16,
                                                         vertical: 16,
@@ -462,7 +462,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                                                     ),
                                                     style: const TextStyle(fontSize: 15),
                                                     autofocus: true,
-                                                  ),
+                                                    ),
                                                   const SizedBox(height: 24),
                                                   GestureDetector(
                                                     onTap: () {
@@ -511,9 +511,9 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                                                                   fontWeight: FontWeight.w400,
                                                                   color: Colors.black,
                                                                 ),
-                                                              ),
-                                                            ),
-                                                          ],
+                                                  ),
+                                                ),
+                                              ],
                                                         ),
                                                       ),
                                                     ),
@@ -521,12 +521,12 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                                                 ],
                                               ),
                                             ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  );
-                                  if (result != null && result.isNotEmpty) {
+                                            );
+                                          },
+                                        );
+                                      },
+                                    );
+                                    if (result != null && result.isNotEmpty) {
                                     final newName = result.trim();
                                     if (newName != _recordingFileName) {
                                       setState(() {
@@ -535,14 +535,14 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                                       // Update the recording name in Firestore
                                       await _updateRecordingNameInFirestore(newName);
                                     }
-                                  }
-                                },
-                                child: const Icon(
-                                  Icons.edit,
+                                    }
+                                  },
+                                  child: const Icon(
+                                    Icons.edit,
                                   size: 18,
-                                  color: Color.fromARGB(255, 253, 162, 27),
+                                    color: Color.fromARGB(255, 253, 162, 27),
+                                  ),
                                 ),
-                              ),
                             )
                           else
                             Tooltip(
@@ -552,7 +552,7 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                                 size: 18,
                                 color: Colors.grey,
                               ),
-                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -581,16 +581,16 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
                     height: 110,
                     width: double.infinity,
                     color: const Color(0xFFF5F5F5),
-                    child: Container(
+                      child: Container(
                       width: double.infinity,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.blue, width: 1.5),
-                      ),
-                      child: ClipRect(
-                        child: CustomPaint(
-                          painter: _WaveformPainter(
-                            phase: _isPlaying ? _controller.value : 0.0,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.blue, width: 1.5),
+                        ),
+                        child: ClipRect(
+                          child: CustomPaint(
+                            painter: _WaveformPainter(
+                              phase: _isPlaying ? _controller.value : 0.0,
                           ),
                         ),
                       ),
@@ -699,18 +699,18 @@ class _PausedRecordingState extends State<PausedRecording> with SingleTickerProv
           ),
         ),
         floatingActionButton: SizedBox(
-          height: 64,
-          width: 64,
-          child: FloatingActionButton(
+            height: 64,
+            width: 64,
+            child: FloatingActionButton(
             onPressed: _isAudioPlaying ? _onPausePressed : _onPlayPressed,
-            elevation: 0,
+              elevation: 0,
             backgroundColor: Colors.white,
-            shape: const CircleBorder(),
-            child: Image.asset(
-              'assets/images/linemdpause.png',
-              width: 64,
-              height: 64,
-              fit: BoxFit.contain,
+              shape: const CircleBorder(),
+              child: Image.asset(
+                'assets/images/linemdpause.png',
+                width: 64,
+                height: 64,
+                fit: BoxFit.contain,
             ),
           ),
         ),

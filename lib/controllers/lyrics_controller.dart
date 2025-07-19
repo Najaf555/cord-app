@@ -51,4 +51,16 @@ class LyricsController {
       'recordings': FieldValue.arrayUnion([recordingId])
     });
   }
+
+  // Update a lyric line text
+  Future<void> updateLyric(String sessionId, String lyricId, String newText) async {
+    final lyricRef = FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(sessionId)
+        .collection('lyrics')
+        .doc(lyricId);
+    await lyricRef.update({
+      'text': newText,
+    });
+  }
 } 

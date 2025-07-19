@@ -4,6 +4,7 @@ import '../controllers/session_controller.dart';
 import '../controllers/navigation_controller.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../utils/azure_openai_service.dart';
 import 'session_detail_view.dart';
 import '../controllers/session_detail_controller.dart';
 import '../models/session.dart';
@@ -50,7 +51,7 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _fetchPendingInvites();
-    
+    testAzureOpenAI();
     // Listen to authentication state changes for auto-refresh
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       if (user != null) {

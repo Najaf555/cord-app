@@ -1,3 +1,4 @@
+import 'package:Cord/utils/azure_openai_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase/firebase_options.dart';
@@ -23,7 +24,8 @@ void main() async {
   
   // Initialize FCM
   await _initializeFCM();
-  
+  initializeAzureOpenAIDefaults();
+
   Get.put(NavigationController(), permanent: true);
   runApp(const MyApp());
 }
