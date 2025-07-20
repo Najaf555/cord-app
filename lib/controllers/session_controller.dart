@@ -240,7 +240,7 @@ class SessionController extends GetxController {
         );
 
         sessionsList.add(session);
-        print('Added session: ${session.name}');
+        // print('Added session: ${session.name}');
       }
 
       if (sessionsList.isEmpty) {

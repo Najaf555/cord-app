@@ -23,6 +23,55 @@ import '../models/lyric_line.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import '../utils/azure_openai_service.dart'; // Added for Azure OpenAI integration
 
+// Move the color palette and color assignment function to the top-level
+const List<Color> userBorderColors = [
+  Color(0xFFEB5757), // Red
+  Color(0xFF27AE60), // Green
+  Color(0xFF2F80ED), // Blue
+  Color(0xFFFF833E), // Orange
+  Color(0xFF9B51E0), // Purple
+  Color(0xFF00B8A9), // Teal
+  Color(0xFFFFC542), // Yellow
+  Color(0xFF6A89CC), // Indigo
+  Color(0xFFB33771), // Pink
+  Color(0xFF218c5c), // Dark Green
+  Color(0xFFE74C3C), // Bright Red
+  Color(0xFF2ECC71), // Emerald
+  Color(0xFF3498DB), // Sky Blue
+  Color(0xFFF39C12), // Orange
+  Color(0xFF8E44AD), // Purple
+  Color(0xFF1ABC9C), // Turquoise
+  Color(0xFFF1C40F), // Yellow
+  Color(0xFF34495E), // Dark Blue
+  Color(0xFFE91E63), // Pink
+  Color(0xFF795548), // Brown
+  Color(0xFF607D8B), // Blue Grey
+  Color(0xFF9C27B0), // Deep Purple
+  Color(0xFF3F51B5), // Indigo
+  Color(0xFF2196F3), // Blue
+  Color(0xFF00BCD4), // Cyan
+  Color(0xFF009688), // Teal
+  Color(0xFF4CAF50), // Green
+  Color(0xFF8BC34A), // Light Green
+  Color(0xFFCDDC39), // Lime
+  Color(0xFFFFEB3B), // Yellow
+  Color(0xFFFFC107), // Amber
+  Color(0xFFFF9800), // Orange
+  Color(0xFFFF5722), // Deep Orange
+  Color(0xFF795548), // Brown
+  Color(0xFF9E9E9E), // Grey
+  Color(0xFF607D8B), // Blue Grey
+];
+
+Color getUserColor(String? id, String? name) {
+  if (id != null && id.isNotEmpty) {
+    return userBorderColors[id.hashCode % userBorderColors.length];
+  } else if (name != null && name.isNotEmpty) {
+    return userBorderColors[name.hashCode % userBorderColors.length];
+  }
+  return userBorderColors[0];
+}
+
 class SessionDetailView extends StatefulWidget {
   final Session session;
 
@@ -334,24 +383,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                   itemBuilder: (context, index) {
                     if (index < controller.participants.length) {
                       final user = controller.participants[index];
-                      Color borderColor;
-                      if (user.name == 'Mark') {
-                        borderColor = const Color(
-                          0xFF2F80ED,
-                        ); // Specific blue for Mark
-                      } else if (user.name == 'John') {
-                        borderColor = const Color(
-                          0xFFEB5757,
-                        ); // Specific red for John
-                      } else if (user.name == 'Steve') {
-                        borderColor = const Color(
-                          0xFF27AE60,
-                        ); // Specific green for Steve
-                      } else {
-                        borderColor =
-                            Colors
-                                .transparent; // Default or no border for others
-                      }
+                      final borderColor = getUserColor(user.id, user.name);
                       return Padding(
                         padding: const EdgeInsets.only(right: 16.0),
                         child: Column(
@@ -365,7 +397,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: borderColor,
-                                    width: 2,
+                                    width: 3,
                                   ),
                                 ),
                               ),
@@ -1791,43 +1823,43 @@ class LyricsWithAuthorTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: _getFirstName(userId),
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final isCurrentUser = currentUser?.uid == userId;
+    
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: _getUserData(userId),
       builder: (context, snapshot) {
-        final displayName = snapshot.data ?? 'Unknown';
-        final tagColor = _getColor(displayName);
+        final userData = snapshot.data;
+        final displayName = userData?['firstName'] ?? 'Unknown';
+        final tagColor = getUserColor(userId, displayName);
+        
         return RichText(
           text: TextSpan(
             style: textStyle ?? DefaultTextStyle.of(context).style,
             children: [
               TextSpan(text: text),
-              WidgetSpan(
-                alignment: PlaceholderAlignment.middle,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 4, bottom: 15), // Move tag up
-                  child: _AuthorTagDisplay(
-                    displayName: displayName,
-                    tagColor: tagColor,
+              // Only show the tag if it's not the current user
+              if (!isCurrentUser)
+                WidgetSpan(
+                  alignment: PlaceholderAlignment.middle,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 4, bottom: 15), // Move tag up
+                    child: _AuthorTagDisplay(
+                      displayName: displayName,
+                      tagColor: tagColor,
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
           ),
         );
       },
     );
   }
 
-  Future<String?> _getFirstName(String userId) async {
+  Future<Map<String, dynamic>?> _getUserData(String userId) async {
     final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    return doc.data()?['firstName'] as String?;
-  }
-
-  Color _getColor(String? name) {
-    if (name == null) return Colors.red;
-    if (name.toLowerCase() == 'mark') return Color(0xFF0076FF);
-    if (name.toLowerCase() == 'steve') return Color(0xFF22C55E);
-    return Color(0xFF0076FF);
+    return doc.data();
   }
 }
 
