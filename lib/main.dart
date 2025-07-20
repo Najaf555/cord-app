@@ -1,11 +1,13 @@
 import 'package:Cord/utils/azure_openai_service.dart';
+import 'package:Cord/views/main_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase/firebase_options.dart';
 import 'package:get/get.dart';
-import 'login/splash_screen.dart' show SplashScreen;
+import 'login/splash_screen.dart';
 import 'controllers/navigation_controller.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
 
 // Background message handler
 @pragma('vm:entry-point')
@@ -21,7 +23,16 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+
+  // Set status bar color to light orange
+  // SystemChrome.setSystemUIOverlayStyle(
+  //   const SystemUiOverlayStyle(
+  //     statusBarColor: Color(0xFFFF833E), // light orange
+  //     statusBarIconBrightness: Brightness.dark, // dark icons for light background
+  //     statusBarBrightness: Brightness.light,
+  //   ),
+  // );
+
   // Initialize FCM
   await _initializeFCM();
   initializeAzureOpenAIDefaults();
@@ -73,8 +84,6 @@ Future<void> _initializeFCM() async {
   }
 }
 
-
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -104,7 +113,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SplashScreen(), // ✅ Just changed this line
+      home: const SplashScreen(), // Restore splash screen as initial home
     );
   }
 }

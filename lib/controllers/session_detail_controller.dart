@@ -4,6 +4,7 @@ import '../models/user.dart';
 import '../models/recording.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import 'package:flutter/material.dart';
 
 class SessionDetailController extends GetxController {
   final Session session;
@@ -17,6 +18,7 @@ class SessionDetailController extends GetxController {
   var sessionName = ''.obs;
   var isRecordingsLoading = false.obs;
   StreamSubscription? _recordingsSubscription;
+  StreamSubscription<DocumentSnapshot>? _sessionListener;
 
   // Add stream for real-time recordings updates
   Stream<List<Recording>> get recordingsStream {
@@ -88,6 +90,19 @@ class SessionDetailController extends GetxController {
     sessionName.value = session.name;
     _listenToRecordings();
     ever(isDescendingOrder, (_) => _listenToRecordings());
+
+    // Listen to session document for name changes
+    _sessionListener = FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(session.id)
+        .snapshots()
+        .listen((doc) {
+          if (doc.exists) {
+            final data = doc.data() as Map<String, dynamic>;
+            sessionName.value = data['name'] ?? '';
+            update(); // Force UI update
+          }
+        });
   }
 
   void _listenToRecordings() {
@@ -126,6 +141,7 @@ class SessionDetailController extends GetxController {
   @override
   void onClose() {
     _recordingsSubscription?.cancel();
+    _sessionListener?.cancel();
     super.onClose();
   }
 
@@ -190,9 +206,16 @@ class SessionDetailController extends GetxController {
   }
 
   Future<void> updateSessionName(String newName) async {
-    sessionName.value = newName;
     final sessionRef = FirebaseFirestore.instance.collection('sessions').doc(session.id);
     await sessionRef.update({'name': newName});
+    Get.snackbar(
+      'Success',
+      'Session name updated!',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
     update();
   }
 } 

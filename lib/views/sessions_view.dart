@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import '../controllers/session_controller.dart';
 import '../controllers/navigation_controller.dart';
@@ -52,17 +53,14 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
     WidgetsBinding.instance.addObserver(this);
     _fetchPendingInvites();
     testAzureOpenAI();
-    // Listen to authentication state changes for auto-refresh
+    // immersive mode removed
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       if (user != null) {
-        // User logged in, refresh sessions
         controller.refreshSessions();
         _fetchPendingInvites();
         _fetchUserInvitations();
       }
     });
-    
-    // Initial refresh if user is already authenticated
     if (FirebaseAuth.instance.currentUser != null) {
       controller.refreshSessions();
       _fetchUserInvitations();
@@ -72,6 +70,7 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    // immersive mode restore removed
     super.dispose();
   }
 
@@ -216,8 +215,19 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
+          Container(
+            height: MediaQuery.of(context).padding.top,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFFF833E), Color(0xFFFF0055)],
+                begin: Alignment.topLeft,
+                end: Alignment.topRight,
+              ),
+            ),
+          ),
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -467,7 +477,7 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
                         // If stream is waiting or has no data, use controller sessions
                         allSessions = controller.sessions;
                       }
-                      
+
                       return Expanded(
                         child: Obx(() {
                           // Apply search filter to the live sessions
@@ -555,7 +565,7 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
                                             ],
                                           ),
                                         ),
-                                      )
+                                    )
                                     : ListView.separated(
                                         itemCount: sessions.length,
                                         separatorBuilder:
@@ -695,7 +705,6 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
           ),
         ],
       ),
-
     );
   }
 
@@ -803,7 +812,14 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(email, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                            Expanded(
+                              child: Text(
+                                email,
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                                maxLines: null,
+                                softWrap: true,
+                              ),
+                            ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [

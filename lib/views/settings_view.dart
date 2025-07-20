@@ -89,175 +89,191 @@ class _SettingsViewState extends State<SettingsView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Settings',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              InkWell(
-                onTap: () {},
-                borderRadius: BorderRadius.circular(12),
-                child: Row(
+      resizeToAvoidBottomInset: false,
+      body: Stack(
+        children: [
+          // Gradient container above the app bar/status bar area
+          // Container(
+          //   height: MediaQuery.of(context).padding.top,
+          //   decoration: const BoxDecoration(
+          //     gradient: LinearGradient(
+          //       colors: [Color(0xFFFF833E), Color(0xFFFF0055)],
+          //       begin: Alignment.topLeft,
+          //       end: Alignment.topRight,
+          //     ),
+          //   ),
+          // ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.grey[200],
-                      backgroundImage: (userProfileImageUrl.isNotEmpty)
-                          ? NetworkImage(userProfileImageUrl)
-                          : null,
-                      child: (userProfileImageUrl.isEmpty)
-                          ? (isLoading
-                              ? const CircularProgressIndicator()
-                              : Text(
-                                  userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                    const Text(
+                      'Settings',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    InkWell(
+                      onTap: () {},
+                      borderRadius: BorderRadius.circular(12),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 30,
+                            backgroundColor: Colors.grey[200],
+                            backgroundImage: (userProfileImageUrl.isNotEmpty)
+                                ? NetworkImage(userProfileImageUrl)
+                                : null,
+                            child: (userProfileImageUrl.isEmpty)
+                                ? (isLoading
+                                    ? const CircularProgressIndicator()
+                                    : Text(
+                                        userName.isNotEmpty ? userName[0].toUpperCase() : 'U',
+                                        style: const TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                      ))
+                                : null,
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Welcome,',
+                                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                                ),
+                                Text(
+                                  isLoading ? 'Loading...' : userName,
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black,
                                   ),
-                                ))
-                          : null,
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Welcome,',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                          Text(
-                            isLoading ? 'Loading...' : userName,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
+                                ),
+                                if (userEmail.isNotEmpty && !isLoading)
+                                  Text(
+                                    userEmail,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
-                          if (userEmail.isNotEmpty && !isLoading)
-                            Text(
-                              userEmail,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
+                          const Icon(
+                            Icons.arrow_forward_ios,
+                            color: Colors.grey,
+                            size: 20,
+                          ),
                         ],
                       ),
                     ),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Colors.grey,
-                      size: 20,
+
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20.0),
+                      child: Divider(color: Color(0xFFE0E0E0), thickness: 1),
                     ),
-                  ],
-                ),
-              ),
 
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 20.0),
-                child: Divider(color: Color(0xFFE0E0E0), thickness: 1),
-              ),
+                    _settingsTile(
+                      title: 'User Profile',
+                      icon: Icons.person,
+                      onTap: () => Get.to(() => const UserProfileView()),
+                    ),
+                    _divider(),
 
-              _settingsTile(
-                title: 'User Profile',
-                icon: Icons.person,
-                onTap: () => Get.to(() => const UserProfileView()),
-              ),
-              _divider(),
+                    _settingsTile(
+                      title: 'Change Password',
+                      icon: Icons.lock,
+                      onTap: () => Get.to(() => const ChangePasswordView()),
+                      forceBlackIcon: true,
+                    ),
+                    _divider(),
 
-              _settingsTile(
-                title: 'Change Password',
-                icon: Icons.lock,
-                onTap: () => Get.to(() => const ChangePasswordView()),
-                forceBlackIcon: true,
-              ),
-              _divider(),
+                    // ✅ Updated FAQs navigation
+                    _settingsTile(
+                      title: 'FAQs',
+                      icon: Icons.help_outline,
+                      onTap:
+                          () => Get.to(
+                            () => const FAQScreen(),
+                          ), // ← Navigates to FAQsView
+                    ),
+                    _divider(),
 
-              // ✅ Updated FAQs navigation
-              _settingsTile(
-                title: 'FAQs',
-                icon: Icons.help_outline,
-                onTap:
-                    () => Get.to(
-                      () => const FAQScreen(),
-                    ), // ← Navigates to FAQsView
-              ),
-              _divider(),
+                    _settingsTile(
+                      title: 'Notifications',
+                      icon: Icons.notifications,
+                      onTap: () => Get.to(() => const NotificationsView()),
+                      forceBlackIcon: true,
+                    ),
+                    _divider(),
 
-              _settingsTile(
-                title: 'Notifications',
-                icon: Icons.notifications,
-                onTap: () => Get.to(() => const NotificationsView()),
-                forceBlackIcon: true,
-              ),
-              _divider(),
+                    _settingsTile(
+                      title: 'Contact Us',
+                      icon: Icons.mail_outline,
+                      onTap: () => Get.to(() => ContactUsScreen()),
+                      forceBlackIcon: true,
+                    ),
+                    _divider(),
 
-              _settingsTile(
-                title: 'Contact Us',
-                icon: Icons.mail_outline,
-                onTap: () => Get.to(() => ContactUsScreen()),
-                forceBlackIcon: true,
-              ),
-              _divider(),
-
-                // Logout option
-                _settingsTile(
-                  title: 'Log Out',
-                  icon: Icons.logout,
-                  onTap: () async {
-                    await Get.dialog(
-                      AlertDialog(
-                        title: const Text('Log Out'),
-                        content: const Text('Are you sure you want to log out?'),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Get.back(),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              try {
-                                final user = FirebaseAuth.instance.currentUser;
-                                final fcmToken = await FirebaseMessaging.instance.getToken();
-                                if (user != null && fcmToken != null) {
-                                  await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-                                    'fcmTokens': FieldValue.arrayRemove([fcmToken]),
-                                  });
-                                }
-                                await FirebaseAuth.instance.signOut();
-                              } catch (e) {
-                                print('Error during logout: $e');
-                              }
-                              await Future.delayed(const Duration(milliseconds: 200));
-                              await Get.offAllNamed('/');
-                            },
-                            child: const Text('Log Out'),
-                          ),
-                        ],
+                      // Logout option
+                      _settingsTile(
+                        title: 'Log Out',
+                        icon: Icons.logout,
+                        onTap: () async {
+                          await Get.dialog(
+                            AlertDialog(
+                              title: const Text('Log Out'),
+                              content: const Text('Are you sure you want to log out?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Get.back(),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () async {
+                                    try {
+                                      final user = FirebaseAuth.instance.currentUser;
+                                      final fcmToken = await FirebaseMessaging.instance.getToken();
+                                      if (user != null && fcmToken != null) {
+                                        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+                                          'fcmTokens': FieldValue.arrayRemove([fcmToken]),
+                                        });
+                                      }
+                                      await FirebaseAuth.instance.signOut();
+                                    } catch (e) {
+                                      print('Error during logout: $e');
+                                    }
+                                    await Future.delayed(const Duration(milliseconds: 200));
+                                    await Get.offAllNamed('/');
+                                  },
+                                  child: const Text('Log Out'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        forceBlackIcon: true,
                       ),
-                    );
-                  },
-                  forceBlackIcon: true,
+                      _divider(),
+                    ],
+                  ),
                 ),
-                _divider(),
-              ],
-            ),
+              ),
           ),
-        ),
+        ],
       ),
     );
   }

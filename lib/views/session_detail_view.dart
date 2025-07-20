@@ -122,34 +122,43 @@ class _SessionDetailViewState extends State<SessionDetailView>
   Widget build(BuildContext context) {
     _rootContext = context; // <-- Set the root context here
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.white, // Make Scaffold transparent
       resizeToAvoidBottomInset: false,
-      body: SafeArea(
+      body: Stack(
+        children: [
+          // Gradient background for status bar and header
+          // Container(
+          //   height: MediaQuery.of(context).padding.top,
+          //   decoration: const BoxDecoration(
+          //     gradient: LinearGradient(
+          //       colors: [Color(0xFFFF833E), Color(0xFFFF0055)],
+          //       begin: Alignment.topLeft,
+          //       end: Alignment.topRight,
+          //     ),
+          //   ),
+          // ),
+          SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 15),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Top Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // IconButton(
-                  //   icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF222222), size: 24),
-                  //   onPressed: () {
-                  //     Get.find<NavigationController>().showSessionsList();
-                  //   },
-                  // ),
-                  // const SizedBox(height: 100),
-                  Expanded(
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 20),
                         Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: Obx(() => AutoSizeText(
+                        Expanded(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Obx(() => AutoSizeText(
                                   controller.sessionName.value,
                                   style: const TextStyle(
                                     fontSize: 32,
@@ -157,18 +166,18 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                     color: Color(0xFF222222),
                                   ),
                                   maxLines: 2,
-                                minFontSize: 16,
+                                  minFontSize: 16,
                                   overflow: TextOverflow.ellipsis,
-                              )),
+                                )),
                             ),
                             const SizedBox(width: 4),
-                            if (_loadingHost)
-                              const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            else if (_isCurrentUserHost)
+                              if (_loadingHost)
+                                const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              else if (_isCurrentUserHost)
                             IconButton(
                               icon: const Icon(
                                 Icons.edit,
@@ -202,6 +211,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                             const SizedBox(height: 8),
                                             TextField(
                                               controller: nameController,
+                                                  textCapitalization: TextCapitalization.sentences,
                                               decoration: InputDecoration(
                                                 labelText: 'New Session',
                                                 labelStyle: TextStyle(
@@ -251,7 +261,10 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                   final newName = nameController.text.trim();
                                                   if (newName.isNotEmpty && newName != controller.sessionName.value) {
                                                     await controller.updateSessionName(newName);
+                                                       // <-- update local observable
+                                                          controller.sessionName.value = newName;
                                                   }
+                                                      print('New session name: ${controller.sessionName.value}');
                                                   Navigator.of(context).pop();
                                                 },
                                                 child: Container(
@@ -269,8 +282,8 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                       child: Text(
                                                         'Save',
                                                         style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight: FontWeight.bold,
+                                                            color: Colors.white,
+                                                            fontWeight: FontWeight.bold,
                                                       ),
                                                     ),
                                                   ),
@@ -284,21 +297,23 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                   },
                                 );
                               },
-                              )
-                            else
-                              Tooltip(
-                                message: 'Only the session owner can rename this session',
-                                child: Icon(
-                                  Icons.edit_off,
-                                  color: Colors.grey[400],
-                                  size: 20,
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(),
                                 ),
+
+
+                      ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.menu, color: Colors.blue, size: 24),
+                          onPressed: () { /* ... */ },
                             ),
                           ],
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Created ${controller.session.createdDate.day.toString().padLeft(2, '0')}/${controller.session.createdDate.month.toString().padLeft(2, '0')}/${controller.session.createdDate.year.toString().substring(2)}',
+                      'Created ${controller.session.createdDate.day.toString().padLeft(2, '0')}/${controller.session.createdDate.month.toString().padLeft(2, '0')}/${controller.session.createdDate.year.toString().substring(2)}',
                           style: const TextStyle(
                             fontSize: 13,
                             color: Color(0xFF828282),
@@ -307,23 +322,6 @@ class _SessionDetailViewState extends State<SessionDetailView>
                         ),
                       ],
                     ),
-                  ),
-                  Transform.translate(
-                    offset: const Offset(
-                      0.0,
-                      0.0,
-                    ), // Adjust this value to move the icon up/down
-                    child: IconButton(
-                      icon: Image.asset(
-                        'assets/images/menuIcon.png',
-                        width: 30,
-                        height: 30,
-                        color: const Color(0xFF2F80ED),
-                      ),
-                      onPressed: () {},
-                    ),
-                  ),
-                ],
               ),
               const SizedBox(height: 24),
 
@@ -667,8 +665,15 @@ class _SessionDetailViewState extends State<SessionDetailView>
                     TabBar(
                       controller: _tabController,
                       onTap: controller.changeTab,
-                      indicatorColor: const Color(0xFFFF6B6B),
-                      indicatorSize: TabBarIndicatorSize.label,
+                      indicator: GradientUnderlineTabIndicator(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFFF914D), Color(0xFFFF006A)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        thickness: 4,
+                      ),
+                      indicatorSize: TabBarIndicatorSize.tab,
                       labelColor: const Color(0xFF222222),
                       unselectedLabelColor: const Color(0xFFBDBDBD),
                       labelStyle: const TextStyle(
@@ -699,7 +704,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                     fontSize: 14,
                                     color: Color(0xFF828282),
                                     fontWeight: FontWeight.w500,
-                                  ),
+                                      ),
                                 );
                               }),
                                     const Spacer(),
@@ -965,10 +970,10 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                                     children: [
                                                       Image.asset(
                                                         'assets/images/recordingIcon.png',
-                                                        width: 14,
-                                                        height: 14,
+                                                          width: 14,
+                                                          height: 14,
                                                         color: const Color(0xFFBDBDBD),
-                                                      ),
+                                                        ),
                                                       const SizedBox(width: 4),
                                                         Text(
                                                           recording.duration,
@@ -1003,6 +1008,7 @@ class _SessionDetailViewState extends State<SessionDetailView>
           ),
         ),
       ),
+      ]),
       floatingActionButton: SizedBox(
         height: 64,
         width: 64,
@@ -1305,8 +1311,8 @@ class _LyricsInputFieldState extends State<LyricsInputField> {
   }
 
   void _onTextChanged() {
-    // If the user types, mark as not AI-generated
-    if (_isAIGenerated && widget.controller.text.isNotEmpty) {
+    // Only mark as not AI-generated if the user types (not during AI animation)
+    if (!_isTyping && _isAIGenerated && widget.controller.text.isNotEmpty) {
       setState(() {
         _isAIGenerated = false;
       });
@@ -1371,7 +1377,7 @@ class _LyricsInputFieldState extends State<LyricsInputField> {
               // Add a subtle animation effect during typing
               decoration: _isTyping ? TextDecoration.underline : TextDecoration.none,
               decorationColor: _isTyping ? Colors.blue : Colors.transparent,
-            ),
+          ),
                 minLines: 1,
                 maxLines: null,
                 textCapitalization: TextCapitalization.sentences,
@@ -1585,6 +1591,7 @@ class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
                     play: lyric.recordings.isNotEmpty,
                     recordings: lyric.recordings,
                     lyricId: lyric.id,
+                    userId: lyric.userId, // <-- add this line
                     leading: GestureDetector(
                       onTap: () async {
                         await showModalBottomSheet<String>(
@@ -1621,6 +1628,7 @@ class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
                     onAIGenerate: () => _suggestNextLine(context, section, controller, key),
                     leading: _PenPopupMenu(
                       onNextLine: () => _suggestNextLine(context, section, controller, key),
+                      controller: controller,
                     ),
                   ),
                 ),
@@ -1660,6 +1668,7 @@ class _SelectableLyricsLine extends StatelessWidget {
   final Widget? nameTag;
   final TextEditingController? controller;
   final String? lyricId;
+  final String userId;
   const _SelectableLyricsLine({
     required this.text,
     required this.play,
@@ -1669,10 +1678,10 @@ class _SelectableLyricsLine extends StatelessWidget {
     this.removePadding = false,
     this.controller,
     this.lyricId,
+    required this.userId,
   });
   @override
   Widget build(BuildContext context) {
-    // Get sessionId and sessionName from ancestor
     final sessionWidget = context.findAncestorWidgetOfExactType<SessionDetailView>();
     final sessionId = sessionWidget?.session.id;
     final sessionName = sessionWidget?.session.name;
@@ -1680,10 +1689,11 @@ class _SelectableLyricsLine extends StatelessWidget {
       padding:
           removePadding
               ? EdgeInsets.zero
-              : const EdgeInsets.symmetric(vertical: 2.5),
+              : const EdgeInsets.symmetric(vertical: 1.5),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center, // Ensure vertical centering
         children: [
+          // Record icon (leading)
           leading ?? GestureDetector(
             onTap: () {
               showModalBottomSheet(
@@ -1710,7 +1720,6 @@ class _SelectableLyricsLine extends StatelessWidget {
             GestureDetector(
               onTap: () async {
                 if (recordings.length == 1) {
-                  // Open PausedRecording directly as a modal bottom sheet
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
@@ -1724,7 +1733,6 @@ class _SelectableLyricsLine extends StatelessWidget {
                     ),
                   );
                 } else if (recordings.length > 1) {
-                  // Show popup menu to select recording
                   showDialog(
                     context: context,
                     builder: (context) => Dialog(
@@ -1755,16 +1763,12 @@ class _SelectableLyricsLine extends StatelessWidget {
               child: Icon(Icons.play_arrow, size: 18, color: Colors.black),
             ),
           if (play) const SizedBox(width: 4),
+          // Lyrics and author tag
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _CustomSelectableText(text: text, controller: controller, lyricId: lyricId, sessionId: sessionId),
-                if (nameTag != null) ...[
-                  const SizedBox(height: 4),
-                  nameTag!,
-                ],
-              ],
+            child: LyricsWithAuthorTag(
+              text: text,
+              userId: userId,
+              textStyle: const TextStyle(fontSize: 15, color: Colors.black),
             ),
           ),
         ],
@@ -1773,110 +1777,163 @@ class _SelectableLyricsLine extends StatelessWidget {
   }
 }
 
-class _CustomSelectableText extends StatelessWidget {
+class LyricsWithAuthorTag extends StatelessWidget {
   final String text;
-  final TextEditingController? controller;
-  final String? lyricId;
-  final String? sessionId;
-  const _CustomSelectableText({required this.text, this.controller, this.lyricId, this.sessionId});
+  final String userId;
+  final TextStyle? textStyle;
+
+  const LyricsWithAuthorTag({
+    required this.text,
+    required this.userId,
+    this.textStyle,
+    Key? key,
+  }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return SelectableText(
-      text,
-      style: const TextStyle(fontSize: 15),
-      maxLines: null, // Allow unlimited lines
-      contextMenuBuilder: (context, selectableTextState) {
-        final defaultItems = selectableTextState.contextMenuButtonItems;
-        return AdaptiveTextSelectionToolbar.buttonItems(
-          anchors: selectableTextState.contextMenuAnchors,
-          buttonItems: [
-            ContextMenuButtonItem(
-              onPressed: () async {
-                final selection = selectableTextState.textEditingValue.selection;
-                if (!selection.isValid || selection.isCollapsed) return;
-                final selectedWord = selectableTextState.textEditingValue.text.substring(selection.start, selection.end).trim();
-                
-                // Use the passed sessionId instead of finding ancestor
-                print("session id $sessionId");
-                Navigator.of(context).maybePop();
-                if (selectedWord.isNotEmpty) {
-                  print('Opening rhyme dialog for word: $selectedWord');
-                  print('From lyric document ID: $lyricId');
-                  final rhyme = await showRhymeDialog(context, selectedWord);
-                  if (rhyme != null) {
-                    if (lyricId != null && sessionId != null) {
-                      print('Using rhyme in saved lyrics: $rhyme');
-                      print('Original text: $text');
-                      print('Session ID: $sessionId');
-                      print('Lyric Document ID: $lyricId');
-                      // Update the saved lyric in Firestore
-                      final lyricsController = LyricsController();
-                      final newText = text.replaceRange(selection.start, selection.end, rhyme);
-                      print('New text after replacement: $newText');
-                      await lyricsController.updateLyric(sessionId!, lyricId!, newText);
-                      print('✅ Successfully updated Firestore document $lyricId with new text: $newText');
-                    } else if (controller != null) {
-                      // Update the input field text
-                      controller?.text = rhyme;
-                      controller?.selection = TextSelection.collapsed(offset: rhyme.length);
-                    }
-                  }
-                }
-              },
-              label: 'Rhyme',
-            ),
-            ...defaultItems,
+    return FutureBuilder<String?>(
+      future: _getFirstName(userId),
+      builder: (context, snapshot) {
+        final displayName = snapshot.data ?? 'Unknown';
+        final tagColor = _getColor(displayName);
+        return RichText(
+          text: TextSpan(
+            style: textStyle ?? DefaultTextStyle.of(context).style,
+            children: [
+              TextSpan(text: text),
+              WidgetSpan(
+                alignment: PlaceholderAlignment.middle,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 15), // Move tag up
+                  child: _AuthorTagDisplay(
+                    displayName: displayName,
+                    tagColor: tagColor,
+                  ),
+                ),
+              ),
           ],
+          ),
         );
       },
     );
   }
+
+  Future<String?> _getFirstName(String userId) async {
+    final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    return doc.data()?['firstName'] as String?;
+  }
+
+  Color _getColor(String? name) {
+    if (name == null) return Colors.red;
+    if (name.toLowerCase() == 'mark') return Color(0xFF0076FF);
+    if (name.toLowerCase() == 'steve') return Color(0xFF22C55E);
+    return Color(0xFF0076FF);
+  }
 }
 
-class _NameTag extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _NameTag({required this.label, required this.color});
+class _AuthorTagDisplay extends StatelessWidget {
+  final String displayName;
+  final Color tagColor;
+  const _AuthorTagDisplay({required this.displayName, required this.tagColor, Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // The vertical bar
+        Positioned(
+          left: 0,
+          bottom: -7,
+          child: Container(
+            width: 2,
+            height: 20,
+            color: tagColor,
+          ),
+        ),
+        // The tag
+        Container(
+          margin: const EdgeInsets.only(left: 0),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
+            color: tagColor,
+            borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        label,
+            displayName,
         style: const TextStyle(
           color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
+              fontWeight: FontWeight.normal,
+              fontSize: 10,
         ),
       ),
+        ),
+      ],
     );
   }
 }
 
+class _TagPointerPainter extends CustomPainter {
+  final Color color;
+  _TagPointerPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..lineTo(size.width, 0)
+      ..close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class _PenPopupMenu extends StatefulWidget {
   final VoidCallback? onNextLine;
-  const _PenPopupMenu({this.onNextLine});
+  final TextEditingController? controller;
+  const _PenPopupMenu({this.onNextLine, this.controller});
   @override
   State<_PenPopupMenu> createState() => _PenPopupMenuState();
 }
 
 class _PenPopupMenuState extends State<_PenPopupMenu> {
   final GlobalKey _key = GlobalKey();
-  OverlayEntry? _overlayEntry;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller?.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller?.removeListener(_onTextChanged);
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    setState(() {}); // Rebuild to show/hide Rhyme button
+  }
 
   void _showMenu() {
-    final RenderBox renderBox =
-        _key.currentContext!.findRenderObject() as RenderBox;
+    final RenderBox renderBox = _key.currentContext!.findRenderObject() as RenderBox;
     final Offset offset = renderBox.localToGlobal(Offset.zero);
-    _overlayEntry = OverlayEntry(
-      builder:
-          (context) => Positioned(
+    final text = widget.controller?.text.trim() ?? '';
+    final hasWord = text.isNotEmpty;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      builder: (context) {
+        return Stack(
+          children: [
+            Positioned(
             left: offset.dx,
-            top: offset.dy - 70,
+              top: offset.dy - 120, // Place popup just below the button
             child: Material(
               color: Colors.transparent,
               child: Container(
@@ -1908,8 +1965,8 @@ class _PenPopupMenuState extends State<_PenPopupMenu> {
                     ),
                     InkWell(
                       onTap: () {
-                        _removeMenu();
-                        widget.onNextLine?.call();
+                          Navigator.of(context).pop();
+                          widget.onNextLine?.call();
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
@@ -1922,32 +1979,56 @@ class _PenPopupMenuState extends State<_PenPopupMenu> {
                         ),
                       ),
                     ),
-                    // Rhyme option removed for now
+                      if (hasWord)
+                    InkWell(
+                          onTap: () async {
+                            Navigator.of(context).pop();
+                            // Select the last word in the text field
+                            final text = widget.controller?.text ?? '';
+                            if (text.isNotEmpty) {
+                              final words = text.split(' ');
+                              final lastWord = words.isNotEmpty ? words.last : text;
+                              final start = text.length - lastWord.length;
+                              final end = text.length;
+                              widget.controller?.selection = TextSelection(baseOffset: start, extentOffset: end);
+                              final rhyme = await showRhymeDialog(context, lastWord);
+                              if (rhyme != null && rhyme.isNotEmpty) {
+                                final selection = widget.controller?.selection;
+                                if (selection != null && selection.isValid && !selection.isCollapsed) {
+                                  final newText = text.replaceRange(selection.start, selection.end, rhyme);
+                                  widget.controller?.text = newText;
+                                  widget.controller?.selection = TextSelection.collapsed(offset: selection.start + rhyme.length);
+                                }
+                              }
+                            }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        child: Text(
+                          'Rhyme',
+                          style: TextStyle(fontSize: 15, color: Colors.black),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
             ),
           ),
+          ],
+        );
+      },
     );
-    Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _removeMenu() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       key: _key,
-      onTap: () {
-        if (_overlayEntry == null) {
-          _showMenu();
-        } else {
-          _removeMenu();
-        }
-      },
+      onTap: _showMenu,
       child: Image.asset(
         'assets/images/pencil-ai-line.png',
         width: 28,
@@ -1955,12 +2036,6 @@ class _PenPopupMenuState extends State<_PenPopupMenu> {
         fit: BoxFit.contain,
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _removeMenu();
-    super.dispose();
   }
 }
 
@@ -1995,7 +2070,7 @@ class _PlayPopupMenuState extends State<_PlayPopupMenu> {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: Text('Select a recording to play', style: TextStyle(fontSize: 12, color: Colors.black54)),
-          ),
+                      ),
           for (final recordingId in widget.recordings)
             FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               future: FirebaseFirestore.instance
@@ -2082,23 +2157,37 @@ Future<void> sendFcmToToken(String token, Map<String, dynamic> data) async {
   // Use your backend or a Cloud Function to send the notification to this token
 }
 
-class _GradientBorderPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final paint = Paint()
-      ..shader = LinearGradient(
-        colors: [Color(0xFFFF914D), Color(0xFFFF006A)],
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-      ).createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    canvas.drawRect(rect.deflate(1), paint);
-  }
+class GradientUnderlineTabIndicator extends Decoration {
+  final double thickness;
+  final Gradient gradient;
+
+  const GradientUnderlineTabIndicator({required this.gradient, this.thickness = 4});
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  BoxPainter createBoxPainter([VoidCallback? onChanged]) {
+    return _GradientUnderlinePainter(this, onChanged);
+  }
+}
+
+class _GradientUnderlinePainter extends BoxPainter {
+  final GradientUnderlineTabIndicator decoration;
+
+  _GradientUnderlinePainter(this.decoration, VoidCallback? onChanged) : super(onChanged);
+
+  @override
+  void paint(Canvas canvas, Offset offset, ImageConfiguration configuration) {
+    final Rect rect = Offset(
+      offset.dx,
+      (configuration.size!.height - decoration.thickness) + offset.dy,
+    ) &
+        Size(configuration.size!.width, decoration.thickness);
+
+    final Paint paint = Paint()
+      ..shader = decoration.gradient.createShader(rect)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawRect(rect, paint);
+  }
 }
 
 class MoveRecordingDialog extends StatelessWidget {
