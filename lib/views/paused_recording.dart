@@ -480,6 +480,8 @@ class _PausedRecordingState extends State<PausedRecording>
         const SnackBar(
           content: Text('Missing user/session/recording info'),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: 80, left: 16, right: 16), // adjust as needed
         ),
       );
       return;
@@ -501,6 +503,8 @@ class _PausedRecordingState extends State<PausedRecording>
         const SnackBar(
           content: Text('Bookmark added!'),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: 80, left: 16, right: 16), // adjust as needed
         ),
       );
       // Optionally: update local bookmarks list here
@@ -509,6 +513,8 @@ class _PausedRecordingState extends State<PausedRecording>
         SnackBar(
           content: Text('Failed to add bookmark: $e'),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: 80, left: 16, right: 16), // adjust as needed
         ),
       );
     }
@@ -524,6 +530,8 @@ class _PausedRecordingState extends State<PausedRecording>
         const SnackBar(
           content: Text('Missing user/session/recording info'),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: 80, left: 16, right: 16), // adjust as needed
         ),
       );
       return;
@@ -546,6 +554,8 @@ class _PausedRecordingState extends State<PausedRecording>
         const SnackBar(
           content: Text('Bookmark added!'),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: 0, left: 0, right: 0), // adjust as needed
         ),
       );
     } catch (e) {
@@ -553,6 +563,8 @@ class _PausedRecordingState extends State<PausedRecording>
         SnackBar(
           content: Text('Failed to add bookmark: $e'),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.only(bottom: 80, left: 16, right: 16), // adjust as needed
         ),
       );
     }
@@ -596,6 +608,12 @@ class _PausedRecordingState extends State<PausedRecording>
                       .snapshots(),
               builder: (context, snapshot) {
                 final bookmarks = snapshot.hasData ? snapshot.data!.docs : [];
+                // Sort bookmarks by created_at ascending
+                bookmarks.sort((a, b) {
+                  final aTime = (a['created_at'] as Timestamp?)?.toDate() ?? DateTime(1970);
+                  final bTime = (b['created_at'] as Timestamp?)?.toDate() ?? DateTime(1970);
+                  return aTime.compareTo(bTime);
+                });
                 final userIds =
                     bookmarks
                         .map(
@@ -1291,7 +1309,7 @@ class _PausedRecordingState extends State<PausedRecording>
                                         decoration: BoxDecoration(
                                           color:
                                               _selectedUserId == null
-                                                  ? Colors.black
+                                                  ? Colors.white
                                                   : Colors.grey[300],
                                           borderRadius: BorderRadius.circular(6),
                                         ),
