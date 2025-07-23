@@ -64,7 +64,7 @@ class MainNavigation extends StatelessWidget {
                 ),
               ),
         floatingActionButtonLocation: navController.selectedIndex.value == 1
-            ? null
+            ? FloatingActionButtonLocation.centerDocked
             : FloatingActionButtonLocation.centerDocked,
         bottomNavigationBar: Stack(
           children: [

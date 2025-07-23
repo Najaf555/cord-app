@@ -222,6 +222,13 @@ class _PausedRecordingState extends State<PausedRecording>
   @override
   void dispose() {
     _bookmarkTextController.dispose();
+    try {
+      _audioPlayer.stop();
+    } catch (_) {}
+    try {
+      _audioPlayer.dispose();
+    } catch (_) {}
+    _controller.dispose();
     super.dispose();
   }
 

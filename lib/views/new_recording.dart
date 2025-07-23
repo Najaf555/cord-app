@@ -98,7 +98,12 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
     _controller.dispose();
     _timer?.cancel();
     _audioRecorder.closeRecorder();
-    _audioPlayer.dispose();
+    try {
+      _audioPlayer.stop();
+    } catch (_) {}
+    try {
+      _audioPlayer.dispose();
+    } catch (_) {}
     // If a Firestore recording doc was created but not finalized, delete it
     if (!_recordingFinalized && _firestoreRecordingDocId != null && widget.sessionId != null) {
       final recordingsRef = FirebaseFirestore.instance
