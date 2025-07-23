@@ -145,7 +145,7 @@ class _PausedRecordingState extends State<PausedRecording>
                 await _fetchCreatorDetails(data['userId']);
               } else {
                 setState(() {
-                  _creatorName = 'John';
+                  _creatorName = '';
                   _creatorProfilePictureUrl = null;
                   _loadingCreator = false;
                 });
@@ -156,7 +156,7 @@ class _PausedRecordingState extends State<PausedRecording>
                 _recordingFileUrl = null;
                 _fileNameController.text = _recordingFileName;
                 _loadingRecording = false;
-                _creatorName = 'John';
+                _creatorName = '';
                 _creatorProfilePictureUrl = null;
                 _loadingCreator = false;
               });
@@ -166,7 +166,7 @@ class _PausedRecordingState extends State<PausedRecording>
       _recordingFileName = widget.recordingName ?? 'New Recording';
       _fileNameController.text = _recordingFileName;
       setState(() {
-        _creatorName = 'John';
+        _creatorName = '';
         _creatorProfilePictureUrl = null;
         _loadingCreator = false;
       });
@@ -699,8 +699,8 @@ class _PausedRecordingState extends State<PausedRecording>
                                   const SizedBox(width: 8),
                                   _loadingCreator
                                       ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
+                                        width: 24,
+                                        height: 24,
                                         child: CircularProgressIndicator(
                                           strokeWidth: 2,
                                         ),
@@ -951,7 +951,11 @@ class _PausedRecordingState extends State<PausedRecording>
                       ),
                       const SizedBox(height: 16),
                       if (_loadingCreator)
-                        const CircularProgressIndicator()
+                        const SizedBox(
+                          width: 24,
+                          height: 24,
+                          // child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       else
                         Column(
                           children: [
@@ -996,7 +1000,7 @@ class _PausedRecordingState extends State<PausedRecording>
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              _creatorName ?? 'John',
+                              _creatorName ?? '',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w500,
@@ -1141,12 +1145,17 @@ class _PausedRecordingState extends State<PausedRecording>
                                     child: Stack(
                                       alignment: Alignment.topCenter,
                                       children: [
-                                        Icon(Icons.bookmark, color: userColor, size: 20),
+                                        Icon(
+                                          Icons.bookmark,
+                                          color: userColor,
+                                          size: 20,
+                                        ),
                                         Positioned(
                                           top: 10, // icon height
                                           child: Container(
                                             width: 2,
-                                            height: 110, // waveform height - icon height
+                                            height:
+                                                110, // waveform height - icon height
                                             color: userColor,
                                           ),
                                         ),

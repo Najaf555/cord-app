@@ -886,7 +886,10 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                           context: context,
                                           isScrollControlled: true,
                                           backgroundColor: Colors.transparent,
-                                          builder: (context) => SizedBox.expand(
+                                          isDismissible: true,
+                                          enableDrag: true,
+                                          builder: (context) => ClipRRect(
+                                            borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
                                             child: PausedRecording(
                                               recordingDocId: recording.recordingId,
                                               recordingFilePath: recording.fileUrl,
@@ -1755,6 +1758,8 @@ class _SelectableLyricsLine extends StatelessWidget {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
+                    isDismissible: true,
+                    enableDrag: true,
                     backgroundColor: Colors.transparent,
                     builder: (context) => SizedBox.expand(
                       child: PausedRecording(
