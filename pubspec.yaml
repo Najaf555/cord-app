@@ -58,6 +58,7 @@ dependencies:
   just_audio: ^0.9.36
   audioplayers: ^6.5.0
   auto_size_text: ^3.0.0
+  modal_bottom_sheet: ^3.0.0
   
 
 

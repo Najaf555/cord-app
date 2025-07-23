@@ -22,6 +22,7 @@ import '../controllers/lyrics_controller.dart';
 import '../models/lyric_line.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import '../utils/azure_openai_service.dart'; // Added for Azure OpenAI integration
+import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
 
 // Move the color palette and color assignment function to the top-level
 const List<Color> userBorderColors = [
@@ -878,13 +879,13 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                           ],
                                         ),
                                         child: InkWell(
-                                      onTap: () {
-                                        print("recording.recordingId: "+recording.recordingId);
-                                        print("recording.fileUrl: "+recording.fileUrl);
-                                        // Show paused_recording screen as modal bottom sheet
-                                        showModalBottomSheet(
+                                      onTap: () async {
+                                        print("recording.recordingId: " + recording.recordingId);
+                                        print("recording.fileUrl: " + recording.fileUrl);
+                                        if (!context.mounted) return;
+                                        showMaterialModalBottomSheet(
                                           context: context,
-                                          isScrollControlled: true,
+                                          expand: true,
                                           backgroundColor: Colors.transparent,
                                           isDismissible: true,
                                           enableDrag: true,
@@ -1031,8 +1032,11 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                   ),
                             );
                           }),
-                          // Lyrics tab (unchanged)
-                          const _LyricsTabImageExact(),
+                          // Lyrics tab
+                          _LyricsTabImageExact(
+                            sessionId: widget.session.id,
+                            sessionName: widget.session.name,
+                          ),
                         ],
                       ),
                     ),
@@ -1492,7 +1496,9 @@ class _LyricsInputFieldState extends State<LyricsInputField> {
 }
 
 class _LyricsTabImageExact extends StatefulWidget {
-  const _LyricsTabImageExact();
+  final String sessionId;
+  final String sessionName;
+  const _LyricsTabImageExact({required this.sessionId, required this.sessionName, Key? key}) : super(key: key);
   @override
   State<_LyricsTabImageExact> createState() => _LyricsTabImageExactState();
 }
@@ -1519,14 +1525,11 @@ class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
     super.dispose();
   }
 
-  String get sessionId => (context.findAncestorWidgetOfExactType<SessionDetailView>()?.session.id ?? '');
-  String? get userId => FirebaseAuth.instance.currentUser?.uid;
-
   // Helper to get previous lyrics text for a section
   Future<String> _getPreviousLyricsText(String section) async {
     final snapshot = await FirebaseFirestore.instance
         .collection('sessions')
-        .doc(sessionId)
+        .doc(widget.sessionId)
         .collection('lyrics')
         .where('section', isEqualTo: section)
         .orderBy('createdAt')
@@ -1612,7 +1615,7 @@ class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
           ),
           const SizedBox(height: 12),
         StreamBuilder<List<LyricLine>>(
-          stream: _lyricsController.streamLyrics(sessionId, section),
+          stream: _lyricsController.streamLyrics(widget.sessionId, section),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
@@ -1635,8 +1638,8 @@ class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
                           backgroundColor: Colors.transparent,
                           builder: (context) => SizedBox.expand(
                             child: NewRecordingScreen(
-                              sessionId: sessionId,
-                              sessionName: null,
+                              sessionId: widget.sessionId,
+                              sessionName: widget.sessionName,
                               lyricsDocId: lyric.id,
                             ),
                           ),
@@ -1649,6 +1652,9 @@ class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
                         fit: BoxFit.contain,
                       ),
                     ),
+                    sessionId: widget.sessionId,
+                    sessionName: widget.sessionName,
+                    parentContext: context,
                   ),
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2.5),
@@ -1656,8 +1662,9 @@ class _LyricsTabImageExactState extends State<_LyricsTabImageExact> {
                     key: key,
                     controller: controller,
                     onSubmit: (value) async {
-                      if (value.isNotEmpty && userId != null) {
-                        await _lyricsController.addLyric(sessionId, section, value, userId!);
+                      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+                      if (value.isNotEmpty && currentUserId != null) {
+                        await _lyricsController.addLyric(widget.sessionId, section, value, currentUserId);
                       }
                     },
                     onAIGenerate: () => _suggestNextLine(context, section, controller, key),
@@ -1704,6 +1711,9 @@ class _SelectableLyricsLine extends StatelessWidget {
   final TextEditingController? controller;
   final String? lyricId;
   final String userId;
+  final String sessionId;
+  final String sessionName;
+  final BuildContext parentContext;
   const _SelectableLyricsLine({
     required this.text,
     required this.play,
@@ -1714,12 +1724,12 @@ class _SelectableLyricsLine extends StatelessWidget {
     this.controller,
     this.lyricId,
     required this.userId,
+    required this.sessionId,
+    required this.sessionName,
+    required this.parentContext,
   });
   @override
   Widget build(BuildContext context) {
-    final sessionWidget = context.findAncestorWidgetOfExactType<SessionDetailView>();
-    final sessionId = sessionWidget?.session.id;
-    final sessionName = sessionWidget?.session.name;
     return Padding(
       padding:
           removePadding
@@ -1755,15 +1765,26 @@ class _SelectableLyricsLine extends StatelessWidget {
             GestureDetector(
               onTap: () async {
                 if (recordings.length == 1) {
-                  showModalBottomSheet(
+                  final recordingId = recordings.first;
+                  final doc = await FirebaseFirestore.instance
+                      .collection('sessions')
+                      .doc(sessionId)
+                      .collection('recordings')
+                      .doc(recordingId)
+                      .get();
+                  final fileUrl = doc.data()?['fileUrl'] as String?;
+                  if (!context.mounted) return;
+                  showMaterialModalBottomSheet(
                     context: context,
-                    isScrollControlled: true,
+                    expand: true,
+                    backgroundColor: Colors.transparent,
                     isDismissible: true,
                     enableDrag: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (context) => SizedBox.expand(
+                    builder: (context) => ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
                       child: PausedRecording(
-                        recordingDocId: recordings.first,
+                        recordingDocId: recordingId,
+                        recordingFilePath: fileUrl,
                         sessionId: sessionId,
                         sessionName: sessionName,
                       ),
@@ -1772,20 +1793,33 @@ class _SelectableLyricsLine extends StatelessWidget {
                 } else if (recordings.length > 1) {
                   showDialog(
                     context: context,
-                    builder: (context) => Dialog(
+                    builder: (dialogContext) => Dialog(
                       backgroundColor: Colors.transparent,
                       child: _PlayPopupMenu(
-                        recordings: recordings,
+                        recordings: recordings, // Use recordings directly as List<String>
                         sessionId: sessionId,
-                        onRecordingSelected: (recordingId) {
-                          Navigator.of(context).pop();
-                          showModalBottomSheet(
-                            context: context,
-                            isScrollControlled: true,
+                        parentContext: parentContext,
+                        onRecordingSelected: (recordingId) async {
+                          Navigator.of(dialogContext).pop();
+                          final doc = await FirebaseFirestore.instance
+                              .collection('sessions')
+                              .doc(sessionId)
+                              .collection('recordings')
+                              .doc(recordingId)
+                              .get();
+                          final fileUrl = doc.data()?['fileUrl'] as String?;
+                          if (!parentContext.mounted) return;
+                          showMaterialModalBottomSheet(
+                            context: parentContext,
+                            expand: true,
                             backgroundColor: Colors.transparent,
-                            builder: (context) => SizedBox.expand(
+                            isDismissible: true,
+                            enableDrag: true,
+                            builder: (context) => ClipRRect(
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
                               child: PausedRecording(
                                 recordingDocId: recordingId,
+                                recordingFilePath: fileUrl,
                                 sessionId: sessionId,
                                 sessionName: sessionName,
                               ),
@@ -2079,8 +2113,9 @@ class _PenPopupMenuState extends State<_PenPopupMenu> {
 class _PlayPopupMenu extends StatefulWidget {
   final List<String> recordings;
   final String? sessionId;
+  final BuildContext parentContext;
   final void Function(String recordingId)? onRecordingSelected;
-  const _PlayPopupMenu({Key? key, required this.recordings, required this.sessionId, this.onRecordingSelected}) : super(key: key);
+  const _PlayPopupMenu({Key? key, required this.recordings, required this.sessionId, required this.parentContext, this.onRecordingSelected}) : super(key: key);
   @override
   State<_PlayPopupMenu> createState() => _PlayPopupMenuState();
 }
@@ -2118,11 +2153,12 @@ class _PlayPopupMenuState extends State<_PlayPopupMenu> {
                   .get(),
               builder: (context, snapshot) {
                 final data = snapshot.data?.data();
-                final name = data?['name'] ?? data?['fileName'] ?? 'Recording';
+                print('recordingId: $recordingId, data: ${data?['name']}, widget.sessionId ${widget.sessionId}');
+                final name = data?['name'] ?? '';
                 return ListTile(
                   title: Text(name, style: const TextStyle(fontSize: 15)),
                   trailing: const Icon(Icons.play_arrow, color: Colors.black),
-                      onTap: () {
+                  onTap: () {
                     if (widget.onRecordingSelected != null) {
                       widget.onRecordingSelected!(recordingId);
                     }
