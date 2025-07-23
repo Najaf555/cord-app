@@ -52,7 +52,7 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _fetchPendingInvites();
-    testAzureOpenAI();
+    // testAzureOpenAI(); //for testing if azure service is running
     // immersive mode removed
     FirebaseAuth.instance.authStateChanges().listen((User? user) {
       if (user != null) {
@@ -262,21 +262,28 @@ class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver
                                   });
                                 },
                               ),
-                              Positioned(
-                                right: 10,
-                                top: 12,
-                                child: Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEB5757),
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: Colors.white,
-                                      width: 1.5,
+                              StreamBuilder<List<Map<String, dynamic>>>(
+                                stream: getAllUserNotificationsStream(),
+                                builder: (context, snapshot) {
+                                  final hasNotifications = snapshot.hasData && (snapshot.data?.isNotEmpty ?? false);
+                                  if (!hasNotifications) return SizedBox.shrink();
+                                  return Positioned(
+                                    right: 10,
+                                    top: 12,
+                                    child: Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFEB5757),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 1.5,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ),
+                                  );
+                                },
                               ),
                             ],
                           ),

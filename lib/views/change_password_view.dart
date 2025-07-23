@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
 import 'main_navigation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ChangePasswordView extends StatefulWidget {
   const ChangePasswordView({super.key});
@@ -16,7 +17,11 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
   final TextEditingController confirmPasswordController = TextEditingController();
   final NavigationController navController = Get.find<NavigationController>();
 
-  void _changePassword() {
+  bool _showCurrentPassword = false;
+  bool _showNewPassword = false;
+  bool _showConfirmPassword = false;
+
+  void _changePassword() async {
     final current = currentPasswordController.text.trim();
     final newPass = newPasswordController.text.trim();
     final confirm = confirmPasswordController.text.trim();
@@ -32,15 +37,67 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
       return;
     }
 
-    // You can implement password update logic here
+    if (current == newPass) {
+      Get.snackbar(
+        'Error',
+        'New password must be different from the current password.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
 
-    Get.snackbar(
-      'Save',
-      'Your password has been updated.',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null || user.email == null) {
+      Get.snackbar(
+        'Error',
+        'No authenticated user found.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+      return;
+    }
 
-    Get.back(); // Navigate back to previous screen
+    try {
+      // Reauthenticate user with current password
+      final cred = EmailAuthProvider.credential(email: user.email!, password: current);
+      await user.reauthenticateWithCredential(cred);
+
+      // Update password
+      await user.updatePassword(newPass);
+
+      Get.snackbar(
+        'Success',
+        'Your password has been updated.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+      await Future.delayed(const Duration(seconds: 1));
+      Get.back();
+    } catch (e) {
+      String errorMsg = 'Failed to update password.';
+      if (e is FirebaseAuthException) {
+        if (e.code == 'wrong-password') {
+          errorMsg = 'Current password is incorrect.';
+        } else if (e.code == 'weak-password') {
+          errorMsg = 'The new password is too weak.';
+        } else if (e.code == 'requires-recent-login') {
+          errorMsg = 'Please log in again and try changing your password.';
+        } else {
+          errorMsg = e.message ?? errorMsg;
+        }
+      }
+      Get.snackbar(
+        'Error',
+        errorMsg,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+    }
   }
 
   void _onTabSelected(int index) {
@@ -73,31 +130,55 @@ class _ChangePasswordViewState extends State<ChangePasswordView> {
 
             TextField(
               controller: currentPasswordController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Current Password',
                 border: OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_showCurrentPassword ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () {
+                    setState(() {
+                      _showCurrentPassword = !_showCurrentPassword;
+                    });
+                  },
+                ),
               ),
-              obscureText: true,
+              obscureText: !_showCurrentPassword,
             ),
             const SizedBox(height: 16),
 
             TextField(
               controller: newPasswordController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'New Password',
                 border: OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_showNewPassword ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () {
+                    setState(() {
+                      _showNewPassword = !_showNewPassword;
+                    });
+                  },
+                ),
               ),
-              obscureText: true,
+              obscureText: !_showNewPassword,
             ),
             const SizedBox(height: 16),
 
             TextField(
               controller: confirmPasswordController,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Confirm New Password',
                 border: OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(_showConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                  onPressed: () {
+                    setState(() {
+                      _showConfirmPassword = !_showConfirmPassword;
+                    });
+                  },
+                ),
               ),
-              obscureText: true,
+              obscureText: !_showConfirmPassword,
             ),
             const SizedBox(height: 32),
 

@@ -1284,18 +1284,18 @@ class _SessionDetailViewState extends State<SessionDetailView>
       });
       
       // Send FCM notification to the invited user
-      try {
-        await FCMNotificationService.sendSessionInvitationNotification(
-          inviteeEmail: inviteeEmail,
-          inviterEmail: inviter.email!,
-          sessionId: controller.session.id,
-          sessionName: controller.session.name,
-        );
-        print('FCM notification sent successfully for invitation to $inviteeEmail');
-      } catch (e) {
-        print('Failed to send FCM notification: $e');
-        // Don't fail the invitation if FCM fails
-      }
+      // try {
+      //   await FCMNotificationService.sendSessionInvitationNotification(
+      //     inviteeEmail: inviteeEmail,
+      //     inviterEmail: inviter.email!,
+      //     sessionId: controller.session.id,
+      //     sessionName: controller.session.name,
+      //   );
+      //   print('FCM notification sent successfully for invitation to $inviteeEmail');
+      // } catch (e) {
+      //   print('Failed to send FCM notification: $e');
+      //   // Don't fail the invitation if FCM fails
+      // }
       
       inviteEmailController.clear();
       // Refresh the previously invited users list
