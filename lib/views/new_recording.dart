@@ -768,129 +768,151 @@ class _NewRecordingScreenState extends State<NewRecordingScreen> with SingleTick
               // Waveform and blue arrow (animated, matches paused_recording)
               const SizedBox(height: 12),
               Stack(
-                alignment: Alignment.bottomCenter,
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
                 children: [
+                  // Waveform background and bars
                   Container(
-                    height: 80,
+                    height: 120,
                     width: double.infinity,
                     color: const Color(0xFFF5F5F5),
-                      child: Container(
+                    child: Container(
                       width: double.infinity,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.blue, width: 1.5),
-                        ),
-                        child: CustomPaint(
-                          painter: _WaveformPainter(phase: _isRecording ? _controller.value : 0.0),
+                      height: 60,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.blueAccent, width: 1.5),
+                      ),
+                      child: CustomPaint(
+                        painter: _WaveformPainter(phase: _isRecording ? _controller.value : 0.0),
                       ),
                     ),
                   ),
-                  const Positioned(
-                    bottom: -8,
-                    child: Icon(
-                      Icons.arrow_drop_down,
-                      color: Colors.blue,
-                      size: 30,
+                  // Center vertical blue line (overlay, extends below waveform)
+                  Positioned(
+                    top: -20, // extend above the container
+                    bottom: -30, // extend below the container to match pointer
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        width: 2,
+                        height: 130, // taller than waveform container
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                  // Pointer arrow icon (overlay, bottom center)
+                  Positioned(
+                    bottom: -38,
+                    left: 0,
+                    right: 1,
+                    child: Center(
+                      child: Image.asset(
+                        'assets/images/arrowPointer.png',
+                        width: 30,
+                        height: 30,
+                        fit: BoxFit.contain,
+                      ),
                     ),
                   ),
                 ],
               ),
               // Bookmark button and share icon
-              const SizedBox(height: 32),
-              SizedBox(
-                height: 44,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Center(
-                      child: Container(
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Colors.orange, Colors.pink],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        child: Container(
-                          margin: const EdgeInsets.all(1.5),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.zero,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Icon(
-                                Icons.bookmark_add_outlined,
-                                color: Colors.black,
-                                size: 20,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Set Bookmark',
-                                style: TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const Positioned(
-                      right: 32,
-                      child: Icon(
-                        Icons.ios_share,
-                        color: Colors.blue,
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // const SizedBox(height: 32),
+              // SizedBox(
+              //   height: 44,
+              //   child: Stack(
+              //     alignment: Alignment.center,
+              //     children: [
+              //       Center(
+              //         child: Container(
+              //           height: 44,
+              //           decoration: BoxDecoration(
+              //             gradient: const LinearGradient(
+              //               colors: [Colors.orange, Colors.pink],
+              //               begin: Alignment.topLeft,
+              //               end: Alignment.bottomRight,
+              //             ),
+              //             borderRadius: BorderRadius.zero,
+              //           ),
+              //           child: Container(
+              //             margin: const EdgeInsets.all(1.5),
+              //             padding: const EdgeInsets.symmetric(horizontal: 16),
+              //             decoration: BoxDecoration(
+              //               color: Colors.white,
+              //               borderRadius: BorderRadius.zero,
+              //             ),
+              //             child: Row(
+              //               mainAxisSize: MainAxisSize.min,
+              //               children: const [
+              //                 Icon(
+              //                   Icons.bookmark_add_outlined,
+              //                   color: Colors.black,
+              //                   size: 20,
+              //                 ),
+              //                 SizedBox(width: 8),
+              //                 Text(
+              //                   'Set Bookmark',
+              //                   style: TextStyle(
+              //                     color: Colors.black,
+              //                     fontWeight: FontWeight.w500,
+              //                   ),
+              //                 ),
+              //               ],
+              //             ),
+              //           ),
+              //         ),
+              //       ),
+              //       const Positioned(
+              //         right: 32,
+              //         child: Icon(
+              //           Icons.ios_share,
+              //           color: Colors.blue,
+              //           size: 24,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
               // Bookmark filter chips and list (as in the image)
-              const SizedBox(height: 24),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _BookmarkChip(label: 'John', color: Color(0xFFFFA726)),
-                      SizedBox(width: 8),
-                      _BookmarkChip(label: 'Mark', color: Color(0xFF1976D2), selected: true),
-                      SizedBox(width: 8),
-                      _BookmarkChip(label: 'Steve', color: Color(0xFF66BB6A)),
-                      SizedBox(width: 8),
-                      _BookmarkChip(label: 'All', color: Color(0xFFE0E0E0), textColor: Colors.black),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  children: [
-                    Icon(Icons.bookmark, color: Color(0xFF1976D2)),
-                    SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text('00:03', style: TextStyle(fontSize: 12, color: Colors.black54)),
-                    ),
-                    SizedBox(width: 8),
-                    Text('Intro melody', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ),
+              // const SizedBox(height: 24),
+              // Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              //   child: SingleChildScrollView(
+              //     scrollDirection: Axis.horizontal,
+              //     child: Row(
+              //       children: [
+              //         _BookmarkChip(label: 'John', color: Color(0xFFFFA726)),
+              //         SizedBox(width: 8),
+              //         _BookmarkChip(label: 'Mark', color: Color(0xFF1976D2), selected: true),
+              //         SizedBox(width: 8),
+              //         _BookmarkChip(label: 'Steve', color: Color(0xFF66BB6A)),
+              //         SizedBox(width: 8),
+              //         _BookmarkChip(label: 'All', color: Color(0xFFE0E0E0), textColor: Colors.black),
+              //       ],
+              //     ),
+              //   ),
+              // ),
+              // const SizedBox(height: 16),
+              // Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              //   child: Row(
+              //     children: [
+              //       Icon(Icons.bookmark, color: Color(0xFF1976D2)),
+              //       SizedBox(width: 8),
+              //       Container(
+              //         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              //         decoration: BoxDecoration(
+              //           color: Color(0xFFF5F5F5),
+              //           borderRadius: BorderRadius.circular(4),
+              //         ),
+              //         child: Text('00:03', style: TextStyle(fontSize: 12, color: Colors.black54)),
+              //       ),
+              //       SizedBox(width: 8),
+              //       Text('Intro melody', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              //     ],
+              //   ),
+              // ),
                     ],
                   ),
                 ),
@@ -1051,13 +1073,18 @@ class _WaveformPainter extends CustomPainter {
     ];
     final barWidth = size.width / (heights.length * 1.8);
 
+    // Find the maximum height in the heights array
+    final maxBar = heights.reduce((a, b) => a > b ? a : b).toDouble();
+    // Scale factor so the tallest bar nearly fills the container
+    final scale = (size.height * 0.95) / maxBar;
+
     // Animate the waveform by shifting the bars horizontally based on phase
     final shift = (phase * heights.length) % heights.length;
     for (int i = 0; i < heights.length; i++) {
       // Calculate shifted index for animation
       int shiftedIndex = (i + shift.toInt()) % heights.length;
       final x = barWidth * (i * 1.8);
-      final barHeight = heights[shiftedIndex].toDouble();
+      final barHeight = heights[shiftedIndex].toDouble() * scale;
       canvas.drawLine(
         Offset(x, size.height / 2 - barHeight / 2),
         Offset(x, size.height / 2 + barHeight / 2),
