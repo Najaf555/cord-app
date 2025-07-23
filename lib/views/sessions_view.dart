@@ -20,7 +20,7 @@ class SessionsView extends StatefulWidget {
 }
 
 class _SessionsViewState extends State<SessionsView> with WidgetsBindingObserver {
-  final SessionController controller = Get.put(SessionController());
+  final SessionController controller = Get.put(SessionController(), permanent: true);
   final NavigationController navigationController = Get.put(
     NavigationController(),
   );
