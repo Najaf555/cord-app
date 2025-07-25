@@ -23,6 +23,7 @@ import '../models/lyric_line.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import '../utils/azure_openai_service.dart'; // Added for Azure OpenAI integration
 import 'package:modal_bottom_sheet/modal_bottom_sheet.dart';
+import 'package:flutter/services.dart';
 
 // Move the color palette and color assignment function to the top-level
 const List<Color> userBorderColors = [
@@ -1840,6 +1841,8 @@ class _SelectableLyricsLine extends StatelessWidget {
               text: text,
               userId: userId,
               textStyle: const TextStyle(fontSize: 15, color: Colors.black),
+              lyricId: lyricId,
+              sessionId: sessionId,
             ),
           ),
         ],
@@ -1852,11 +1855,15 @@ class LyricsWithAuthorTag extends StatelessWidget {
   final String text;
   final String userId;
   final TextStyle? textStyle;
+  final String? lyricId;
+  final String? sessionId;
 
   const LyricsWithAuthorTag({
     required this.text,
     required this.userId,
     this.textStyle,
+    this.lyricId,
+    this.sessionId,
     Key? key,
   }) : super(key: key);
 
@@ -1864,25 +1871,22 @@ class LyricsWithAuthorTag extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
     final isCurrentUser = currentUser?.uid == userId;
-    
-    return FutureBuilder<Map<String, dynamic>?>(
+    return FutureBuilder<Map<String, dynamic>?> (
       future: _getUserData(userId),
       builder: (context, snapshot) {
         final userData = snapshot.data;
         final displayName = userData?['firstName'] ?? 'Unknown';
         final tagColor = getUserColor(userId, displayName);
-        
-        return RichText(
-          text: TextSpan(
+        return SelectableText.rich(
+          TextSpan(
             style: textStyle ?? DefaultTextStyle.of(context).style,
             children: [
               TextSpan(text: text),
-              // Only show the tag if it's not the current user
               if (!isCurrentUser)
                 WidgetSpan(
                   alignment: PlaceholderAlignment.middle,
                   child: Padding(
-                    padding: const EdgeInsets.only(left: 4, bottom: 15), // Move tag up
+                    padding: const EdgeInsets.only(left: 4, bottom: 15),
                     child: _AuthorTagDisplay(
                       displayName: displayName,
                       tagColor: tagColor,
@@ -1891,14 +1895,58 @@ class LyricsWithAuthorTag extends StatelessWidget {
                 ),
             ],
           ),
+          contextMenuBuilder: (context, editableTextState) {
+            final defaultItems = editableTextState.contextMenuButtonItems;
+            return AdaptiveTextSelectionToolbar.buttonItems(
+              anchors: editableTextState.contextMenuAnchors,
+              buttonItems: [
+                ContextMenuButtonItem(
+                  onPressed: () async {
+                    final selection = editableTextState.textEditingValue.selection;
+                    if (!selection.isValid || selection.isCollapsed) return;
+                    final selectedWord = editableTextState.textEditingValue.text.substring(selection.start, selection.end).trim();
+                    Navigator.of(context).maybePop();
+                    if (selectedWord.isNotEmpty) {
+                      final rhyme = await showRhymeDialog(context, selectedWord);
+                      if (rhyme != null && lyricId != null && sessionId != null) {
+                        final newText = text.replaceRange(selection.start, selection.end, rhyme);
+                        await FirebaseFirestore.instance
+                            .collection('sessions')
+                            .doc(sessionId)
+                            .collection('lyrics')
+                            .doc(lyricId)
+                            .update({'text': newText});
+                      }
+                    }
+                  },
+                  label: 'Rhyme',
+                ),
+                ...defaultItems,
+              ],
+            );
+          },
         );
       },
     );
   }
 
+  int _getWordStartOffset(List<RegExpMatch> matches, int wordIndex) {
+    int offset = 0;
+    for (int i = 0; i < wordIndex; i++) {
+      offset += matches[i].group(0)!.length;
+    }
+    return offset;
+  }
+
   Future<Map<String, dynamic>?> _getUserData(String userId) async {
     final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
     return doc.data();
+  }
+
+  String _replaceWordAtIndex(String text, int index, String newWord, List<RegExpMatch> matches) {
+    final newWords = List<String>.from(matches.map((m) => m.group(0)!));
+    newWords[index] = newWord;
+    return newWords.join('');
   }
 }
 
