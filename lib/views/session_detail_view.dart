@@ -823,8 +823,21 @@ class _SessionDetailViewState extends State<SessionDetailView>
                                           motion: const DrawerMotion(),
                                           children: [
                                             SlidableAction(
-                                              onPressed: (context) {
-                                            _showMoveDialog(_rootContext, widget.session.id, recording.recordingId);
+                                              onPressed: (context) async {
+                                                final currentUser = FirebaseAuth.instance.currentUser;
+                                                if (currentUser == null) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('You must be logged in to move recordings.'), backgroundColor: Colors.red),
+                                                  );
+                                                  return;
+                                                }
+                                                if (recording.userId != null && recording.userId != currentUser.uid) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    const SnackBar(content: Text('You can only move your own recordings.'), backgroundColor: Colors.red),
+                                                  );
+                                                  return;
+                                                }
+                                                _showMoveDialog(_rootContext, widget.session.id, recording.recordingId);
                                               },
                                               backgroundColor: Colors.blueGrey[50]!,
                                               foregroundColor: Colors.blueGrey,
@@ -2545,9 +2558,41 @@ Future<void> moveRecordingToSession({
       await lyricRef.delete();
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Recording moved successfully.'), backgroundColor: Colors.green),
-    );
+    // Move bookmarks subcollection from old recording to new recording
+    final bookmarksQuery = await FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(fromSessionId)
+        .collection('recordings')
+        .doc(recordingId)
+        .collection('bookmarks')
+        .get();
+    
+    for (final bookmarkDoc in bookmarksQuery.docs) {
+      final bookmarkData = bookmarkDoc.data();
+      // Copy bookmark to new recording's bookmarks subcollection
+      await FirebaseFirestore.instance
+          .collection('sessions')
+          .doc(toSessionId)
+          .collection('recordings')
+          .doc(toRef.id)
+          .collection('bookmarks')
+          .add(bookmarkData);
+      // Delete bookmark from old recording
+      await bookmarkDoc.reference.delete();
+    }
+
+
+    // Get the target session name for the success message
+    final targetSessionDoc = await FirebaseFirestore.instance
+        .collection('sessions')
+        .doc(toSessionId)
+        .get();
+    final targetSessionName = targetSessionDoc.data()?['name'] ?? 'Unknown Session';
+
+    Get.snackbar('Recording moved successfully.', 'Your recording has been moved to $targetSessionName',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white);
   } catch (e) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Failed to move recording: $e'), backgroundColor: Colors.red),
