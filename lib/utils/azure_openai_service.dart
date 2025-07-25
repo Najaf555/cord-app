@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AzureOpenAIService {
   final String endpoint;
@@ -67,7 +69,44 @@ class AzureOpenAIService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final choices = data['choices'];
+      final usage = data['usage'];
+      final totalTokens = usage?['total_tokens'] ?? 0;
+      final promptTokens = usage?['prompt_tokens'] ?? 0;
+      final completionTokens = usage?['completion_tokens'] ?? 0;
+      // GPT-4 Turbo pricing (as of July 2024)
+      const double inputPricePer1k = 0.01; // $0.01 per 1,000 input tokens
+      const double outputPricePer1k = 0.03; // $0.03 per 1,000 output tokens
+      final double cost = (promptTokens / 1000.0) * inputPricePer1k + (completionTokens / 1000.0) * outputPricePer1k;
       if (choices != null && choices.isNotEmpty) {
+        // --- API USAGE TRACKING LOGIC ---
+        try {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            final usageRef = FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .collection('api_usage');
+            await usageRef.add({
+              'timestamp': FieldValue.serverTimestamp(),
+              'prompt': prompt,
+              'systemPrompt': systemPrompt,
+              'maxTokens': maxTokens,
+              'temperature': temperature,
+              'type': 'azure_openai_chat_completion',
+              'responseLength': (choices[0]['message']['content'] as String?)?.length ?? 0,
+              'totalTokens': totalTokens,
+              'promptTokens': promptTokens,
+              'completionTokens': completionTokens,
+              'cost': cost,
+              'model': deploymentName,
+              'inputPricePer1k': inputPricePer1k,
+              'outputPricePer1k': outputPricePer1k,
+            });
+          }
+        } catch (e) {
+          print('Failed to log API usage: $e');
+        }
+        // --- END API USAGE TRACKING LOGIC ---
         return choices[0]['message']['content'] as String?;
       }
     } else {
