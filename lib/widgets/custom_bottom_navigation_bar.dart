@@ -3,7 +3,8 @@ import 'package:get/get.dart';
 import '../controllers/navigation_controller.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
-  const CustomBottomNavigationBar({super.key});
+  final Function(int) onTabSelected;
+  const CustomBottomNavigationBar({super.key, required this.onTabSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -19,17 +20,20 @@ class CustomBottomNavigationBar extends StatelessWidget {
             selectedItemColor: const Color(0xFF222222),
             unselectedItemColor: const Color(0xFFBDBDBD),
             selectedLabelStyle: const TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: 'Poppins',
               fontWeight: FontWeight.w500,
               fontSize: 12,
             ),
             unselectedLabelStyle: const TextStyle(
-              fontFamily: 'Inter',
+              fontFamily: 'Poppins',
               fontWeight: FontWeight.w400,
               fontSize: 12,
             ),
             currentIndex: navController.selectedIndex.value,
-            onTap: navController.changeTab,
+            onTap: (index) {
+              navController.changeTab(index);
+              onTabSelected(index);
+            },
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.folder),

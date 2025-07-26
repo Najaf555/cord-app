@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:lottie/lottie.dart';
-import 'login.dart';
-
+import 'login_view.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../views/main_navigation.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -15,8 +15,13 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 3), () {
-      Get.off(() => const LoginScreen()); // ✅ Navigate to LoginScreen
+    Future.delayed(const Duration(seconds: 2), () async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        Get.off(() => MainNavigation());
+      } else {
+        Get.off(() => const LoginScreen());
+      }
     });
   }
 
@@ -31,15 +36,8 @@ class _SplashScreenState extends State<SplashScreen> {
             Image.asset('assets/images/logo.png', width: 120, height: 120),
             const SizedBox(height: 16),
             const Text(
-              'Sessionate',
+              "",
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Lottie.asset(
-              'assets/animations/music.json',
-              width: 100,
-              height: 100,
-              fit: BoxFit.contain,
             ),
           ],
         ),

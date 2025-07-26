@@ -1,11 +1,87 @@
+import 'package:Cord/utils/azure_openai_service.dart';
+import 'package:Cord/views/main_navigation.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase/firebase_options.dart';
 import 'package:get/get.dart';
-import 'login/splash_screen.dart' show SplashScreen;
-import 'views/main_navigation.dart';
+import 'login/splash_screen.dart';
+import 'controllers/navigation_controller.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart';
+
+// Background message handler
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('Handling a background message: ${message.messageId}');
+}
 
 
-void main() {
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Set status bar color to light orange
+  // SystemChrome.setSystemUIOverlayStyle(
+  //   const SystemUiOverlayStyle(
+  //     statusBarColor: Color(0xFFFF833E), // light orange
+  //     statusBarIconBrightness: Brightness.dark, // dark icons for light background
+  //     statusBarBrightness: Brightness.light,
+  //   ),
+  // );
+
+  // Initialize FCM
+  await _initializeFCM();
+  initializeAzureOpenAIDefaults();
+
+  Get.put(NavigationController(), permanent: true);
   runApp(const MyApp());
+}
+
+Future<void> _initializeFCM() async {
+  // Request permission for iOS
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+  
+  NotificationSettings settings = await messaging.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
+  
+  print('User granted permission: ${settings.authorizationStatus}');
+  
+
+
+  // Handle foreground messages
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print('Got a message whilst in the foreground!');
+    print('Message data: ${message.data}');
+    
+    if (message.notification != null) {
+      print('Message also contained a notification: ${message.notification}');
+    }
+  });
+  
+  // Handle background messages
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
+  // Handle notification taps when app is in background
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    print('A new onMessageOpenedApp event was published!');
+  });
+  
+  // Check if app was opened from a notification
+  RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+  if (initialMessage != null) {
+    print('App opened from notification: ${initialMessage.data}');
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -15,10 +91,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'Sessionate',
+      title: 'Cord',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Inter',
+        fontFamily: 'Poppins',
         // This is the theme of your application.
         //
         // TRY THIS: Try running your application with "flutter run". You'll see
@@ -37,7 +113,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const SplashScreen(), // ✅ Just changed this line
+      home: const SplashScreen(), // Restore splash screen as initial home
     );
   }
 }
